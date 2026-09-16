@@ -1,0 +1,14 @@
+{
+  "input": "data/raw/sperm-whale-dialogues.csv",
+  "rhythms_input": "data/raw/rhythms.p",
+  "output_directory": "data/interim",
+  "expected_rows": 3840,
+  "missing_tokens": [
+    "",
+    "nan",
+    "null",
+    "none",
+    "na"
+  ],
+  "source_url": "https://github.com/pratyushasharma/sw-combinatoriality/tree/main/data"
+}

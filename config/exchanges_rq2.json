@@ -1,0 +1,15 @@
+{
+  "normalization_config": "config/preprocessing_rq2.json",
+  "input": "data/interim/codas_normalized_rq2.jsonl",
+  "output_directory": "data/processed",
+  "gap_threshold_s": 7,
+  "sensitivity_thresholds_s": [
+    5,
+    7,
+    10
+  ],
+  "hard_boundary_fields": [
+    "recording_id"
+  ],
+  "caller_field": "source_whale_code"
+}
