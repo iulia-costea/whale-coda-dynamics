@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from .audit import run as normalize_source
+from .io_utils import read_json, read_jsonl, write_jsonl
 
 
 def group_exchanges(rows, threshold, boundary_fields, caller_field):
@@ -110,11 +111,11 @@ def group_exchanges(rows, threshold, boundary_fields, caller_field):
 def run(config_path):
     path = Path(config_path).resolve()
     root = path.parent.parent
-    config = json.loads(path.read_text())
+    config = read_json(path)
     # Rebuild normalization to prevent silently consuming stale source data.
     audit = normalize_source(root / config["normalization_config"])
     source = root / config["input"]
-    rows = [json.loads(line) for line in source.read_text().splitlines()]
+    rows = read_jsonl(source)
     if len(rows) != audit["row_count"] or any(r["source_sha256"] != audit["source_sha256"] for r in rows):
         raise ValueError("Normalized input does not match the audited source")
     results = {t: group_exchanges(rows, t, config["hard_boundary_fields"], config["caller_field"])
@@ -122,10 +123,8 @@ def run(config_path):
     assignments, segments, summary = results[config["gap_threshold_s"]]
     output = root / config["output_directory"]
     output.mkdir(parents=True, exist_ok=True)
-    for filename, records in [("exchange_assignments.jsonl", assignments), ("exchange_segments.jsonl", segments)]:
-        with (output / filename).open("w") as handle:
-            for record in records:
-                handle.write(json.dumps(record, allow_nan=False) + "\n")
+    write_jsonl(output / "exchange_assignments.jsonl", assignments)
+    write_jsonl(output / "exchange_segments.jsonl", segments)
     report = {"configuration": config, "source_sha256": audit["source_sha256"],
               "normalized_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
               "primary": summary, "sensitivity": [r[2] for r in results.values()], "audit": audit}
