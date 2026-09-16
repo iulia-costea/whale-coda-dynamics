@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .exchanges import run as run_exchanges
 from .features import build_features
+from .io_utils import read_json, read_jsonl, write_jsonl, write_text
 
 
 def assign_splits(days, seed, validation_fraction, test_fraction):
@@ -60,10 +61,8 @@ def validate(features, events, limit):
 
 
 def write_table(path, rows):
-    with path.with_suffix(".jsonl").open("w") as handle:
-        for row in rows:
-            handle.write(json.dumps(row, allow_nan=False) + "\n")
-    with path.with_suffix(".csv").open("w", newline="") as handle:
+    write_jsonl(path.with_suffix(".jsonl"), rows)
+    with path.with_suffix(".csv").open("w", newline="", encoding="utf-8") as handle:
         if rows:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
             writer.writeheader()
@@ -73,7 +72,7 @@ def write_table(path, rows):
 def run(config_path):
     path = Path(config_path).resolve()
     root = path.parent.parent
-    config = json.loads(path.read_text())
+    config = read_json(path)
     limit, minimum = config["history_limit"], config["minimum_history_per_caller"]
     if type(limit) is not int or type(minimum) is not int or not 1 <= minimum <= limit:
         raise ValueError("Require 1 <= minimum history <= history limit")
@@ -89,10 +88,8 @@ def run(config_path):
         raise ValueError("Input conditions must cover exactly the eight A/B/S combinations")
     exchange_report = run_exchanges(root / config["exchange_config"])
     ec = exchange_report["configuration"]
-    def read_lines(p):
-        return [json.loads(line) for line in p.read_text().splitlines()]
-    assignments = read_lines(root / ec["output_directory"] / "exchange_assignments.jsonl")
-    segments = read_lines(root / ec["output_directory"] / "exchange_segments.jsonl")
+    assignments = read_jsonl(root / ec["output_directory"] / "exchange_assignments.jsonl")
+    segments = read_jsonl(root / ec["output_directory"] / "exchange_segments.jsonl")
     strict = {s["exchange_id"]: s["strict_focal_subset"] for s in segments}
     retained = [r for r in assignments if r["retained"]]
     if any(not r["recording_date"] for r in retained):
@@ -174,7 +171,7 @@ def run(config_path):
               "normalization": exchange_report["audit"]["configuration"]}, indent=2, ensure_ascii=False), "```", "",
               "Output SHA-256 checksums:", ""]
     lines += [f"- `{name}`: `{checksum}`" for name, checksum in report["artifact_sha256"].items()]
-    (reports / "rq1.md").write_text("\n".join(lines) + "\n")
+    write_text(reports / "rq1.md", "\n".join(lines) + "\n")
     return report
 
 

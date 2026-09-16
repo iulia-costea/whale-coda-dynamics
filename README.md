@@ -108,6 +108,30 @@ The current manifest is one reproducible day-held-out split. Multiple folds and
 model seeds, confidence intervals, and the proposal's timing/content separability
 checks remain downstream modeling work. No models have been trained yet.
 
+## RQ2: a different coda-type labeling scheme
+
+RQ2 tests whether the RQ1 contrasts hold under Sharma, Gero, Payne, et al. (2024)'s
+rhythm/tempo coda-type labeling, on a substantially overlapping recording set.
+Place `sperm-whale-dialogues.csv` and `rhythms.p` in `data/raw/` (already present),
+then run:
+
+```sh
+PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare_rq2
+```
+
+This reuses RQ1's exchange grouping, feature construction, split assignment, and
+validation logic unchanged (`exchanges.py`, `features.py`, `prepare.py`); only
+normalization (`preprocessing/audit_rq2.py`) and orchestration
+(`preprocessing/prepare_rq2.py`) are new, since Sharma's release has a different
+schema. Several RQ1 assumptions do not transfer cleanly: there is no Tag, Bout,
+Date, or Focal column, and no calendar date, so day-held-out splitting is replaced
+with deployment-held-out splitting (grouped by a deployment prefix parsed from
+REC, not a date). Coda types unseen in training are mapped to a shared `UNK`
+token with a smoothed training label prior, rather than dropped. See
+**`reports/rq2.md`** for the full accounting of these deviations, counts, and
+checksums. Outputs are `data/processed/rq2_comparison.csv`,
+`rq2_targets.jsonl`, `rq2_day_splits.csv`, and `rq2_label_prior.json`.
+
 ## Source documentation
 
 - [Data dictionary, provenance, and assumptions](reports/data_dictionary.md)

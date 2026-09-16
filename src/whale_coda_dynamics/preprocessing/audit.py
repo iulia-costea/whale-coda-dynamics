@@ -3,11 +3,12 @@ import argparse
 import ast
 import csv
 import hashlib
-import json
 import math
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+
+from .io_utils import read_json, write_jsonl
 
 FIELDS = {
     "Tag": ("tag_id", "text"), "REC": ("recording_id", "text"),
@@ -115,7 +116,7 @@ def normalize(rows, columns, config):
 
 def run(config_path):
     config_path = Path(config_path).resolve()
-    config = json.loads(config_path.read_text())
+    config = read_json(config_path)
     root = config_path.parent.parent
     source = root / config["input"]
     with source.open(encoding="utf-8-sig", newline="") as handle:
@@ -151,9 +152,7 @@ def run(config_path):
         row_issues.setdefault(issue["source_row_index"], []).append(issue)
     for row in normalized:
         row["audit_issues"] = row_issues.get(row["source_row_index"], [])
-    with (output / "codas_normalized.jsonl").open("w", encoding="utf-8") as handle:
-        for row in normalized:
-            handle.write(json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n")
+    write_jsonl(output / "codas_normalized.jsonl", normalized)
     return report
 
 
