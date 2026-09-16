@@ -1,0 +1,17 @@
+{
+  "normalization_config": "config/preprocessing.json",
+  "input": "data/interim/codas_normalized.jsonl",
+  "output_directory": "data/processed",
+  "gap_threshold_s": 7,
+  "sensitivity_thresholds_s": [
+    5,
+    7,
+    10
+  ],
+  "hard_boundary_fields": [
+    "tag_id",
+    "recording_id",
+    "source_bout_code"
+  ],
+  "caller_field": "source_whale_code"
+}

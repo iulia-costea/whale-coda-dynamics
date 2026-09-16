@@ -1,0 +1,17 @@
+{
+  "input": "data/raw/dswp-2014-2016-retagged-maor-2025.csv",
+  "output_directory": "data/interim",
+  "expected_rows": 3933,
+  "date_month_aliases": {
+    "מרץ": "03",
+    "מאי": "05"
+  },
+  "missing_tokens": [
+    "",
+    "nan",
+    "null",
+    "none",
+    "na"
+  ],
+  "source_url": "https://github.com/MaorAssayag/coda-sequences-relations-and-prediction/blob/main/dataset/dswp-2014-2016-retagged-maor-2025.csv"
+}
