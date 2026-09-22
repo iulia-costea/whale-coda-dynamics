@@ -67,7 +67,7 @@ Counts can overlap; row-level details are in codas_normalized.jsonl.
 
 ## Reproducibility
 
-Source SHA-256: `aa4159d12865f6b19837377678962f91ef344df63709e43f7ce604d524459015`
+Source SHA-256: `17b37605e56a21fb96bff301a2d43c4139693f7def23d4e3801d046026069856`
 
 Run configuration:
 
@@ -157,9 +157,9 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq1_comparison.csv`: `0e3866c3fa9475c349b1030e7d3d525a8b686887a80c214d211eb0add105c5d5`
-- `rq1_comparison.jsonl`: `8abec7d635e454c9c26d729f6b05471cd8623230ff1457f2674b5fcede01b6f6`
+- `rq1_comparison.csv`: `783538aba334ee98f6ad25d4f5cf8128c5e4c31304df637a169f96ce904a44b5`
+- `rq1_comparison.jsonl`: `b86f11d7f1dc840eee4ac6915dbce7cf11ea49e78acf2d398463cb40d43c3fe4`
 - `rq1_day_splits.csv`: `51641340353ba5b12c24e602c32c5bbc7a22406b6fd63ddb9787cc1e49a4171e`
 - `rq1_day_splits.jsonl`: `17c707260ceaf1d867ce19a1e338981b4e0ce510201b5ca42963997530b45b3b`
-- `rq1_targets.csv`: `40f431f3cfc7ac132325bf57fdffa35a7f05e6aae3f83ee3c8823a13953ba147`
-- `rq1_targets.jsonl`: `3b1dabca650f1fe6710cb6186c129cdf3f889de5ed0a226dd5ce385ecec150f7`
+- `rq1_targets.csv`: `cb136f805907687c6d718a32e7fc1f2ff7bae40715a016ee4030e33bb122d921`
+- `rq1_targets.jsonl`: `b4876668f962c4878f49f8c6ae79f545f4ed7ae021edeb933769d61eb941084a`

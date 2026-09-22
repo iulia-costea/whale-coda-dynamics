@@ -105,7 +105,7 @@ Counts can overlap; row-level details are in codas_normalized_rq2.jsonl.
 
 ## Reproducibility
 
-Combined source SHA-256 (CSV + rhythms.p): `697f309606778a61cd5ed15784aac95adbf5c8683879b872ebfae2c7c8f743a8`
+Combined source SHA-256 (CSV + rhythms.p): `ca49183e39c27b1a9db4aa98c9d8ecb636ec087eb8a652bb0d712946cb53d5a5`
 
 Run configuration:
 
@@ -192,12 +192,12 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq2_comparison.csv`: `feca70101570a19e11885ed53c529816696b541dbdff7cb5f601dc9cd9e767da`
-- `rq2_comparison.jsonl`: `46efdd04cf7d1da2759d64d4dd629471b5a690351245c26c1934b31a5fcdaac5`
+- `rq2_comparison.csv`: `0ae691ee88817c54b8eb129c3fa3ee1cebaae24484d8bd4900e0ed867e1bd049`
+- `rq2_comparison.jsonl`: `1d0c132a960ea8ab5041b8260c493ade656c95ee03a68d49d9a13fec496df328`
 - `rq2_day_splits.csv`: `81e5ace2c9d0ab0966f12deda83e8564485334d1496af2b837e051bf7788a2fb`
 - `rq2_day_splits.jsonl`: `cf78530ac7c249d26dd5d204887df592b82a0ca4e9faa332cf813a1d328ad4e2`
 - `rq2_exchange_assignments.jsonl`: `15abbd0a11108ee802cf1dec559fdf6f46231da9749da10020c018e164782dad`
 - `rq2_exchange_segments.jsonl`: `319480aa91d4265167ff544895797002869deef4d47f1c8034e45d1b4d2a00cb`
 - `rq2_label_prior.json`: `5dffcbe9485836e0f43f94ae1a8102dec855753ff4d223944584ee1306baffd6`
-- `rq2_targets.csv`: `b0681969e58258bb3f3eeb923f811ffc56839f5244a694da95af5012909e6757`
-- `rq2_targets.jsonl`: `d10c0ce85a33f5cd700978902812eaefef3b88add6c5d40835c0e8df1d118a64`
+- `rq2_targets.csv`: `200974873ebfc5b2037546972fb82e56a214857549ad7362d6c3f5c67a96a1cc`
+- `rq2_targets.jsonl`: `ecd4cf45fd961db381d8eb1e27e3d65eb758d65016bcff5ee099d95ba3708739`
