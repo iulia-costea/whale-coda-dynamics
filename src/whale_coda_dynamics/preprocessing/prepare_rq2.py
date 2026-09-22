@@ -45,7 +45,7 @@ from .audit_rq2 import run as normalize_source_rq2
 from .exchanges import group_exchanges
 from .features import build_features
 from .io_utils import read_json, read_jsonl, write_jsonl, write_text
-from .prepare import assign_splits, validate, write_table
+from .prepare import S_FIELDS, TIMING_DESCRIPTIONS, assign_splits, interactional_state_summary, validate, write_table
 
 
 def run_exchanges_rq2(config_path):
@@ -114,9 +114,9 @@ def run(config_path):
         raise ValueError("Require 1 <= minimum history <= history limit")
     if config["provisional_assumptions_accepted"] is not True:
         raise ValueError("This source requires explicit acceptance of provisional assumptions")
-    if config["timing_convention"] != "retrospective_signed_end_to_start":
-        raise ValueError("Only retrospective signed delay is implemented")
-    sources = {"A": ["A_history"], "B": ["B_history"], "S": ["turn_category", "response_delay_s"]}
+    if config["timing_convention"] not in S_FIELDS:
+        raise ValueError(f"timing_convention must be one of {sorted(S_FIELDS)}")
+    sources = {"A": ["A_history"], "B": ["B_history"], "S": S_FIELDS[config["timing_convention"]]}
     expected_conditions = {"_".join(k for i, k in enumerate(sources) if mask & (1 << i)) or "none":
                            [field for i, fields in enumerate(sources.values()) if mask & (1 << i) for field in fields]
                            for mask in range(8)}
@@ -145,7 +145,7 @@ def run(config_path):
         for field in ("source_coda_id", "source_row_index", "tag_id", "recording_id", "source_bout_code", "source_whale_code", "onset_s", "offset_s", "recording_date", "split"):
             row[field] = e[field]
         row["timing_convention"] = config["timing_convention"]
-        row["delay_uses_post_onset_endpoint"] = row["response_delay_s"] is not None and row["response_delay_s"] < 0
+        row["delay_uses_post_onset_endpoint"] = row["retrospective_delay_s"] is not None and row["retrospective_delay_s"] < 0
         row["source_sha256"] = exchange_report["source_sha256"]
         row["strict_focal_subset"] = strict[row["exchange_id"]]
         row["A_history_length"], row["B_history_length"] = len(row["A_history"]), len(row["B_history"])
@@ -153,7 +153,7 @@ def run(config_path):
         row["comparison_exclusion_reasons"] = [f"insufficient_{prefix}_history" for prefix in ("A", "B") if row[prefix + "_history_length"] < minimum]
     features.sort(key=lambda r: r["source_row_index"])
     comparison = [r for r in features if r["comparison_eligible"]]
-    if any(r["response_delay_s"] is None for r in comparison):
+    if any(r["retrospective_delay_s"] is None for r in comparison):
         raise ValueError("Every shared comparison target must have an observed signed delay")
     unk = apply_unk_policy(features, config["unk_token"], config["unk_smoothing_alpha"])
     stats = {}
@@ -232,9 +232,9 @@ def run(config_path):
               "All eight conditions use identical comparison targets, deployment-held-out splits, and UNK mapping.", ""]
     lines += [f"- {name}: {', '.join(fields) or 'no context (training-only label prior)'}" for name, fields in config["input_conditions"].items()]
     lines += ["", "Primary RQ2 contrast (parallel to RQ1): held-out log-likelihood(A_B_S) minus log-likelihood(B_S).",
-              "Timing convention: retrospective signed end-to-start delay to the most recently started prior interlocutor coda. Negative delay uses an endpoint after target onset; this is not online onset-time prediction.",
-              f"Comparison targets with post-onset endpoints: {sum(r['delay_uses_post_onset_endpoint'] for r in comparison)}.",
+              TIMING_DESCRIPTIONS[config["timing_convention"]],
               "Deployment group replaces recording day; see Deviations above. Model folds and training seeds remain downstream evaluation work."]
+    lines += interactional_state_summary(comparison, events)
     lines += ["", "## Label vocabulary and UNK policy", "",
               f"Raw rhythm-cluster labels: {len(exchange_report['audit']['rhythm_label_counts'])} distinct values (0-17).",
               f"Training vocabulary (targets and history entries observed in train): {unk['train_vocabulary_size']} labels, plus the catch-all `{unk['unk_token']}` token.",

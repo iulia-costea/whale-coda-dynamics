@@ -10,6 +10,39 @@ from .exchanges import run as run_exchanges
 from .features import build_features
 from .io_utils import read_json, read_jsonl, write_jsonl, write_text
 
+# S field list per timing convention (PLAN [D5], DEC-1). onset_available is primary;
+# the retrospective delay to the last interlocutor coda is a sensitivity run only.
+S_FIELDS = {"onset_available": ["turn_category", "gap_s", "overlap_elapsed_s"],
+            "retrospective_signed_end_to_start": ["turn_category", "retrospective_delay_s"]}
+TIMING_DESCRIPTIONS = {
+    "onset_available": "Timing convention: onset_available. S holds only what is known at target onset, relative to the "
+                       "immediately preceding coda of either caller: turn_category, gap_s (end-to-start, continuations and "
+                       "switches) and overlap_elapsed_s (onset-to-onset, overlaps). retrospective_delay_s is a sensitivity field in no S list.",
+    "retrospective_signed_end_to_start": "Timing convention: retrospective_signed_end_to_start (sensitivity run). S uses the signed "
+                       "end-to-start delay to the most recently started prior interlocutor coda. Negative delay uses an endpoint "
+                       "after target onset; this is not online onset-time prediction."}
+
+
+def interactional_state_summary(comparison, events):
+    """Report lines describing S on the comparison targets."""
+    lookup = {e["coda_id"]: e for e in events}
+    same_whale = sum(r["turn_category"] == "overlap" and lookup[r["turn_predecessor_id"]]["whale_id"] == r["whale_id"]
+                     for r in comparison)
+    non_adjacent = sum(r["turn_category"] in ("self_continuation", "switch") and any(
+        e["exchange_id"] == r["exchange_id"] and e["onset_s"] < r["onset_s"] < e["offset_s"] for e in events)
+        for r in comparison)
+    lines = ["", "## Interactional state", "", "| turn_category | Comparison targets | Max gap_s | Max overlap_elapsed_s |", "|---|---:|---:|---:|"]
+    for category in ("exchange_start", "self_continuation", "switch", "overlap"):
+        subset = [r for r in comparison if r["turn_category"] == category]
+        lines.append(f"| {category} | {len(subset)} | {max((r['gap_s'] for r in subset), default=0):.3f} | "
+                     f"{max((r['overlap_elapsed_s'] for r in subset), default=0):.3f} |")
+    lines += ["", f"Same-caller overlaps (preceding coda is the target caller's own): {same_whale}.",
+              f"Targets starting after the preceding coda ends but before an earlier coda ends: {non_adjacent}.",
+              f"Sensitivity field: targets whose retrospective_delay_s uses a post-onset endpoint: "
+              f"{sum(r['delay_uses_post_onset_endpoint'] for r in comparison)}; overlaps_prior_interlocutor: "
+              f"{sum(r['overlaps_prior_interlocutor'] for r in comparison)}."]
+    return lines
+
 
 def assign_splits(days, seed, validation_fraction, test_fraction):
     if not (0 < validation_fraction < 1 and 0 < test_fraction < 1
@@ -47,11 +80,23 @@ def validate(features, events, limit):
         others = [e for e in prior if e["whale_id"] != target["whale_id"]]
         predecessor = others[-1] if others else None
         delay = target["onset_s"] - predecessor["offset_s"] if predecessor else None
-        if row["response_predecessor_id"] != (predecessor["coda_id"] if predecessor else None) or row["response_delay_s"] != delay:
-            raise ValueError("Response delay misaligned")
-        category = "exchange_start" if not prior else ("same_caller_continuation" if prior[-1]["whale_id"] == target["whale_id"] else "caller_switch")
-        if row["Ct"] != target["coda_type"] or row["turn_category"] != category:
-            raise ValueError("Target or turn category mismatch")
+        if row["retrospective_predecessor_id"] != (predecessor["coda_id"] if predecessor else None) or row["retrospective_delay_s"] != delay:
+            raise ValueError("Retrospective delay misaligned")
+        # Interactional state S: recomputed from the event list, relative to the latest earlier onset.
+        immediate = max(prior, key=lambda e: e["onset_s"]) if prior else None
+        if immediate is None:
+            expected = ("exchange_start", None, 0.0, 0.0)
+        elif immediate["offset_s"] > target["onset_s"]:
+            expected = ("overlap", immediate["coda_id"], 0.0, target["onset_s"] - immediate["onset_s"])
+        else:
+            expected = ("self_continuation" if immediate["whale_id"] == target["whale_id"] else "switch",
+                        immediate["coda_id"], target["onset_s"] - immediate["offset_s"], 0.0)
+        if row["Ct"] != target["coda_type"] or (row["turn_category"], row["turn_predecessor_id"], row["gap_s"], row["overlap_elapsed_s"]) != expected:
+            raise ValueError("Target or interactional state mismatch")
+        if expected[0] == "overlap" and not 0 < row["overlap_elapsed_s"] < immediate["offset_s"] - immediate["onset_s"]:
+            raise ValueError("Overlap elapsed time outside the preceding coda")
+        if row["gap_s"] < 0 or row["overlap_elapsed_s"] < 0:
+            raise ValueError("Negative interactional timing")
         if row["overlaps_prior_interlocutor"] != any(e["offset_s"] > target["onset_s"] for e in others):
             raise ValueError("Overlap mismatch")
     for field in ("recording_date", "tag_id", "exchange_id"):
@@ -78,9 +123,9 @@ def run(config_path):
         raise ValueError("Require 1 <= minimum history <= history limit")
     if config["provisional_assumptions_accepted"] is not True:
         raise ValueError("This source requires explicit acceptance of provisional assumptions")
-    if config["timing_convention"] != "retrospective_signed_end_to_start":
-        raise ValueError("Only retrospective signed delay is implemented")
-    sources = {"A": ["A_history"], "B": ["B_history"], "S": ["turn_category", "response_delay_s"]}
+    if config["timing_convention"] not in S_FIELDS:
+        raise ValueError(f"timing_convention must be one of {sorted(S_FIELDS)}")
+    sources = {"A": ["A_history"], "B": ["B_history"], "S": S_FIELDS[config["timing_convention"]]}
     expected_conditions = {"_".join(k for i, k in enumerate(sources) if mask & (1 << i)) or "none":
                            [field for i, fields in enumerate(sources.values()) if mask & (1 << i) for field in fields]
                            for mask in range(8)}
@@ -109,7 +154,7 @@ def run(config_path):
         for field in ("source_coda_id", "source_row_index", "tag_id", "recording_id", "source_bout_code", "source_whale_code", "onset_s", "offset_s", "recording_date", "split"):
             row[field] = e[field]
         row["timing_convention"] = config["timing_convention"]
-        row["delay_uses_post_onset_endpoint"] = row["response_delay_s"] is not None and row["response_delay_s"] < 0
+        row["delay_uses_post_onset_endpoint"] = row["retrospective_delay_s"] is not None and row["retrospective_delay_s"] < 0
         row["source_sha256"] = exchange_report["source_sha256"]
         row["strict_focal_subset"] = strict[row["exchange_id"]]
         row["A_history_length"], row["B_history_length"] = len(row["A_history"]), len(row["B_history"])
@@ -117,7 +162,7 @@ def run(config_path):
         row["comparison_exclusion_reasons"] = [f"insufficient_{prefix}_history" for prefix in ("A", "B") if row[prefix + "_history_length"] < minimum]
     features.sort(key=lambda r: r["source_row_index"])
     comparison = [r for r in features if r["comparison_eligible"]]
-    if any(r["response_delay_s"] is None for r in comparison):
+    if any(r["retrospective_delay_s"] is None for r in comparison):
         raise ValueError("Every shared comparison target must have an observed signed delay")
     stats = {}
     training_types = {r["Ct"] for r in comparison if r["split"] == "train"}
@@ -156,9 +201,9 @@ def run(config_path):
     lines += ["", "## RQ1 input conditions", "", "All eight conditions use identical comparison targets and day-held-out splits.", ""]
     lines += [f"- {name}: {', '.join(fields) or 'no context (training-only label prior)'}" for name, fields in config["input_conditions"].items()]
     lines += ["", "Primary RQ1 contrast: held-out log-likelihood(A_B_S) minus log-likelihood(B_S).",
-              "Timing convention: retrospective signed end-to-start delay to the most recently started prior interlocutor coda. Negative delay uses an endpoint after target onset; this is not online onset-time prediction.",
-              f"Comparison targets with post-onset endpoints: {sum(r['delay_uses_post_onset_endpoint'] for r in comparison)}.",
+              TIMING_DESCRIPTIONS[config["timing_convention"]],
               "Recording day is the normalized source Date, not a reconstructed absolute timestamp. Model folds and training seeds remain downstream evaluation work."]
+    lines += interactional_state_summary(comparison, events)
     lines += ["", "## Audit flags", "", "Counts can overlap; row-level details are in codas_normalized.jsonl.", ""]
     lines += [f"- {name}: {count}" for name, count in exchange_report["audit"]["issue_counts"].items()]
     lines += ["", "## Exchange exclusions", ""]

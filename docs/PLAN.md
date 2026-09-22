@@ -4,7 +4,12 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Why** each choice was made, and how this differs from the proposal: `docs/DECISIONS.md`.
 - **Deferred** ideas: `docs/LATER.md`.
 
-**Status (2026-09-22):** the preprocessing pipeline is done (RQ1: 1,547 targets; Sharma pipeline: 1,318). Phase 1 fixes are in progress, and no models exist yet. See §12 for the order of work.
+**Status (2026-09-22):**
+- **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
+- **In progress:** the rest of phase 1.
+- **Not started:** no models exist yet.
+
+See §12 for the order of work.
 
 ---
 
@@ -66,9 +71,15 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 | `gap_s` | For `self_continuation` and `switch`: target onset − end of preceding coda. 0 otherwise |
 | `overlap_elapsed_s` | For `overlap`: target onset − onset of preceding coda. 0 otherwise |
 
-**Old delay:** the current `retrospective_signed_end_to_start` delay is kept as a sensitivity field only, never as part of $S$.
+`turn_predecessor_id` records which coda was the preceding one.
 
-**Overlap counts:** the old overlap flag (441 RQ1 targets) referenced the last *partner* coda, so the new `overlap` count need not match. Account for every difference, and list same-whale overlaps separately.
+**Old delay:** kept as `retrospective_delay_s`, a sensitivity field only. It is used in the `retrospective_signed_end_to_start` convention and is never part of the primary $S$.
+
+**Result (implemented):**
+- **RQ1 comparison targets:** 461 `self_continuation`, 645 `switch`, 441 `overlap`. Sharma pipeline: 388 / 557 / 373.
+- **No `exchange_start`:** comparison targets need history from both whales, so none are `exchange_start`.
+- **Overlaps:** they match the old overlap flag row for row. There are no same-whale overlaps, and none with a non-adjacent coda.
+- **Gaps:** `gap_s` is at most 6.97 s. The old continuation delay reached 50 s.
 
 ---
 
@@ -259,7 +270,6 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 - Which codas are identity codas per clan (`[R3-3]`)?
 - Per-clan coda counts in `[D4]` after filtering.
 - Is the switch part of `[P1]` (~270 codas) big enough to show anything? Check after the first numbers.
-- How many same-whale overlaps are there under the new `overlap` category, and should they be excluded as annotation artefacts? Decide after prompt 1.
 - Should partner-coda content heard before the target's onset ever enter $S$? Current answer: no.
 
 ---
@@ -267,7 +277,7 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 ## 12. Order of work
 
 1. **Phase 1 — preprocessing fixes:**
-   - new $S$ (DEC-1);
+   - new $S$ (DEC-1) — **done**;
    - shared unknown-type module (DEC-7, DEC-10);
    - record the `pair_category` missingness finding in the data dictionary;
    - flag long codas.

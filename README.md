@@ -88,14 +88,15 @@ A,B,S minus A,S and A,B,S minus A,B respectively.
 
 ### Timing convention
 
-This preparation uses **retrospective conditional analysis**. S includes the
-signed gap from the most recently started earlier interlocutor coda's end to the
-target onset, plus the category based on the immediately preceding caller.
-Negative delays use an endpoint after target onset. The
-`delay_uses_post_onset_endpoint` flag identifies those rows and
-`timing_convention` records this choice. This is not a real-time forecasting
-claim, and timing-conditioned gains must be interpreted accordingly. Histories
-still contain only completed codas strictly preceding target onset.
+S contains only what is known at the target's onset (`timing_convention` =
+`onset_available`, PLAN [D5]): `turn_category` (exchange_start /
+self_continuation / switch / overlap, relative to the immediately preceding coda
+of either whale), `gap_s` (end-to-start, continuations and switches) and
+`overlap_elapsed_s` (onset-to-onset, overlaps). The old signed delay to the last
+interlocutor coda is kept as `retrospective_delay_s` for a sensitivity run only
+(`timing_convention` = `retrospective_signed_end_to_start`); negative values use
+an endpoint after target onset, flagged by `delay_uses_post_onset_endpoint`.
+Histories still contain only completed codas strictly preceding target onset.
 
 Fit model parameters, input encoders and scaling on training only; tune on
 validation and reserve test for final evaluation. Validation contains a coda type

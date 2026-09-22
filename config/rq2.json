@@ -8,14 +8,15 @@
   "report_directory": "reports",
   "validation_day_fraction": 0.15,
   "test_day_fraction": 0.15,
-  "timing_convention": "retrospective_signed_end_to_start",
+  "timing_convention": "onset_available",
   "unk_token": "UNK",
   "unk_smoothing_alpha": 1.0,
   "input_conditions": {
     "none": [],
     "S": [
       "turn_category",
-      "response_delay_s"
+      "gap_s",
+      "overlap_elapsed_s"
     ],
     "A": [
       "A_history"
@@ -30,18 +31,21 @@
     "A_S": [
       "A_history",
       "turn_category",
-      "response_delay_s"
+      "gap_s",
+      "overlap_elapsed_s"
     ],
     "B_S": [
       "B_history",
       "turn_category",
-      "response_delay_s"
+      "gap_s",
+      "overlap_elapsed_s"
     ],
     "A_B_S": [
       "A_history",
       "B_history",
       "turn_category",
-      "response_delay_s"
+      "gap_s",
+      "overlap_elapsed_s"
     ]
   }
 }

@@ -4,6 +4,12 @@ This module is not applied to the unresolved source CSV by the audit command.
 Preparation can explicitly accept provisional assumptions without claiming confirmation.
 History eligibility uses completed codas (end <= target onset), strictly earlier
 onsets, and a maximum count. Overlap is measured separately from eligibility.
+
+Interactional state S (PLAN [D5], DEC-1) uses only what is known at target onset,
+relative to the immediately preceding coda of either caller (latest earlier onset):
+turn_category, gap_s (end-to-start, continuations and switches) and
+overlap_elapsed_s (onset-to-onset, overlaps). The older retrospective delay to the
+last interlocutor coda is kept as a sensitivity field only.
 """
 import math
 from collections import defaultdict
@@ -42,17 +48,25 @@ def build_features(events, *, definitions_confirmed=False, provisional_assumptio
             other = [e for e in eligible if e["whale_id"] != target["whale_id"]][-history_limit:]
             other_prior = [e for e in previous if e["whale_id"] != target["whale_id"]]
             predecessor = other_prior[-1] if other_prior else None
-            category = "exchange_start" if not previous else (
-                "same_caller_continuation" if previous[-1]["whale_id"] == target["whale_id"] else "caller_switch")
+            immediate = previous[-1] if previous else None
+            gap, elapsed = 0.0, 0.0
+            if immediate is None:
+                category = "exchange_start"
+            elif target["onset_s"] < immediate["offset_s"]:
+                category, elapsed = "overlap", target["onset_s"] - immediate["onset_s"]
+            else:
+                category = "self_continuation" if immediate["whale_id"] == target["whale_id"] else "switch"
+                gap = target["onset_s"] - immediate["offset_s"]
             output.append({
                 "coda_id": target["coda_id"], "Ct": target["coda_type"], "whale_id": target["whale_id"],
                 "identity_status": "confirmed" if definitions_confirmed else "provisional_local_code",
                 "exchange_id": exchange, "A_history": [e["coda_type"] for e in own],
                 "B_history": [e["coda_type"] for e in other],
                 "A_history_ids": [e["coda_id"] for e in own], "B_history_ids": [e["coda_id"] for e in other],
-                "response_predecessor_id": predecessor["coda_id"] if predecessor else None,
-                "response_delay_s": target["onset_s"] - predecessor["offset_s"] if predecessor else None,
-                "turn_category": category,
+                "turn_predecessor_id": immediate["coda_id"] if immediate else None,
+                "turn_category": category, "gap_s": gap, "overlap_elapsed_s": elapsed,
+                "retrospective_predecessor_id": predecessor["coda_id"] if predecessor else None,
+                "retrospective_delay_s": target["onset_s"] - predecessor["offset_s"] if predecessor else None,
                 "overlaps_prior_interlocutor": any(e["offset_s"] > target["onset_s"] for e in other_prior),
             })
     return output

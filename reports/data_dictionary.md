@@ -76,12 +76,26 @@ have been resolved by its caller. Tied onsets are rejected pending a policy.
 - A_history/B_history: completed prior codas by self/other, oldest first, at most
   10 each. Histories cannot cross exchanges. Partially overlapping codas are
   excluded from these histories because their complete type may not yet be available.
-- response_delay_s: target onset minus the end of the most recently started
-  earlier interlocutor coda. Its ID is exported. Negative gaps mark overlap;
-  absent predecessors yield null. This is an operational temporal relation,
-  not proof that the target is a behavioral response.
-- turn_category: exchange_start, same_caller_continuation, or caller_switch,
-  determined by the immediately preceding onset.
+Interactional state S (PLAN [D5], DEC-1) holds only what is known at target
+onset. It is defined relative to the immediately preceding coda of either caller
+(latest earlier onset in the exchange; ID exported as `turn_predecessor_id`) and
+never contains a coda's duration or content.
+
+- turn_category: exchange_start (no earlier coda), overlap (target starts before
+  the preceding coda ends), otherwise self_continuation (preceding coda is the
+  target caller's own) or switch.
+- gap_s: target onset minus the end of the preceding coda, for self_continuation
+  and switch; 0 otherwise.
+- overlap_elapsed_s: target onset minus the onset of the preceding coda, for
+  overlap; 0 otherwise.
+
+Sensitivity and diagnostic fields, in no S input list:
+
+- retrospective_delay_s: target onset minus the end of the most recently started
+  earlier interlocutor coda (ID exported as `retrospective_predecessor_id`).
+  Negative values use an endpoint after target onset; absent predecessors yield
+  null. For continuations it includes the caller's own previous coda, so it is
+  used only for the sensitivity run with the old delay.
 - overlaps_prior_interlocutor: any earlier interlocutor coda still active.
 
 These are explicit proposed RQ1 choices, not a reproduction of the authors'
@@ -138,17 +152,17 @@ dates or tags spanning multiple date labels stop preparation for review. Dates
 remain recording labels; absolute onset times and midnight rollover are unresolved.
 
 The eight input conditions are declared in `config/rq1.json`: none, S, A, B,
-A+B, A+S, B+S, A+B+S. S uses `turn_category` and `response_delay_s`. The main
+A+B, A+S, B+S, A+B+S. S uses `turn_category`, `gap_s` and `overlap_elapsed_s`. The main
 RQ1 contrast is A+B+S versus B+S, evaluated on exactly the same comparison targets.
 A_history/B_history lengths and IDs are support metadata, not extra unlisted
 predictors. Context-free and S-only conditions must not receive history masks or
 lengths as inputs. For each condition, provide only its declared input columns.
 
-Timing is explicitly retrospective (`timing_convention` =
-`retrospective_signed_end_to_start`). `delay_uses_post_onset_endpoint` is true
-when the predecessor ends after target onset. Such signed delays can be used
-for the declared retrospective analysis but not real-time onset prediction.
-The flag itself is diagnostic metadata, not an extra predictor. Completed-prior
+Timing is onset-available (`timing_convention` = `onset_available`). The only
+other accepted value, `retrospective_signed_end_to_start`, is the sensitivity run
+and requires S = `turn_category`, `retrospective_delay_s`.
+`delay_uses_post_onset_endpoint` is true when the retrospective predecessor ends
+after target onset. The flag itself is diagnostic metadata, not an extra predictor. Completed-prior
 history eligibility remains unchanged. Held-out histories use observed previous
 codas, not recursively generated predictions.
 

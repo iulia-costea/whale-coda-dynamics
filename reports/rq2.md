@@ -58,18 +58,30 @@ Types in test absent from training (post-UNK-mapping): [].
 All eight conditions use identical comparison targets, deployment-held-out splits, and UNK mapping.
 
 - none: no context (training-only label prior)
-- S: turn_category, response_delay_s
+- S: turn_category, gap_s, overlap_elapsed_s
 - A: A_history
 - B: B_history
 - A_B: A_history, B_history
-- A_S: A_history, turn_category, response_delay_s
-- B_S: B_history, turn_category, response_delay_s
-- A_B_S: A_history, B_history, turn_category, response_delay_s
+- A_S: A_history, turn_category, gap_s, overlap_elapsed_s
+- B_S: B_history, turn_category, gap_s, overlap_elapsed_s
+- A_B_S: A_history, B_history, turn_category, gap_s, overlap_elapsed_s
 
 Primary RQ2 contrast (parallel to RQ1): held-out log-likelihood(A_B_S) minus log-likelihood(B_S).
-Timing convention: retrospective signed end-to-start delay to the most recently started prior interlocutor coda. Negative delay uses an endpoint after target onset; this is not online onset-time prediction.
-Comparison targets with post-onset endpoints: 373.
+Timing convention: onset_available. S holds only what is known at target onset, relative to the immediately preceding coda of either caller: turn_category, gap_s (end-to-start, continuations and switches) and overlap_elapsed_s (onset-to-onset, overlaps). retrospective_delay_s is a sensitivity field in no S list.
 Deployment group replaces recording day; see Deviations above. Model folds and training seeds remain downstream evaluation work.
+
+## Interactional state
+
+| turn_category | Comparison targets | Max gap_s | Max overlap_elapsed_s |
+|---|---:|---:|---:|
+| exchange_start | 0 | 0.000 | 0.000 |
+| self_continuation | 388 | 6.967 | 0.000 |
+| switch | 557 | 6.755 | 0.000 |
+| overlap | 373 | 0.000 | 1.461 |
+
+Same-caller overlaps (preceding coda is the target caller's own): 0.
+Targets starting after the preceding coda ends but before an earlier coda ends: 0.
+Sensitivity field: targets whose retrospective_delay_s uses a post-onset endpoint: 373; overlaps_prior_interlocutor: 373.
 
 ## Label vocabulary and UNK policy
 
@@ -121,14 +133,15 @@ Run configuration:
     "report_directory": "reports",
     "validation_day_fraction": 0.15,
     "test_day_fraction": 0.15,
-    "timing_convention": "retrospective_signed_end_to_start",
+    "timing_convention": "onset_available",
     "unk_token": "UNK",
     "unk_smoothing_alpha": 1.0,
     "input_conditions": {
       "none": [],
       "S": [
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ],
       "A": [
         "A_history"
@@ -143,18 +156,21 @@ Run configuration:
       "A_S": [
         "A_history",
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ],
       "B_S": [
         "B_history",
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ],
       "A_B_S": [
         "A_history",
         "B_history",
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ]
     }
   },
@@ -192,12 +208,12 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq2_comparison.csv`: `0ae691ee88817c54b8eb129c3fa3ee1cebaae24484d8bd4900e0ed867e1bd049`
-- `rq2_comparison.jsonl`: `1d0c132a960ea8ab5041b8260c493ade656c95ee03a68d49d9a13fec496df328`
+- `rq2_comparison.csv`: `b44b1324a0bc21fb2f7996406e5875b56a1aa29dae14654299587f01a6508c02`
+- `rq2_comparison.jsonl`: `a44fab75b256cdf80e6bacc77fcb158ffc0709e4ad31b8dc1cb9138a7442a63d`
 - `rq2_day_splits.csv`: `81e5ace2c9d0ab0966f12deda83e8564485334d1496af2b837e051bf7788a2fb`
 - `rq2_day_splits.jsonl`: `cf78530ac7c249d26dd5d204887df592b82a0ca4e9faa332cf813a1d328ad4e2`
 - `rq2_exchange_assignments.jsonl`: `15abbd0a11108ee802cf1dec559fdf6f46231da9749da10020c018e164782dad`
 - `rq2_exchange_segments.jsonl`: `319480aa91d4265167ff544895797002869deef4d47f1c8034e45d1b4d2a00cb`
 - `rq2_label_prior.json`: `5dffcbe9485836e0f43f94ae1a8102dec855753ff4d223944584ee1306baffd6`
-- `rq2_targets.csv`: `200974873ebfc5b2037546972fb82e56a214857549ad7362d6c3f5c67a96a1cc`
-- `rq2_targets.jsonl`: `ecd4cf45fd961db381d8eb1e27e3d65eb758d65016bcff5ee099d95ba3708739`
+- `rq2_targets.csv`: `82bcd0028f92e6d3a3242e670258cc0fa11053a56eee0de37db9bb283b477e1e`
+- `rq2_targets.jsonl`: `9d79b368862ffdf7d7ffbd573dd61d00c2683c5b766ffd8eeca8ade67eb430e3`

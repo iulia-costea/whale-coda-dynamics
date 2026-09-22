@@ -26,18 +26,30 @@ Types in test absent from training: [].
 All eight conditions use identical comparison targets and day-held-out splits.
 
 - none: no context (training-only label prior)
-- S: turn_category, response_delay_s
+- S: turn_category, gap_s, overlap_elapsed_s
 - A: A_history
 - B: B_history
 - A_B: A_history, B_history
-- A_S: A_history, turn_category, response_delay_s
-- B_S: B_history, turn_category, response_delay_s
-- A_B_S: A_history, B_history, turn_category, response_delay_s
+- A_S: A_history, turn_category, gap_s, overlap_elapsed_s
+- B_S: B_history, turn_category, gap_s, overlap_elapsed_s
+- A_B_S: A_history, B_history, turn_category, gap_s, overlap_elapsed_s
 
 Primary RQ1 contrast: held-out log-likelihood(A_B_S) minus log-likelihood(B_S).
-Timing convention: retrospective signed end-to-start delay to the most recently started prior interlocutor coda. Negative delay uses an endpoint after target onset; this is not online onset-time prediction.
-Comparison targets with post-onset endpoints: 441.
+Timing convention: onset_available. S holds only what is known at target onset, relative to the immediately preceding coda of either caller: turn_category, gap_s (end-to-start, continuations and switches) and overlap_elapsed_s (onset-to-onset, overlaps). retrospective_delay_s is a sensitivity field in no S list.
 Recording day is the normalized source Date, not a reconstructed absolute timestamp. Model folds and training seeds remain downstream evaluation work.
+
+## Interactional state
+
+| turn_category | Comparison targets | Max gap_s | Max overlap_elapsed_s |
+|---|---:|---:|---:|
+| exchange_start | 0 | 0.000 | 0.000 |
+| self_continuation | 461 | 6.967 | 0.000 |
+| switch | 645 | 6.755 | 0.000 |
+| overlap | 441 | 0.000 | 2.256 |
+
+Same-caller overlaps (preceding coda is the target caller's own): 0.
+Targets starting after the preceding coda ends but before an earlier coda ends: 0.
+Sensitivity field: targets whose retrospective_delay_s uses a post-onset endpoint: 441; overlaps_prior_interlocutor: 441.
 
 ## Audit flags
 
@@ -83,12 +95,13 @@ Run configuration:
     "report_directory": "reports",
     "validation_day_fraction": 0.15,
     "test_day_fraction": 0.15,
-    "timing_convention": "retrospective_signed_end_to_start",
+    "timing_convention": "onset_available",
     "input_conditions": {
       "none": [],
       "S": [
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ],
       "A": [
         "A_history"
@@ -103,18 +116,21 @@ Run configuration:
       "A_S": [
         "A_history",
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ],
       "B_S": [
         "B_history",
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ],
       "A_B_S": [
         "A_history",
         "B_history",
         "turn_category",
-        "response_delay_s"
+        "gap_s",
+        "overlap_elapsed_s"
       ]
     }
   },
@@ -157,9 +173,9 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq1_comparison.csv`: `783538aba334ee98f6ad25d4f5cf8128c5e4c31304df637a169f96ce904a44b5`
-- `rq1_comparison.jsonl`: `b86f11d7f1dc840eee4ac6915dbce7cf11ea49e78acf2d398463cb40d43c3fe4`
+- `rq1_comparison.csv`: `e02858ded71b496a8c7a1a58235b136680118f17cca9e31a8d2fc58ee3aa5489`
+- `rq1_comparison.jsonl`: `7ce8b3c8a293f57c1996f5179fb34999f08e183ad88de0f9aea191e6de9aaee6`
 - `rq1_day_splits.csv`: `51641340353ba5b12c24e602c32c5bbc7a22406b6fd63ddb9787cc1e49a4171e`
 - `rq1_day_splits.jsonl`: `17c707260ceaf1d867ce19a1e338981b4e0ce510201b5ca42963997530b45b3b`
-- `rq1_targets.csv`: `cb136f805907687c6d718a32e7fc1f2ff7bae40715a016ee4030e33bb122d921`
-- `rq1_targets.jsonl`: `b4876668f962c4878f49f8c6ae79f545f4ed7ae021edeb933769d61eb941084a`
+- `rq1_targets.csv`: `113190459bb1da68cefa966bb7d68ab1aac496bae313f6c6d065cdcb591366a5`
+- `rq1_targets.jsonl`: `bef05da838d3e4d5c080944466185c1e6ea5c1573f020e48b0b1274bdc49937a`
