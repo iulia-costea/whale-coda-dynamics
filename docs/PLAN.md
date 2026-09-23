@@ -4,10 +4,12 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Why** each choice was made, and how this differs from the proposal: `docs/DECISIONS.md`.
 - **Deferred** ideas: `docs/LATER.md`.
 
-**Status (2026-09-22):**
+**Status (2026-09-23):**
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
-- **In progress:** the rest of phase 1.
-- **Not started:** no models exist yet.
+- **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
+- **Done:** Phase 2 infrastructure: 14 leave-one-day-out folds and shared evaluation, verified with synthetic predictions.
+- **In progress:** Phase 3. Baselines and logistic regression completed on all 14 folds; diagnostics and results are in `reports/rq1_logistic.md`. LSTM and retrospective sensitivity remain pending.
+- **Not started:** neural models.
 
 See §12 for the order of work.
 
@@ -276,11 +278,11 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 ## 12. Order of work
 
-1. **Phase 1 — preprocessing fixes:**
+1. **Phase 1 — preprocessing fixes: done.**
    - new $S$ (DEC-1) — **done**;
-   - shared unknown-type module (DEC-7, DEC-10);
-   - record the `pair_category` missingness finding in the data dictionary;
-   - flag long codas.
+   - shared unknown-type module (DEC-7, DEC-10) — **done**, fitted on the current training split; fold-specific fitting follows in Phase 2;
+   - record the `pair_category` missingness finding in the data dictionary — **done**, source counts verified;
+   - flag long codas — **done**, 153 Sharma source codas flagged without filtering.
 2. **Phase 2 — evaluation and folds:** the shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
    - Logistic regression on all eight conditions, plus the baselines. This is the debug step.
