@@ -38,6 +38,7 @@ full accounting. In short:
 import argparse
 import hashlib
 import json
+import math
 from collections import Counter
 from pathlib import Path
 
@@ -109,9 +110,21 @@ def run(config_path):
                    offset_s=r["source_onset_s"] + r["duration_s"], split=splits[r["recording_date"]]) for r in retained]
     features = build_features(events, provisional_assumptions_accepted=True, history_limit=limit)
     validate(features, events, limit)
+    normalized = {r["coda_id"]: r for r in read_jsonl(root / exchange_report["audit"]["configuration"]["output_directory"] / "codas_normalized_rq2.jsonl")}
+    # Independently check the new flag against original source values.
+    for source in normalized.values():
+        raw = source["raw_values"]["nClicks"].strip()
+        try:
+            count = float(raw)
+            expected = count > 10 if math.isfinite(count) and count.is_integer() else None
+        except ValueError:
+            expected = None
+        if source["long_coda"] is not expected:
+            raise ValueError("Long-coda flag disagrees with source nClicks")
     lookup = {e["coda_id"]: e for e in events}
     for row in features:
         e = lookup[row["coda_id"]]
+        row["long_coda"] = normalized[row["coda_id"]]["long_coda"]
         for field in ("source_coda_id", "source_row_index", "tag_id", "recording_id", "source_bout_code", "source_whale_code", "onset_s", "offset_s", "recording_date", "split"):
             row[field] = e[field]
         row["timing_convention"] = config["timing_convention"]
@@ -208,6 +221,13 @@ def run(config_path):
               "Deployment group replaces recording day; see Deviations above. Model folds and training seeds remain downstream evaluation work."]
     lines += interactional_state_summary(comparison, events)
     lines += vocabulary_report(unk)
+    lines += ["", "## Long codas", "",
+              f"Source codas with nClicks > 10: {exchange_report['audit']['long_codas']}. "
+              f"Retained: {sum(r['long_coda'] is True for r in features)}; "
+              f"comparison targets: {sum(r['long_coda'] is True for r in comparison)}.",
+              "The per-row long_coda flag is exported in normalized data and both prepared tables. "
+              "It is diagnostic metadata, not a model input. No codas are filtered by this flag; "
+              "null indicates an unknown/invalid click count. It supports later reporting with and without long codas."]
     lines += ["", "## Audit flags", "", "Counts can overlap; row-level details are in codas_normalized_rq2.jsonl.", ""]
     lines += [f"- {name}: {count}" for name, count in exchange_report["audit"]["issue_counts"].items()]
     lines += ["", "## Exchange exclusions", ""]

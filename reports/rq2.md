@@ -99,6 +99,11 @@ Ct_raw preserves original labels; raw histories are recoverable via history IDs 
 | comparison | validation | 0 | 0 | {} | {} |
 | comparison | test | 0 | 0 | {} | {} |
 
+## Long codas
+
+Source codas with nClicks > 10: 153. Retained: 67; comparison targets: 49.
+The per-row long_coda flag is exported in normalized data and both prepared tables. It is diagnostic metadata, not a model input. No codas are filtered by this flag; null indicates an unknown/invalid click count. It supports later reporting with and without long codas.
+
 ## Audit flags
 
 Counts can overlap; row-level details are in codas_normalized_rq2.jsonl.
@@ -215,12 +220,12 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq2_comparison.csv`: `332709dc7c308102fc24ab488c7072d2945ffc9ffdd18d5841125d98de357999`
-- `rq2_comparison.jsonl`: `92fc11cb0439122bd3b28ce9d4cbcc95e30ce969d3b72b9a1a0302fca4ebafcb`
+- `rq2_comparison.csv`: `73cdd64dea54e3a2f0cceb312dc483f550cbd91add1a389ae939e3174e5dd99f`
+- `rq2_comparison.jsonl`: `6babbd50f3ec3007a36896bf16daba7101c7ed4307644ea735af7b42d22a3a84`
 - `rq2_day_splits.csv`: `81e5ace2c9d0ab0966f12deda83e8564485334d1496af2b837e051bf7788a2fb`
 - `rq2_day_splits.jsonl`: `cf78530ac7c249d26dd5d204887df592b82a0ca4e9faa332cf813a1d328ad4e2`
 - `rq2_exchange_assignments.jsonl`: `15abbd0a11108ee802cf1dec559fdf6f46231da9749da10020c018e164782dad`
 - `rq2_exchange_segments.jsonl`: `319480aa91d4265167ff544895797002869deef4d47f1c8034e45d1b4d2a00cb`
 - `rq2_label_prior.json`: `343ed1c12e0554ba21baeb2308b7c412529a072cb7abd23fda3c0ee8c1ea48da`
-- `rq2_targets.csv`: `f5c81d9420bed25ef2dc505b04cf5afa0c4dbca1f3e119fe4ba8f1837c2c0026`
-- `rq2_targets.jsonl`: `8894d82feb0f560637719f642f471f67450aea33dbb7add6e5ecf737cab88bde`
+- `rq2_targets.csv`: `a30d8b42a2c4cb1d641d11e871cf1b92fa399bfbb84b10ca7636c195748e8247`
+- `rq2_targets.jsonl`: `dae092e82e2bffc9561744109c91dd6c4bbbde940d3a835dcd3e95a73a562076`
