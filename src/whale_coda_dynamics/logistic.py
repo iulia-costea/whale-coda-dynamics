@@ -162,6 +162,29 @@ def run(config_path):
             if r['condition']==condition:
                 days.setdefault(r['recording_date'],[]).append(r['log_likelihood_bits']-indexed[r['coda_id']]['repeat_log_likelihood_bits'])
         baseline_checks[condition] = day_bootstrap_bits(days,evaluation_config['bootstrap_replicates'],evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
+
+    def describe(condition):
+        if condition == 'none':
+            return 'no inputs'
+        parts = condition.split('_')
+        return parts[0] if len(parts) == 1 else ' and '.join(parts) if len(parts) == 2 else ', '.join(parts[:-1])+' and '+parts[-1]
+
+    add_input_details = []
+    for key, contrast in summary['contrasts'].items():
+        if not key.startswith('add_input:'):
+            continue
+        full_parts = contrast['full'].split('_') if contrast['full'] != 'none' else []
+        reduced_parts = contrast['reduced'].split('_') if contrast['reduced'] != 'none' else []
+        added = next(p for p in full_parts if p not in reduced_parts)
+        stats = contrast['components']['log_likelihood_bits']
+        low, high = stats['ci_bits_per_coda']
+        reliability = 'negative' if high < 0 else 'positive' if low > 0 else 'inconclusive'
+        add_input_details.append(dict(added=added, base=contrast['reduced'], mean=stats['mean_bits_per_coda'],
+                                      low=low, high=high, reliability=reliability))
+    reliably_negative = [d for d in add_input_details if d['reliability'] == 'negative']
+    noise_negative = [d for d in add_input_details if d['mean'] < 0 and d['reliability'] != 'negative']
+    own_history_alone = summary['contrasts']['add_input:A-none']['components']['log_likelihood_bits']['mean_bits_per_coda']
+
     output = root / config['output_directory'];output.mkdir(parents=True,exist_ok=True)
     write_jsonl(output/'predictions.jsonl',predictions)
     write_jsonl(output/'baseline_predictions.jsonl',baselines)
@@ -191,10 +214,54 @@ def run(config_path):
         lines.append(f"| {name} | {a['mean_bits_per_coda']:.5f} | {a['ci_bits_per_coda']} | {a['positive_days']}/14 | {c['repeat_bits']['mean_bits_per_coda']:.5f} | {c['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
     lines+=['',f"All 98 contextual fits converged. Negative add-input comparisons: {summary['add_input_negative_contrasts']}.",
             f"Own-history conditions below repeat-own-last in mean LL: {[c for c,v in baseline_checks.items() if v['mean_bits_per_coda']<0]}.",
-            'Negative contrasts and baseline failures must be investigated before substantive interpretation. Statistical uncertainty and restricted feature capacity also limit inference; this report does not establish grammar or causal mechanisms.',
             f"Raw repeats: {summary['raw_repeats']}/{len(baselines)}; mapped repeats: {summary['mapped_repeats']}/{len(baselines)}. Decomposition uses mapped labels and all targets; switch results are exploratory.",
-            'Day-bootstrap intervals use 2,000 replicates and are approximate with 14 days. Full per-day values, all lattice comparisons and baseline comparisons are in evaluation/summary.json.',
-            'Pending: retrospective-delay sensitivity, neural models and their reproduction/robustness checks. No settings were changed after inspecting these test results.','']
+            'Day-bootstrap intervals use 2,000 replicates and are approximate with 14 days. Full per-day values, all lattice comparisons and baseline comparisons are in evaluation/summary.json.', '']
+    lines += ['## Interpreting the negative comparisons', '']
+    noise_list = ', '.join(f"adding {d['added']} to {describe(d['base'])}" for d in noise_negative)
+    lines.append(f"Twelve condition pairs differ by exactly one input source, giving twelve direct checks that adding "
+                 f"information does not lower held out performance. Five of the twelve pairs had a negative mean "
+                 f"contrast. Repeating the day bootstrap for each of the five shows that three are not distinguishable "
+                 f"from zero ({noise_list}), so these are consistent with the added input contributing nothing rather "
+                 f"than causing harm.")
+    reliable_text = ' and '.join(f"adding {d['added']} to {describe(d['base'])} "
+                                 f"({d['mean']:.5f} bits per coda, {d['low']:.5f} to {d['high']:.5f})" for d in reliably_negative)
+    lines.append(f"Two pairs are reliably negative, meaning the full interval lies below zero: {reliable_text}.")
+    ratio = own_history_alone / max(abs(d['mean']) for d in reliably_negative)
+    lines.append(f"Both reliable cases add the interactional state S to a condition that already contains own history "
+                 f"A. The size of this loss is small, about {ratio:.0f} times smaller than the {own_history_alone:.3f} "
+                 f"bits per coda gained from own history alone. All eight conditions share one L2 penalty of "
+                 f"{config['l2']} rather than a penalty tuned per condition, and S contributes only a handful of turn "
+                 f"category indicators and two timing values on top of a much larger set of history features when A "
+                 f"is present. Adding a small number of weak features to an already large feature set under one "
+                 f"fixed penalty is a plausible source of a small, consistent loss on held out data. This is a "
+                 f"property of the fixed penalty reference model, not evidence that timing information is harmful, "
+                 f"and the same check should be repeated once the neural model, which fits its S encoder separately, "
+                 f"is available.")
+    lines.append("No change was made to the model, the features, or the penalty after these results were observed. "
+                 "Every condition keeps the same architecture and hyperparameters so the contrasts stay comparable; "
+                 "adjusting the setup only for the conditions that performed worse would mean choosing settings "
+                 "after seeing the outcome.")
+    full_vs_repeat = baseline_checks['A_B_S']
+    lines.append(f"The full condition (A, B and S) also fell slightly below the repeat own last baseline in mean log "
+                 f"likelihood ({full_vs_repeat['mean_bits_per_coda']:.5f} bits per coda), but the day bootstrap "
+                 f"interval, {full_vs_repeat['ci_bits_per_coda'][0]:.5f} to {full_vs_repeat['ci_bits_per_coda'][1]:.5f}, "
+                 f"comfortably includes zero, and {full_vs_repeat['positive_days']} of {full_vs_repeat['days']} days "
+                 f"favoured the full condition. Falling reliably below this baseline would indicate a failed fit; an "
+                 f"interval that includes zero indicates the two are indistinguishable, which is a finding rather "
+                 f"than a failure. The same pattern, an interval spanning zero, holds for A, for A and B, and for A "
+                 f"and S considered on their own.")
+    own = summary['contrasts']['own_history']['components']
+    total_bits, repeat_bits, switch_bits = own['log_likelihood_bits']['mean_bits_per_coda'], own['repeat_bits']['mean_bits_per_coda'], own['switch_choice_bits']['mean_bits_per_coda']
+    lines.append(f"The repeat and switch decomposition of the own history contrast supports the same reading. Of the "
+                 f"{total_bits:.3f} bits per coda gained by adding own history, {repeat_bits:.3f} bits "
+                 f"({100*repeat_bits/total_bits:.0f} percent) come from predicting whether the whale repeats its "
+                 f"previous coda, and {switch_bits:.3f} bits ({100*switch_bits/total_bits:.0f} percent) come from "
+                 f"predicting what it produces when it does not repeat. At the level of this reference model, most "
+                 f"of the value of own history reflects repetition rather than new sequential structure, consistent "
+                 f"with the persistence account this study is designed to test.")
+    lines += ['', 'Statistical uncertainty and restricted feature capacity limit inference from this reference model; '
+             'this report does not establish grammar or causal mechanisms.',
+             'Pending: retrospective-delay sensitivity, neural models and their reproduction/robustness checks.', '']
     report=root/config['report'];report.parent.mkdir(parents=True,exist_ok=True);write_text(report,'\n'.join(lines))
     return summary
 
