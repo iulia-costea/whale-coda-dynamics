@@ -83,15 +83,21 @@ Same-caller overlaps (preceding coda is the target caller's own): 0.
 Targets starting after the preceding coda ends but before an earlier coda ends: 0.
 Sensitivity field: targets whose retrospective_delay_s uses a post-onset endpoint: 373; overlaps_prior_interlocutor: 373.
 
-## Label vocabulary and UNK policy
+## Shared label vocabulary and UNK policy
 
-Raw rhythm-cluster labels: 18 distinct values (0-17).
-Training vocabulary (targets and history entries observed in train): 18 labels, plus the catch-all `UNK` token.
-Validation/test target labels remapped to `UNK`: 0.
-Validation/test history entries remapped to `UNK`: 0.
-Smoothing: additive (alpha=1.0) over training comparison-target counts, applied identically across all eight conditions' shared no-context baseline (`data/processed/rq2_label_prior.json`), not as a separate per-condition parameter.
-`Ct_raw` preserves the pre-UNK-mapping label on every row for audit; `Ct`, `A_history`, and `B_history` hold the mapped values used for modeling.
+Vocabulary counts each retained training coda once, including context-only codas. Minimum frequency: 2. Below-threshold and unseen types map to `UNK` in all partitions, including training.
+Vocabulary size including UNK: 16. Rare training types: ['1', '14', '3'].
+Prior: mapped training comparison-target counts with additive alpha=1.0, over exactly this vocabulary.
+Ct_raw preserves original labels; raw histories are recoverable via history IDs in the complete targets table. Refit from original labels for each future fold.
 
+| Scope | Split | UNK targets | UNK history entries | Mapped target types | Mapped history types |
+|---|---|---:|---:|---|---|
+| all_retained | train | 3 | 36 | {'1': 1, '14': 1, '3': 1} | {'1': 8, '14': 11, '3': 17} |
+| all_retained | validation | 0 | 0 | {} | {} |
+| all_retained | test | 0 | 0 | {} | {} |
+| comparison | train | 1 | 36 | {'1': 1} | {'1': 8, '14': 11, '3': 17} |
+| comparison | validation | 0 | 0 | {} | {} |
+| comparison | test | 0 | 0 | {} | {} |
 
 ## Audit flags
 
@@ -172,7 +178,8 @@ Run configuration:
         "gap_s",
         "overlap_elapsed_s"
       ]
-    }
+    },
+    "unk_min_count": 2
   },
   "exchanges": {
     "normalization_config": "config/preprocessing_rq2.json",
@@ -208,12 +215,12 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq2_comparison.csv`: `b44b1324a0bc21fb2f7996406e5875b56a1aa29dae14654299587f01a6508c02`
-- `rq2_comparison.jsonl`: `a44fab75b256cdf80e6bacc77fcb158ffc0709e4ad31b8dc1cb9138a7442a63d`
+- `rq2_comparison.csv`: `332709dc7c308102fc24ab488c7072d2945ffc9ffdd18d5841125d98de357999`
+- `rq2_comparison.jsonl`: `92fc11cb0439122bd3b28ce9d4cbcc95e30ce969d3b72b9a1a0302fca4ebafcb`
 - `rq2_day_splits.csv`: `81e5ace2c9d0ab0966f12deda83e8564485334d1496af2b837e051bf7788a2fb`
 - `rq2_day_splits.jsonl`: `cf78530ac7c249d26dd5d204887df592b82a0ca4e9faa332cf813a1d328ad4e2`
 - `rq2_exchange_assignments.jsonl`: `15abbd0a11108ee802cf1dec559fdf6f46231da9749da10020c018e164782dad`
 - `rq2_exchange_segments.jsonl`: `319480aa91d4265167ff544895797002869deef4d47f1c8034e45d1b4d2a00cb`
-- `rq2_label_prior.json`: `5dffcbe9485836e0f43f94ae1a8102dec855753ff4d223944584ee1306baffd6`
-- `rq2_targets.csv`: `82bcd0028f92e6d3a3242e670258cc0fa11053a56eee0de37db9bb283b477e1e`
-- `rq2_targets.jsonl`: `9d79b368862ffdf7d7ffbd573dd61d00c2683c5b766ffd8eeca8ade67eb430e3`
+- `rq2_label_prior.json`: `343ed1c12e0554ba21baeb2308b7c412529a072cb7abd23fda3c0ee8c1ea48da`
+- `rq2_targets.csv`: `f5c81d9420bed25ef2dc505b04cf5afa0c4dbca1f3e119fe4ba8f1837c2c0026`
+- `rq2_targets.jsonl`: `8894d82feb0f560637719f642f471f67450aea33dbb7add6e5ecf737cab88bde`

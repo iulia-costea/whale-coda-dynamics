@@ -8,6 +8,8 @@ from pathlib import Path
 
 from .exchanges import run as run_exchanges
 from .features import build_features
+from .vocabulary import (fit_vocabulary, apply_vocabulary, smoothed_label_prior,
+                         validate_mapping, mapping_summary, vocabulary_report)
 from .io_utils import read_json, read_jsonl, write_jsonl, write_text
 
 # S field list per timing convention (PLAN [D5], DEC-1). onset_available is primary;
@@ -161,11 +163,20 @@ def run(config_path):
         row["comparison_eligible"] = min(row["A_history_length"], row["B_history_length"]) >= minimum
         row["comparison_exclusion_reasons"] = [f"insufficient_{prefix}_history" for prefix in ("A", "B") if row[prefix + "_history_length"] < minimum]
     features.sort(key=lambda r: r["source_row_index"])
+    unk = fit_vocabulary([e for e in events if e["split"] == "train"],
+                         config["unk_min_count"], config["unk_token"])
+    features = apply_vocabulary(features, unk)
+    validate_mapping(features, events, unk)
+    unk["smoothing_alpha"] = config["unk_smoothing_alpha"]
+    unk["label_prior"] = smoothed_label_prior(
+        [r for r in features if r["split"] == "train" and r["comparison_eligible"]],
+        unk, config["unk_smoothing_alpha"])
+    unk["mapping_counts"] = mapping_summary(features, unk)
     comparison = [r for r in features if r["comparison_eligible"]]
     if any(r["retrospective_delay_s"] is None for r in comparison):
         raise ValueError("Every shared comparison target must have an observed signed delay")
     stats = {}
-    training_types = {r["Ct"] for r in comparison if r["split"] == "train"}
+    training_types = set(unk["vocabulary"])
     for split in ("train", "validation", "test"):
         subset = [r for r in comparison if r["split"] == split]
         if not subset:
@@ -181,12 +192,13 @@ def run(config_path):
     write_table(output / "rq1_targets", features)
     write_table(output / "rq1_comparison", comparison)
     write_table(output / "rq1_day_splits", [{"recording_date": day, "split": splits[day]} for day in sorted(splits)])
+    write_text(output / "rq1_label_prior.json", json.dumps(unk, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
     report = {"configuration": config, "exchange_configuration": ec,
               "source_sha256": exchange_report["source_sha256"], "raw_codas": exchange_report["primary"]["input_codas"],
               "retained_target_rows": len(features), "comparison_targets": len(comparison),
               "excluded_for_history": len(features) - len(comparison),
               "strict_focal_comparison_targets": sum(r["strict_focal_subset"] for r in comparison),
-              "splits": stats, "validation": "passed: coverage, history timing/identity/order, target alignment, day/tag/exchange separation",
+              "splits": stats, "unk": unk, "validation": "passed: coverage, history timing/identity/order, target alignment, day/tag/exchange separation",
               "artifact_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(output.glob("rq1_*")) if p.is_file()}}
     lines = ["# RQ1 preparation", "", f"Raw codas: {report['raw_codas']}. Retained target rows: {len(features)}. Comparison targets: {len(comparison)}.",
              f"Excluded for insufficient history: {report['excluded_for_history']}. Strict focal subset: {report['strict_focal_comparison_targets']} comparison targets.",
@@ -204,6 +216,7 @@ def run(config_path):
               TIMING_DESCRIPTIONS[config["timing_convention"]],
               "Recording day is the normalized source Date, not a reconstructed absolute timestamp. Model folds and training seeds remain downstream evaluation work."]
     lines += interactional_state_summary(comparison, events)
+    lines += vocabulary_report(unk)
     lines += ["", "## Audit flags", "", "Counts can overlap; row-level details are in codas_normalized.jsonl.", ""]
     lines += [f"- {name}: {count}" for name, count in exchange_report["audit"]["issue_counts"].items()]
     lines += ["", "## Exchange exclusions", ""]

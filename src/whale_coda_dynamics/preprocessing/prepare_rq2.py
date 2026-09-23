@@ -7,8 +7,8 @@ This module reuses `group_exchanges` (exchanges.py), `build_features`
 (features.py), and `assign_splits`/`validate`/`write_table` (prepare.py)
 unchanged: those are the parts of the RQ1 pipeline that do not depend on the
 Assayag CSV's specific columns. Normalization is a new module (audit_rq2.py)
-because Sharma's release has a genuinely different schema. Neither
-exchanges.py nor prepare.py is modified, so RQ1 outputs are unaffected.
+because Sharma's release has a genuinely different schema. The shared vocabulary module also applies the same rare/unseen-label policy
+to both pipelines.
 
 Several RQ1 assumptions do not transfer cleanly to this source and are
 handled explicitly rather than forced silently; see reports/rq2.md for the
@@ -30,8 +30,8 @@ full accounting. In short:
   local caller codes, not confirmed individual whales.
 - rhythms.p is joined to sperm-whale-dialogues.csv strictly by row index;
   there is no shared key column to verify the join independently.
-- Coda types unseen in training (in validation/test) are mapped to a
-  catch-all UNK token, identically across all eight input conditions, with
+- Rare training types and unseen held-out types are mapped to a
+  catch-all UNK token in all splits, identically across all eight input conditions, with
   an additive-smoothed training label prior exported for baseline use,
   instead of being dropped.
 """
@@ -44,6 +44,8 @@ from pathlib import Path
 from .audit_rq2 import run as normalize_source_rq2
 from .exchanges import group_exchanges
 from .features import build_features
+from .vocabulary import (fit_vocabulary, apply_vocabulary, smoothed_label_prior,
+                         validate_mapping, mapping_summary, vocabulary_report)
 from .io_utils import read_json, read_jsonl, write_jsonl, write_text
 from .prepare import S_FIELDS, TIMING_DESCRIPTIONS, assign_splits, interactional_state_summary, validate, write_table
 
@@ -71,38 +73,6 @@ def run_exchanges_rq2(config_path):
     return {"configuration": config, "source_sha256": audit["source_sha256"],
             "normalized_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
             "primary": summary, "sensitivity": [r[2] for r in results.values()], "audit": audit}
-
-
-def apply_unk_policy(features, unk_token, alpha):
-    """Map coda types unseen in training to `unk_token` for validation/test
-    rows, identically for the target label and both history lists, so every
-    one of the eight input conditions sees a consistent vocabulary. Also
-    returns an additive-smoothed training label prior (over the training
-    vocabulary plus UNK) for use as the shared no-context/condition-(i)
-    baseline distribution, since a hard majority-class prior cannot assign
-    any probability to a label it never saw.
-    """
-    train_vocab = {row["Ct"] for row in features if row["split"] == "train"}
-    train_vocab |= {t for row in features if row["split"] == "train" for t in row["A_history"] + row["B_history"]}
-    remapped_targets, remapped_history_entries = 0, 0
-    for row in features:
-        row["Ct_raw"] = row["Ct"]
-        if row["split"] == "train":
-            continue
-        if row["Ct"] not in train_vocab:
-            row["Ct"] = unk_token
-            remapped_targets += 1
-        for key in ("A_history", "B_history"):
-            mapped = [t if t in train_vocab else unk_token for t in row[key]]
-            remapped_history_entries += sum(a != b for a, b in zip(row[key], mapped))
-            row[key] = mapped
-    vocabulary = sorted(train_vocab) + [unk_token]
-    train_counts = Counter(row["Ct_raw"] for row in features if row["split"] == "train" and row["comparison_eligible"])
-    total, v = sum(train_counts.values()), len(vocabulary)
-    label_prior = {label: (train_counts.get(label, 0) + alpha) / (total + alpha * v) for label in vocabulary}
-    return {"vocabulary": vocabulary, "label_prior": label_prior, "unk_token": unk_token,
-            "smoothing_alpha": alpha, "remapped_targets": remapped_targets,
-            "remapped_history_entries": remapped_history_entries, "train_vocabulary_size": len(train_vocab)}
 
 
 def run(config_path):
@@ -152,16 +122,20 @@ def run(config_path):
         row["comparison_eligible"] = min(row["A_history_length"], row["B_history_length"]) >= minimum
         row["comparison_exclusion_reasons"] = [f"insufficient_{prefix}_history" for prefix in ("A", "B") if row[prefix + "_history_length"] < minimum]
     features.sort(key=lambda r: r["source_row_index"])
+    unk = fit_vocabulary([e for e in events if e["split"] == "train"],
+                         config["unk_min_count"], config["unk_token"])
+    features = apply_vocabulary(features, unk)
+    validate_mapping(features, events, unk)
+    unk["smoothing_alpha"] = config["unk_smoothing_alpha"]
+    unk["label_prior"] = smoothed_label_prior(
+        [r for r in features if r["split"] == "train" and r["comparison_eligible"]],
+        unk, config["unk_smoothing_alpha"])
+    unk["mapping_counts"] = mapping_summary(features, unk)
     comparison = [r for r in features if r["comparison_eligible"]]
     if any(r["retrospective_delay_s"] is None for r in comparison):
         raise ValueError("Every shared comparison target must have an observed signed delay")
-    unk = apply_unk_policy(features, config["unk_token"], config["unk_smoothing_alpha"])
     stats = {}
-    # Use the same vocabulary the UNK mapping itself is based on (all train
-    # targets and history entries), not just comparison-eligible train Ct
-    # values, so this stat cannot show a type as "unseen" that the mapping
-    # already treated as seen.
-    training_types = set(unk["vocabulary"]) - {unk["unk_token"]}
+    training_types = set(unk["vocabulary"])
     for split in ("train", "validation", "test"):
         subset = [r for r in comparison if r["split"] == split]
         if not subset:
@@ -177,9 +151,7 @@ def run(config_path):
     write_table(output / "rq2_targets", features)
     write_table(output / "rq2_comparison", comparison)
     write_table(output / "rq2_day_splits", [{"recording_date": day, "split": splits[day]} for day in sorted(splits)])
-    write_text(output / "rq2_label_prior.json", json.dumps(
-        {"vocabulary": unk["vocabulary"], "label_prior": unk["label_prior"],
-         "unk_token": unk["unk_token"], "smoothing_alpha": unk["smoothing_alpha"]}, indent=2) + "\n")
+    write_text(output / "rq2_label_prior.json", json.dumps(unk, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
     report = {"configuration": config, "exchange_configuration": ec,
               "source_sha256": exchange_report["source_sha256"], "raw_codas": exchange_report["audit"]["row_count"],
               "retained_target_rows": len(features), "comparison_targets": len(comparison),
@@ -235,13 +207,7 @@ def run(config_path):
               TIMING_DESCRIPTIONS[config["timing_convention"]],
               "Deployment group replaces recording day; see Deviations above. Model folds and training seeds remain downstream evaluation work."]
     lines += interactional_state_summary(comparison, events)
-    lines += ["", "## Label vocabulary and UNK policy", "",
-              f"Raw rhythm-cluster labels: {len(exchange_report['audit']['rhythm_label_counts'])} distinct values (0-17).",
-              f"Training vocabulary (targets and history entries observed in train): {unk['train_vocabulary_size']} labels, plus the catch-all `{unk['unk_token']}` token.",
-              f"Validation/test target labels remapped to `{unk['unk_token']}`: {unk['remapped_targets']}.",
-              f"Validation/test history entries remapped to `{unk['unk_token']}`: {unk['remapped_history_entries']}.",
-              f"Smoothing: additive (alpha={unk['smoothing_alpha']}) over training comparison-target counts, applied identically across all eight conditions' shared no-context baseline (`data/processed/rq2_label_prior.json`), not as a separate per-condition parameter.",
-              "`Ct_raw` preserves the pre-UNK-mapping label on every row for audit; `Ct`, `A_history`, and `B_history` hold the mapped values used for modeling.", ""]
+    lines += vocabulary_report(unk)
     lines += ["", "## Audit flags", "", "Counts can overlap; row-level details are in codas_normalized_rq2.jsonl.", ""]
     lines += [f"- {name}: {count}" for name, count in exchange_report["audit"]["issue_counts"].items()]
     lines += ["", "## Exchange exclusions", ""]

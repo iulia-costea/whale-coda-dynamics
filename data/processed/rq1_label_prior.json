@@ -1,0 +1,119 @@
+{
+  "vocabulary": [
+    "1+1+3",
+    "1+31",
+    "10R",
+    "10i",
+    "2+3",
+    "3D",
+    "3R",
+    "4R1",
+    "4R2",
+    "5R1",
+    "5R2",
+    "5R3",
+    "6R",
+    "6i",
+    "7C",
+    "7D2",
+    "7i",
+    "8D",
+    "8R",
+    "9R",
+    "9i",
+    "UNK"
+  ],
+  "training_type_counts": {
+    "1+1+3": 1027,
+    "1+31": 2,
+    "10R": 16,
+    "10i": 41,
+    "2+3": 11,
+    "3D": 36,
+    "3R": 5,
+    "4R1": 3,
+    "4R2": 106,
+    "5R1": 163,
+    "5R2": 78,
+    "5R3": 51,
+    "6R": 8,
+    "6i": 57,
+    "7C": 3,
+    "7D2": 21,
+    "7i": 5,
+    "8D": 2,
+    "8R": 27,
+    "9R": 12,
+    "9i": 12
+  },
+  "rare_training_types": [],
+  "min_count": 2,
+  "unk_token": "UNK",
+  "smoothing_alpha": 1.0,
+  "label_prior": {
+    "1+1+3": 0.6162332545311269,
+    "1+31": 0.0007880220646178094,
+    "10R": 0.01103230890464933,
+    "10i": 0.02442868400315209,
+    "2+3": 0.005516154452324665,
+    "3D": 0.02364066193853428,
+    "3R": 0.002364066193853428,
+    "4R1": 0.0015760441292356187,
+    "4R2": 0.06934594168636722,
+    "5R1": 0.1008668242710796,
+    "5R2": 0.04176516942474389,
+    "5R3": 0.02364066193853428,
+    "6R": 0.005516154452324665,
+    "6i": 0.029944838455476755,
+    "7C": 0.002364066193853428,
+    "7D2": 0.01024428684003152,
+    "7i": 0.0031520882584712374,
+    "8D": 0.002364066193853428,
+    "8R": 0.01103230890464933,
+    "9R": 0.006304176516942475,
+    "9i": 0.0070921985815602835,
+    "UNK": 0.0007880220646178094
+  },
+  "mapping_counts": {
+    "all_retained": {
+      "train": {
+        "targets": 0,
+        "history_entries": 0,
+        "mapped_target_types": {},
+        "mapped_history_types": {}
+      },
+      "validation": {
+        "targets": 0,
+        "history_entries": 0,
+        "mapped_target_types": {},
+        "mapped_history_types": {}
+      },
+      "test": {
+        "targets": 0,
+        "history_entries": 0,
+        "mapped_target_types": {},
+        "mapped_history_types": {}
+      }
+    },
+    "comparison": {
+      "train": {
+        "targets": 0,
+        "history_entries": 0,
+        "mapped_target_types": {},
+        "mapped_history_types": {}
+      },
+      "validation": {
+        "targets": 0,
+        "history_entries": 0,
+        "mapped_target_types": {},
+        "mapped_history_types": {}
+      },
+      "test": {
+        "targets": 0,
+        "history_entries": 0,
+        "mapped_target_types": {},
+        "mapped_history_types": {}
+      }
+    }
+  }
+}
