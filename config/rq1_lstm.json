@@ -1,0 +1,15 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "evaluation_config": "config/rq1_evaluation_lstm.json",
+  "output_directory": "data/results/rq1_lstm",
+  "report": "reports/rq1_lstm.md",
+  "compare_against_logistic": "data/results/rq1_logistic_v2/evaluation/summary.json",
+  "seeds": [42, 43, 44],
+  "hidden_dim": 64,
+  "embedding_dim": 32,
+  "learning_rate": 0.0001,
+  "weight_decay": 0.00001,
+  "batch_size": 32,
+  "max_epochs": 100,
+  "patience": 5
+}
