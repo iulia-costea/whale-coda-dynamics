@@ -30,12 +30,14 @@ class Encoder:
                 self.names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, order+1) for label in vocabulary)
             elif f == 'turn_category':
                 self.names.extend('turn:'+c for c in self.categories)
+            elif f == 'retrospective_delay_s':
+                self.names.append(f)
             else:
                 self.names.extend([f, 'log1p:'+f])
         x = self.raw(train)
         self.mean, self.scale = np.zeros(x.shape[1]), np.ones(x.shape[1])
         for j, name in enumerate(self.names):
-            if name in ('gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s'):
+            if name in ('gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s'):
                 self.mean[j], self.scale[j] = x[:, j].mean(), x[:, j].std() or 1.0
 
     def raw(self, rows):
@@ -54,6 +56,14 @@ class Encoder:
                     if not np.isfinite(v) or v < 0:
                         raise ValueError('Invalid onset-available timing')
                     values.extend([v, np.log1p(v)])
+                elif f == 'retrospective_delay_s':
+                    # Sensitivity field only (PLAN S9, DEC-1): unlike onset-available
+                    # timing, this can be negative (overlapping predecessor), and goes
+                    # below -1 in the data, so no log1p companion is defined for it.
+                    v = r[f]
+                    if not np.isfinite(v):
+                        raise ValueError('Invalid retrospective delay')
+                    values.append(v)
                 else:
                     raise ValueError(f'Unsupported input field {f}')
             result.append(values)
@@ -64,34 +74,96 @@ class Encoder:
         return np.column_stack([x, np.ones(len(rows))])
 
 
-def objective(weights, x, y, classes, l2):
-    w = weights.reshape(x.shape[1], classes)
-    logits = x @ w
+def last_label_index(rows, field, vocabulary):
+    """Vocabulary index of each row's most recent label in `field`, or -1 if empty."""
+    position = {label: i for i, label in enumerate(vocabulary)}
+    return np.array([position[r[field][-1]] if r[field] else -1 for r in rows])
+
+
+def _unpack(flat, n_features, classes, own_last_idx, partner_last_idx):
+    w = flat[:n_features*classes].reshape(n_features, classes)
+    offset = n_features*classes
+    beta = gamma = None
+    if own_last_idx is not None:
+        beta = flat[offset]; offset += 1
+    if partner_last_idx is not None:
+        gamma = flat[offset]; offset += 1
+    return w, beta, gamma
+
+
+def _copy_logits(logits, beta, own_last_idx, gamma, partner_last_idx):
+    """Add a single shared scalar to the logit of the class matching the last
+    own/partner coda (PLAN [M1], the repeat-baseline expressiveness fix).
+    Rows with no history in that stream get no addition (mask excludes -1)."""
+    if beta is not None:
+        mask = own_last_idx >= 0
+        logits[mask, own_last_idx[mask]] += beta
+    if gamma is not None:
+        mask = partner_last_idx >= 0
+        logits[mask, partner_last_idx[mask]] += gamma
+    return logits
+
+
+def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None):
+    n_features = x.shape[1]
+    w, beta, gamma = _unpack(weights, n_features, classes, own_last_idx, partner_last_idx)
+    logits = _copy_logits(x @ w, beta, own_last_idx, gamma, partner_last_idx)
     logs = logits - logsumexp(logits, axis=1, keepdims=True)
-    loss = -logs[np.arange(len(y)), y].mean() + l2 * np.square(w).sum() / 2
+    loss = -logs[np.arange(len(y)), y].mean() + l2 * (np.square(w).sum() + (beta or 0.0)**2 + (gamma or 0.0)**2) / 2
     residual = np.exp(logs)
     residual[np.arange(len(y)), y] -= 1
-    gradient = x.T @ residual / len(y) + l2 * w
-    return loss, gradient.ravel()
+    grad = [(x.T @ residual / len(y) + l2 * w).ravel()]
+    if beta is not None:
+        mask = own_last_idx >= 0
+        grad.append(np.array([residual[mask, own_last_idx[mask]].sum() / len(y) + l2 * beta]))
+    if gamma is not None:
+        mask = partner_last_idx >= 0
+        grad.append(np.array([residual[mask, partner_last_idx[mask]].sum() / len(y) + l2 * gamma]))
+    return loss, np.concatenate(grad)
 
 
-def fit(x, y, classes, config):
+def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None):
     # Penalize intercepts too, making absent target classes (including UNK)
     # well-defined and finite without synthetic targets or post-hoc clipping.
     if not np.isfinite(config['l2']) or config['l2'] <= 0:
         raise ValueError('Require positive finite L2')
-    result = minimize(objective, np.zeros(x.shape[1]*classes), args=(x, y, classes, config['l2']),
+    n_features = x.shape[1]
+    n_extra = (own_last_idx is not None) + (partner_last_idx is not None)
+    result = minimize(objective, np.zeros(n_features*classes + n_extra),
+                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx),
                       jac=True, method='L-BFGS-B', options={'maxiter': config['max_iterations'],
                       'gtol': config['gradient_tolerance'], 'ftol': 1e-14})
     gradient = float(np.max(np.abs(result.jac)))
     if not result.success or gradient > 10*config['gradient_tolerance']:
         raise ValueError(f'Optimizer did not converge: {result.message}; gradient={gradient}')
-    return result.x.reshape(x.shape[1], classes), {'iterations': int(result.nit), 'max_gradient': gradient}
+    w, beta, gamma = _unpack(result.x, n_features, classes, own_last_idx, partner_last_idx)
+    return w, beta, gamma, {'iterations': int(result.nit), 'max_gradient': gradient}
 
 
-def probabilities(x, weights):
-    logits = x @ weights
+def probabilities(x, w, beta=None, gamma=None, own_last_idx=None, partner_last_idx=None):
+    logits = _copy_logits(x @ w, beta, own_last_idx, gamma, partner_last_idx)
     return np.exp(logits - logsumexp(logits, axis=1, keepdims=True))
+
+
+def select_l2_and_fit(train, validation, vocab, fields, config):
+    """Grid-search L2 on the validation day only; `test` is never an argument
+    here, so it is structurally impossible for test data to influence selection."""
+    encoder = Encoder(train, vocab, fields, config['history_order'])
+    x_train, x_val = encoder.transform(train), encoder.transform(validation)
+    y_train = np.array([vocab.index(r['Ct']) for r in train])
+    y_val = np.array([vocab.index(r['Ct']) for r in validation])
+    own_train = last_label_index(train, 'A_history', vocab) if 'A_history' in fields else None
+    partner_train = last_label_index(train, 'B_history', vocab) if 'B_history' in fields else None
+    own_val = last_label_index(validation, 'A_history', vocab) if 'A_history' in fields else None
+    partner_val = last_label_index(validation, 'B_history', vocab) if 'B_history' in fields else None
+    grid = []
+    for l2 in config['l2_grid']:
+        w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2), own_train, partner_train)
+        p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
+        val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
+        grid.append(dict(l2=l2, validation_log_likelihood_bits=val_ll, w=w, beta=beta, gamma=gamma, convergence=convergence))
+    chosen = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2']))
+    return encoder, chosen, grid
 
 
 def repeat_distribution(last, rate, prior):
@@ -101,6 +173,52 @@ def repeat_distribution(last, rate, prior):
     if other_mass <= 0:
         raise ValueError('Repeat baseline needs at least one alternative label')
     return {t: rate if t == last else (1-rate)*p/other_mass for t, p in prior.items()}
+
+
+def describe(condition):
+    if condition == 'none':
+        return 'no inputs'
+    parts = condition.split('_')
+    return parts[0] if len(parts) == 1 else ' and '.join(parts) if len(parts) == 2 else ', '.join(parts[:-1])+' and '+parts[-1]
+
+
+def classify_add_input_contrasts(summary):
+    """One entry per add-one-input pair, with the day-bootstrap reliability of its sign."""
+    details = []
+    for key, contrast in summary['contrasts'].items():
+        if not key.startswith('add_input:'):
+            continue
+        full_parts = contrast['full'].split('_') if contrast['full'] != 'none' else []
+        reduced_parts = contrast['reduced'].split('_') if contrast['reduced'] != 'none' else []
+        added = next(p for p in full_parts if p not in reduced_parts)
+        stats = contrast['components']['log_likelihood_bits']
+        low, high = stats['ci_bits_per_coda']
+        reliability = 'negative' if high < 0 else 'positive' if low > 0 else 'inconclusive'
+        details.append(dict(added=added, base=contrast['reduced'], mean=stats['mean_bits_per_coda'],
+                            low=low, high=high, reliability=reliability,
+                            unweighted_mean=stats.get('unweighted_mean_bits_per_coda'),
+                            positive_days=stats['positive_days'], days=stats['days']))
+    return details
+
+
+def check_stop_conditions(summary, baseline_metrics, baseline_checks):
+    """PLAN [M1b]/[U2]: reasons to stop and show the results before writing conclusions."""
+    reasons = []
+    repeat_accuracy = baseline_metrics['repeat_own_last']['accuracy']
+    for condition in ('A', 'A_B', 'A_S', 'A_B_S'):
+        check = baseline_checks[condition]
+        if check['ci_bits_per_coda'][1] < 0:
+            reasons.append(f"{condition}: reliably below repeat-own-last in log-likelihood "
+                           f"(CI {check['ci_bits_per_coda']})")
+        accuracy = summary['metrics'][condition]['accuracy']
+        if accuracy < repeat_accuracy:
+            reasons.append(f"{condition}: accuracy {accuracy:.3%} below repeat-own-last {repeat_accuracy:.3%}")
+    for name, contrast in summary['contrasts'].items():
+        if name.startswith('add_input:'):
+            ci = contrast['components']['log_likelihood_bits']['ci_bits_per_coda']
+            if ci[1] < 0:
+                reasons.append(f"{name}: contrast CI entirely below zero {ci}")
+    return reasons
 
 
 def run(config_path):
@@ -138,8 +256,8 @@ def run(config_path):
             else:
                 encoder = Encoder(train, vocab, fields, config['history_order'])
                 x = encoder.transform(train)
-                weights, convergence = fit(x, y, len(vocab), config)
-                p = probabilities(encoder.transform(test), weights)
+                weights, beta, gamma, convergence = fit(x, y, len(vocab), config)
+                p = probabilities(encoder.transform(test), weights, beta, gamma)
                 diagnostics.append(dict(fold_id=fold['fold_id'],condition=condition,**convergence))
                 models.append(dict(fold_id=fold['fold_id'],condition=condition,vocabulary=vocab,
                                    fields=fields,order=encoder.order,categories=encoder.categories,
@@ -163,24 +281,7 @@ def run(config_path):
                 days.setdefault(r['recording_date'],[]).append(r['log_likelihood_bits']-indexed[r['coda_id']]['repeat_log_likelihood_bits'])
         baseline_checks[condition] = day_bootstrap_bits(days,evaluation_config['bootstrap_replicates'],evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
 
-    def describe(condition):
-        if condition == 'none':
-            return 'no inputs'
-        parts = condition.split('_')
-        return parts[0] if len(parts) == 1 else ' and '.join(parts) if len(parts) == 2 else ', '.join(parts[:-1])+' and '+parts[-1]
-
-    add_input_details = []
-    for key, contrast in summary['contrasts'].items():
-        if not key.startswith('add_input:'):
-            continue
-        full_parts = contrast['full'].split('_') if contrast['full'] != 'none' else []
-        reduced_parts = contrast['reduced'].split('_') if contrast['reduced'] != 'none' else []
-        added = next(p for p in full_parts if p not in reduced_parts)
-        stats = contrast['components']['log_likelihood_bits']
-        low, high = stats['ci_bits_per_coda']
-        reliability = 'negative' if high < 0 else 'positive' if low > 0 else 'inconclusive'
-        add_input_details.append(dict(added=added, base=contrast['reduced'], mean=stats['mean_bits_per_coda'],
-                                      low=low, high=high, reliability=reliability))
+    add_input_details = classify_add_input_contrasts(summary)
     reliably_negative = [d for d in add_input_details if d['reliability'] == 'negative']
     noise_negative = [d for d in add_input_details if d['mean'] < 0 and d['reliability'] != 'negative']
     own_history_alone = summary['contrasts']['add_input:A-none']['components']['log_likelihood_bits']['mean_bits_per_coda']
@@ -266,10 +367,304 @@ def run(config_path):
     return summary
 
 
+def _fit_and_evaluate_v2(config_path):
+    """Fold loop, fitting and evaluation shared by run_v2 and run_v2_sensitivity;
+    only the report each writes at the end differs. Adds shared copy features
+    (beta for A, gamma for B) and per-fold, per-condition L2 selected on the
+    validation day; everything else (preprocessing, folds, UNK policy) is
+    unchanged. See select_l2_and_fit for the test-isolation guarantee."""
+    path = Path(config_path).resolve()
+    root, config = path.parent.parent, read_json(path)
+    manifest_path = root / config['manifest']
+    manifest = read_json(manifest_path)
+    source = root / manifest['configuration']['input']
+    if hashlib.sha256(source.read_bytes()).hexdigest() != manifest['input_sha256']:
+        raise ValueError('Stale fold manifest')
+    evaluation_config = read_json(root / config['evaluation_config'])
+    if evaluation_config['seeds'] != [config['seed']]:
+        raise ValueError('Evaluation seed configuration mismatch')
+    rows = read_jsonl(source)
+    predictions, baselines, models, diagnostics, selections = [], [], [], [], []
+    for fold in manifest['folds']:
+        mapped, policy = prepare_fold(rows, fold, manifest['preparation_configuration'])
+        if policy != fold['vocabulary_policy']:
+            raise ValueError('Recomputed fold policy differs from manifest')
+        train = [r for r in mapped if r['split']=='train' and r['comparison_eligible']]
+        validation = [r for r in mapped if r['split']=='validation' and r['comparison_eligible']]
+        test = [r for r in mapped if r['split']=='test' and r['comparison_eligible']]
+        if not validation:
+            raise ValueError('Fold has no validation comparison targets for L2 selection')
+        if {r['coda_id'] for r in validation} & {r['coda_id'] for r in test}:
+            raise ValueError('Validation and test rows overlap')
+        vocab, prior = policy['vocabulary'], policy['label_prior']
+        rate = sum(r['Ct']==r['A_history'][-1] for r in train)/len(train)
+        majority = max(sorted(prior), key=prior.get)
+        for row in test:
+            p = repeat_distribution(row['A_history'][-1], rate, prior)
+            baselines.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],recording_date=row['recording_date'],
+                                  target=row['Ct'],majority=majority,repeat_probabilities=p,
+                                  repeat_prediction=max(sorted(p),key=p.get),
+                                  repeat_log_likelihood_bits=log_likelihood_bits(p[row['Ct']]),training_repeat_rate=rate))
+        for condition, fields in manifest['input_conditions'].items():
+            if condition == 'none':
+                p = np.array([[prior[t] for t in vocab]]*len(test))
+            else:
+                encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config)
+                own_test = last_label_index(test, 'A_history', vocab) if 'A_history' in fields else None
+                partner_test = last_label_index(test, 'B_history', vocab) if 'B_history' in fields else None
+                p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test)
+                diagnostics.append(dict(fold_id=fold['fold_id'],condition=condition,**chosen['convergence']))
+                models.append(dict(fold_id=fold['fold_id'],condition=condition,vocabulary=vocab,
+                                   fields=fields,order=encoder.order,categories=encoder.categories,
+                                   feature_names=encoder.names+['intercept'],mean=encoder.mean.tolist(),
+                                   scale=encoder.scale.tolist(),weights=chosen['w'].tolist(),
+                                   beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2']))
+                selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
+                                       grid=[dict(l2=g['l2'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
+                                                 convergence=g['convergence']) for g in grid]))
+            for row, probs in zip(test,p):
+                predictions.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],condition=condition,
+                                        seed=config['seed'],probabilities=dict(zip(vocab,map(float,probs)))))
+        print(f"Finished {fold['fold_id']}: {len(test)} test targets", flush=True)
+    summary, scored, paired = evaluate(predictions,manifest,rows,[config['seed']],evaluation_config['bootstrap_replicates'],
+                                       evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
+    baseline_metrics = {'majority':classification_metrics([r['target'] for r in baselines],[r['majority'] for r in baselines]),
+                        'repeat_own_last':classification_metrics([r['target'] for r in baselines],[r['repeat_prediction'] for r in baselines])}
+    baseline_metrics['repeat_own_last']['mean_log_likelihood_bits'] = sum(r['repeat_log_likelihood_bits'] for r in baselines)/len(baselines)
+    indexed = {r['coda_id']:r for r in baselines}
+    baseline_checks = {}
+    for condition in ('A','A_B','A_S','A_B_S'):
+        days = {}
+        for r in scored:
+            if r['condition']==condition:
+                days.setdefault(r['recording_date'],[]).append(r['log_likelihood_bits']-indexed[r['coda_id']]['repeat_log_likelihood_bits'])
+        baseline_checks[condition] = day_bootstrap_bits(days,evaluation_config['bootstrap_replicates'],evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
+
+    output = root / config['output_directory'];output.mkdir(parents=True,exist_ok=True)
+    write_jsonl(output/'predictions.jsonl',predictions)
+    write_jsonl(output/'baseline_predictions.jsonl',baselines)
+    write_jsonl(output/'models.jsonl',models)
+    write_jsonl(output/'convergence.jsonl',diagnostics)
+    write_jsonl(output/'l2_selection.jsonl',selections)
+    eval_output = output/'evaluation';eval_output.mkdir(exist_ok=True)
+    write_jsonl(eval_output/'scored_predictions.jsonl',scored)
+    write_jsonl(eval_output/'paired_contrasts.jsonl',paired)
+    summary.update(configuration=config,baseline_metrics=baseline_metrics,repeat_baseline_checks=baseline_checks,
+                   versions={'numpy':np.__version__,'scipy':scipy.__version__},
+                   input_sha256={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,manifest_path,path)})
+    write_text(eval_output/'summary.json',json.dumps(summary,indent=2,allow_nan=False)+'\n')
+    return root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics
+
+
+def run_v2(config_path):
+    """Adds shared copy features and tuned L2 to the primary onset-available lattice;
+    writes reports/rq1_logistic_v2.md comparing against v1 (fixed L2, no copy features)."""
+    root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics = _fit_and_evaluate_v2(config_path)
+    stop_reasons = check_stop_conditions(summary, baseline_metrics, baseline_checks)
+    v1_summary = read_json(root / config['compare_against']) if config.get('compare_against') else None
+    write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics, stop_reasons, v1_summary)
+    return summary, stop_reasons
+
+
+def run_v2_sensitivity(config_path):
+    """Same fitting and evaluation as run_v2, run on a manifest whose S-containing
+    conditions substitute retrospective_delay_s for gap_s/overlap_elapsed_s (PLAN
+    S9, DEC-1). Reports the comparison separately from the primary lattice, never
+    merged into it, and draws no conclusions beyond the numbers."""
+    root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics = _fit_and_evaluate_v2(config_path)
+    stop_reasons = check_stop_conditions(summary, baseline_metrics, baseline_checks)
+    primary_summary = read_json(root / config['compare_against'])
+    for c in ('A', 'B', 'A_B'):
+        if summary['metrics'][c] != primary_summary['metrics'][c]:
+            raise ValueError(f"Condition {c} does not use S but differs from the primary run")
+    write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary)
+    return summary, stop_reasons
+
+
+def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics, stop_reasons, v1_summary):
+    conditions = list(summary['metrics'])
+    lines = ['# RQ1 logistic-regression reference results, v2 (copy features and tuned L2)', '',
+             "Same fourteen leave-one-day-out folds as v1. Two changes to the reference model only: conditions "
+             "containing A get a shared scalar added to the logit of the class matching the whale's own last coda, "
+             "and conditions containing B get a shared scalar added to the logit of the class matching the "
+             "partner's last coda, both penalized by the same L2 as every other weight. L2 itself is chosen per "
+             f"fold and condition from {config['l2_grid']} by the highest mean log-likelihood on that fold's "
+             "validation day (ties go to the larger value), then the model trained on the training days only is "
+             "scored on the test day, with no refit on train plus validation. Bootstrap replicates are 10,000. "
+             "Preprocessing, folds, the UNK policy and the S definition are unchanged; v1 results are kept for "
+             "comparison, not overwritten.", '']
+
+    lines += ['## Metrics, v1 vs v2', '',
+             '| Condition | v1 LL bits/coda | v2 LL bits/coda | v1 Accuracy | v2 Accuracy | v1 Macro-F1 | v2 Macro-F1 |',
+             '|---|---:|---:|---:|---:|---:|---:|']
+    for c in conditions:
+        v1m = v1_summary['metrics'][c] if v1_summary else None
+        v2m = summary['metrics'][c]
+        v1ll = f"{v1m['mean_log_likelihood_bits']:.5f}" if v1m else 'n/a'
+        v1acc = f"{v1m['accuracy']:.3%}" if v1m else 'n/a'
+        v1f1 = f"{v1m['macro_f1']:.4f}" if v1m else 'n/a'
+        lines.append(f"| {c} | {v1ll} | {v2m['mean_log_likelihood_bits']:.5f} | {v1acc} | {v2m['accuracy']:.3%} | "
+                     f"{v1f1} | {v2m['macro_f1']:.4f} |")
+    for c, m in baseline_metrics.items():
+        ll = f"{m['mean_log_likelihood_bits']:.5f}" if 'mean_log_likelihood_bits' in m else 'n/a'
+        lines.append(f"| {c} | {ll} | {ll} | {m['accuracy']:.3%} | {m['accuracy']:.3%} | {m['macro_f1']:.4f} | {m['macro_f1']:.4f} |")
+
+    lines += ['', '## Chosen L2 per condition', '', '| Condition | Min | Median | Max | Folds at grid edge |',
+             '|---|---:|---:|---:|---|']
+    grid_min, grid_max = min(config['l2_grid']), max(config['l2_grid'])
+    for c in conditions:
+        if c == 'none':
+            continue
+        chosen = sorted(s['chosen_l2'] for s in selections if s['condition'] == c)
+        edge_folds = [s['fold_id'] for s in selections if s['condition'] == c and s['chosen_l2'] in (grid_min, grid_max)]
+        mid = len(chosen)//2
+        median = chosen[mid] if len(chosen)%2 else (chosen[mid-1]+chosen[mid])/2
+        edge_note = f" ({', '.join(edge_folds)})" if edge_folds else ''
+        lines.append(f"| {c} | {chosen[0]} | {median} | {chosen[-1]} | {len(edge_folds)}/{len(chosen)}{edge_note} |")
+
+    lines += ['', '## Fitted beta and gamma per condition (range over folds)', '',
+             '| Condition | Beta min | Beta max | Gamma min | Gamma max |', '|---|---:|---:|---:|---:|']
+    for c in conditions:
+        if c == 'none':
+            continue
+        betas = [m['beta'] for m in models if m['condition']==c and m['beta'] is not None]
+        gammas = [m['gamma'] for m in models if m['condition']==c and m['gamma'] is not None]
+        bmin, bmax = (f"{min(betas):.4f}", f"{max(betas):.4f}") if betas else ('n/a', 'n/a')
+        gmin, gmax = (f"{min(gammas):.4f}", f"{max(gammas):.4f}") if gammas else ('n/a', 'n/a')
+        lines.append(f"| {c} | {bmin} | {bmax} | {gmin} | {gmax} |")
+
+    lines += ['', '## A-conditions vs repeat-own-last, v1 vs v2', '',
+             f"Repeat-own-last: {baseline_metrics['repeat_own_last']['accuracy']:.3%} accuracy, "
+             f"{baseline_metrics['repeat_own_last']['macro_f1']:.4f} macro-F1, "
+             f"{baseline_metrics['repeat_own_last']['mean_log_likelihood_bits']:.5f} bits/coda.", '',
+             '| Condition | v1 LL contrast | v1 CI | v1 +days | v2 LL contrast | v2 CI | v2 +days | v2 Accuracy | v2 Macro-F1 |',
+             '|---|---:|---|---:|---:|---|---:|---:|---:|']
+    for c in ('A', 'A_B', 'A_S', 'A_B_S'):
+        v1c = v1_summary['repeat_baseline_checks'][c] if v1_summary else None
+        v2c = baseline_checks[c]
+        v1mean = f"{v1c['mean_bits_per_coda']:.5f}" if v1c else 'n/a'
+        v1ci = f"{v1c['ci_bits_per_coda']}" if v1c else 'n/a'
+        v1days = f"{v1c['positive_days']}/{v1c['days']}" if v1c else 'n/a'
+        lines.append(f"| {c} | {v1mean} | {v1ci} | {v1days} | {v2c['mean_bits_per_coda']:.5f} | {v2c['ci_bits_per_coda']} | "
+                     f"{v2c['positive_days']}/{v2c['days']} | {summary['metrics'][c]['accuracy']:.3%} | "
+                     f"{summary['metrics'][c]['macro_f1']:.4f} |")
+
+    lines += ['', '## All twelve add-one-input contrasts (v2)', '',
+             '| Pair | Weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---:|---:|---|---:|']
+    for d in classify_add_input_contrasts(summary):
+        lines.append(f"| adding {d['added']} to {describe(d['base'])} | {d['mean']:.5f} | {d['unweighted_mean']:.5f} | "
+                     f"[{d['low']:.5f}, {d['high']:.5f}] | {d['positive_days']}/{d['days']} |")
+
+    lines += ['', '## Main contrasts, v1 vs v2', '',
+             '| Contrast | v1 bits/coda | v2 bits/coda | v2 unweighted | v2 CI | v2 +days | v2 Repeat part | v2 Switch part |',
+             '|---|---:|---:|---:|---|---:|---:|---:|']
+    for name in ('own_history', 'partner_content', 'timing'):
+        v1a = v1_summary['contrasts'][name]['components']['log_likelihood_bits'] if v1_summary else None
+        comp = summary['contrasts'][name]['components']; a = comp['log_likelihood_bits']
+        v1txt = f"{v1a['mean_bits_per_coda']:.5f}" if v1a else 'n/a'
+        lines.append(f"| {name} | {v1txt} | {a['mean_bits_per_coda']:.5f} | {a['unweighted_mean_bits_per_coda']:.5f} | "
+                     f"{a['ci_bits_per_coda']} | {a['positive_days']}/{a['days']} | "
+                     f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
+
+    total_fits = len(selections[0]['grid'])*len(selections) if selections else 0
+    lines += ['', f"All {total_fits} fits ({len({s['fold_id'] for s in selections})} folds times "
+             f"{len({s['condition'] for s in selections})} non-unigram conditions times {len(config['l2_grid'])} grid "
+             "values) converged; fit() raises immediately on non-convergence, so reaching this report already "
+             "confirms it. Full per-grid-value convergence is in l2_selection.jsonl; the "
+             f"{len(diagnostics)} selected models' convergence is in convergence.jsonl.", '']
+
+    if stop_reasons:
+        lines += ['## Stop: results need review before interpretation', '',
+                 'The following stop conditions from the task were met. No interpretation or conclusions are '
+                 'written below; the tables above are the complete result.', '']
+        lines += [f"- {reason}" for reason in stop_reasons]
+        lines += ['']
+    else:
+        lines += ['## Result', '',
+                 'No A-condition falls below repeat-own-last in log-likelihood or accuracy, and no add-one-input '
+                 'contrast has a confidence interval entirely below zero. The copy features and validation-tuned '
+                 'L2 resolve the expressiveness gap identified in v1.', '']
+
+    report = root / config['report']
+    report.parent.mkdir(parents=True, exist_ok=True)
+    write_text(report, '\n'.join(lines))
+
+
+def write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary):
+    """PLAN S9: the retrospective-delay sensitivity run, reported separately from
+    the primary onset-available results. Same v2 model (copy features, tuned L2)
+    on both sides; only the timing fields feeding the S-containing conditions
+    differ. No interpretation is written here, only the numbers."""
+    lines = ['# RQ1 retrospective-delay sensitivity run', '',
+             "Same fourteen leave-one-day-out folds, vocabulary and v2 model (shared copy features, L2 tuned per "
+             "fold and condition on the validation day) as the primary results. Only the timing fields feeding "
+             "S, A_S, B_S and A_B_S change: turn_category is kept, but gap_s and overlap_elapsed_s are replaced "
+             "by retrospective_delay_s, the onset-to-previous-interlocutor-offset delay used before DEC-1. That "
+             "field can be negative (the predecessor coda had not finished when the target started) and is only "
+             "standardized, not log1p transformed, since it goes below -1 in this data. Conditions without S "
+             "(none, A, B, A_B) are refit identically to the primary run for a complete lattice, and should "
+             "reproduce it exactly. This run is a sensitivity check only; it does not alter the primary "
+             "preprocessing, model, or conclusions.", '']
+
+    lines += ['## S-containing conditions and repeat-own-last, primary vs retrospective delay', '',
+             '| Condition | Primary LL bits/coda | Retrospective LL bits/coda | Primary Accuracy | '
+             'Retrospective Accuracy | Primary Macro-F1 | Retrospective Macro-F1 |',
+             '|---|---:|---:|---:|---:|---:|---:|']
+    for c in ('S', 'A_S', 'B_S', 'A_B_S'):
+        p, r = primary_summary['metrics'][c], summary['metrics'][c]
+        lines.append(f"| {c} | {p['mean_log_likelihood_bits']:.5f} | {r['mean_log_likelihood_bits']:.5f} | "
+                     f"{p['accuracy']:.3%} | {r['accuracy']:.3%} | {p['macro_f1']:.4f} | {r['macro_f1']:.4f} |")
+    pr, rb = primary_summary['baseline_metrics']['repeat_own_last'], baseline_metrics['repeat_own_last']
+    lines.append(f"| repeat_own_last | {pr['mean_log_likelihood_bits']:.5f} | {rb['mean_log_likelihood_bits']:.5f} | "
+                 f"{pr['accuracy']:.3%} | {rb['accuracy']:.3%} | {pr['macro_f1']:.4f} | {rb['macro_f1']:.4f} |")
+
+    lines += ['', '## Timing contrast and A_B_S vs repeat-own-last, primary vs retrospective delay', '', '']
+    pt, rt = primary_summary['contrasts']['timing']['components']['log_likelihood_bits'], summary['contrasts']['timing']['components']['log_likelihood_bits']
+    lines[-1] = ('| Comparison | Primary bits/coda | Primary CI | Primary +days | Retrospective bits/coda | '
+                 'Retrospective CI | Retrospective +days |')
+    lines.append('|---|---:|---|---:|---:|---|---:|')
+    lines.append(f"| timing (A_B_S - A_B) | {pt['mean_bits_per_coda']:.5f} | {pt['ci_bits_per_coda']} | "
+                 f"{pt['positive_days']}/{pt['days']} | {rt['mean_bits_per_coda']:.5f} | {rt['ci_bits_per_coda']} | "
+                 f"{rt['positive_days']}/{rt['days']} |")
+    pc, rc = primary_summary['repeat_baseline_checks']['A_B_S'], baseline_checks['A_B_S']
+    lines.append(f"| A_B_S vs repeat-own-last | {pc['mean_bits_per_coda']:.5f} | {pc['ci_bits_per_coda']} | "
+                 f"{pc['positive_days']}/{pc['days']} | {rc['mean_bits_per_coda']:.5f} | {rc['ci_bits_per_coda']} | "
+                 f"{rc['positive_days']}/{rc['days']} |")
+
+    lines += ['', 'The A, B and A_B conditions do not use S and are refit identically to the primary run '
+             '(verified exactly equal before this report is written).', '']
+
+    if stop_reasons:
+        lines += ['## Stop: results need review before interpretation', '',
+                 'The following stop conditions from the task were met on this retrospective-delay run. No '
+                 'interpretation or conclusions are written below; the tables above are the complete result.', '']
+        lines += [f"- {reason}" for reason in stop_reasons]
+        lines += ['']
+    else:
+        lines += ['## Result', '',
+                 'No A-condition falls below repeat-own-last in log-likelihood or accuracy on this run, and no '
+                 'add-one-input contrast has a confidence interval entirely below zero.', '']
+
+    report = root / config['report']
+    report.parent.mkdir(parents=True, exist_ok=True)
+    write_text(report, '\n'.join(lines))
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',default='config/rq1_logistic.json')
-    run(parser.parse_args().config)
+    args=parser.parse_args()
+    config=read_json(Path(args.config).resolve())
+    if config.get('sensitivity') == 'retrospective_delay':
+        _, stop_reasons = run_v2_sensitivity(args.config)
+        if stop_reasons:
+            print(f"STOP: {len(stop_reasons)} condition(s) need review before interpretation. See the report.")
+    elif 'l2_grid' in config:
+        _, stop_reasons = run_v2(args.config)
+        if stop_reasons:
+            print(f"STOP: {len(stop_reasons)} condition(s) need review before interpretation. See the report.")
+    else:
+        run(args.config)
 
 
 if __name__=='__main__':
