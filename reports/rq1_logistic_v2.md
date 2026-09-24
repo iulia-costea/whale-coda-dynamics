@@ -86,3 +86,5 @@ The following stop conditions from the task were met. No interpretation or concl
 - A_B: accuracy 82.353% below repeat-own-last 82.547%
 - A_B_S: accuracy 82.094% below repeat-own-last 82.547%
 - add_input:A_B_S-A_B: contrast CI entirely below zero [-0.0772124079144048, -0.009267742881333444]
+
+Statistical uncertainty and restricted feature capacity limit inference from this reference model; this report does not establish grammar or causal mechanisms. Day-bootstrap intervals use 10,000 replicates and are approximate with only 14 days. The switch-choice component of every contrast rests on about 270 non-repeat codas and is exploratory. Source, fold-manifest and configuration SHA-256 hashes, per-fold vocabulary sizes and UNK counts, and full model settings are recorded in evaluation/summary.json, models.jsonl and l2_selection.jsonl alongside this report; reports/rq1_folds.md reports UNK rates per fold.

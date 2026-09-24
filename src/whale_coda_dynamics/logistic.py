@@ -585,6 +585,14 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
                  'contrast has a confidence interval entirely below zero. The copy features and validation-tuned '
                  'L2 resolve the expressiveness gap identified in v1.', '']
 
+    lines += ['Statistical uncertainty and restricted feature capacity limit inference from this reference model; '
+             'this report does not establish grammar or causal mechanisms. Day-bootstrap intervals use 10,000 '
+             'replicates and are approximate with only 14 days. The switch-choice component of every contrast '
+             'rests on about 270 non-repeat codas and is exploratory. Source, fold-manifest and configuration '
+             'SHA-256 hashes, per-fold vocabulary sizes and UNK counts, and full model settings are recorded in '
+             'evaluation/summary.json, models.jsonl and l2_selection.jsonl alongside this report; '
+             'reports/rq1_folds.md reports UNK rates per fold.', '']
+
     report = root / config['report']
     report.parent.mkdir(parents=True, exist_ok=True)
     write_text(report, '\n'.join(lines))
@@ -644,6 +652,10 @@ def write_sensitivity_report(root, config, summary, baseline_metrics, baseline_c
         lines += ['## Result', '',
                  'No A-condition falls below repeat-own-last in log-likelihood or accuracy on this run, and no '
                  'add-one-input contrast has a confidence interval entirely below zero.', '']
+
+    lines += ['Day-bootstrap intervals use 10,000 replicates and are approximate with only 14 days. Source, '
+             'fold-manifest and configuration SHA-256 hashes and full model settings are recorded in '
+             'evaluation/summary.json alongside this report.', '']
 
     report = root / config['report']
     report.parent.mkdir(parents=True, exist_ok=True)

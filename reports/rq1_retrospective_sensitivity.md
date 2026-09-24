@@ -28,3 +28,5 @@ The following stop conditions from the task were met on this retrospective-delay
 - A_B: accuracy 82.353% below repeat-own-last 82.547%
 - A_B_S: accuracy 82.224% below repeat-own-last 82.547%
 - add_input:A_B_S-A_B: contrast CI entirely below zero [-0.044108695593226936, -0.0061985138577028975]
+
+Day-bootstrap intervals use 10,000 replicates and are approximate with only 14 days. Source, fold-manifest and configuration SHA-256 hashes and full model settings are recorded in evaluation/summary.json alongside this report.
