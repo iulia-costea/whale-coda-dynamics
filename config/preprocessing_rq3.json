@@ -1,0 +1,23 @@
+{
+  "caribbean_input": "data/raw/CarribeanCodas.csv",
+  "pacific_input": "data/raw/PacificCodas.csv",
+  "interim_output": "data/interim/rq3/rq3_codas_normalized.jsonl",
+  "processed_output": "data/processed/rq3/rq3_codas.csv",
+  "metadata_output": "data/processed/rq3/rq3_codas_metadata.csv",
+  "report_output": "reports/rq3_preprocessing.md",
+  "primary_min_clicks": 3,
+  "primary_max_clicks": 10,
+  "accepted_caribbean_clans": [
+    "EC1",
+    "EC2"
+  ],
+  "accepted_pacific_clans": [
+    "FP",
+    "PALI",
+    "PO",
+    "REG",
+    "RI",
+    "SH",
+    "SI"
+  ]
+}
