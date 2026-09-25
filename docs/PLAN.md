@@ -36,8 +36,8 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 |---|---|---|---|
 | `[D1]` | Assayag et al. 2026, `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | 3,933 codas, EC1, 14 days (2014-04-16 to 2016-05-13) | RQ1; both RQ2 labellings |
 | `[D2]` | Sharma et al. 2024a, `data/raw/sperm-whale-dialogues.csv` + `rhythms.p` | 3,840 codas, 219 recordings | secondary RQ2 labels; standalone "whole-pipeline" robustness check |
-| `[D6]` | `data/raw/DominicaCodas.csv` (probably Leitão et al.'s data) | 8,719 codas, clans EC1 + EC2, 101 dates | RQ3 sympatric test |
-| `[D4]` | Hersh et al. 2022, OSF `ae6pd` (not in repo) | 23,429 codas, 7 Pacific clans | RQ3 allopatric extension |
+| `[D6]` | `data/raw/CarribeanCodas.csv` (probably Leitão et al.'s data) | 8,719 codas, clans EC1 + EC2, 101 dates | RQ3 sympatric test |
+| `[D4]` | Hersh et al. 2022, `data/raw/PacificCodas.csv` (OSF `ae6pd`) | 24,237 codas; 23,429 with 3–10 clicks across 7 Pacific clans | RQ3 allopatric extension |
 
 **Facts that matter**
 - **Coda types `[D1]`:** two labellings exist. `guy_coda_type` has 23 types and `decision_tree_coda_type` has 25, and they disagree on 265 codas. 21 types appear in the RQ1 comparison set. Never write "27 types"; that figure is from Gubnitsky et al.
@@ -52,7 +52,7 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
   - It keeps 153 codas with more than 10 clicks, which Sharma et al. excluded. Flag them, and report results with and without them.
   - `tempos-dict.p` and `ornaments.p` are not in the repo; fetch them from Sharma's GitHub.
   - One `Duration=0` row drops the whole 731-row recording `sw061b003` in the Sharma pipeline.
-- **`[D6]` encoding:** the file starts with a UTF-8 BOM, so read it with `utf-8-sig`.
+- **`[D6]` encoding:** `CarribeanCodas.csv` starts with a UTF-8 BOM, so read it with `utf-8-sig`.
 
 **`[D7]` Sample.**
 - **Segmentation:** exchanges are cut at a 7 s end-to-start gap (as in Assayag et al.; cite their 3/5/7/10 s sweep).
@@ -289,7 +289,7 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 primary:** swap the label column.
 6. **RQ3 sympatric:** EC1 ↔ EC2.
-7. **RQ2 secondary, then the Pacific data.**
+7. **RQ2 secondary, then the Pacific RQ3 extension.**
 
 ---
 

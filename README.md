@@ -137,3 +137,31 @@ checksums. Outputs are `data/processed/rq2_comparison.csv`,
 
 - [Data dictionary, provenance, and assumptions](reports/data_dictionary.md)
 - [Assayag et al. paper](https://doi.org/10.1080/09524622.2026.2684665)
+
+## RQ3: within-coda cross-clan transfer preparation
+
+RQ3 uses the local Caribbean EC1/EC2 and Pacific seven-clan sources. It models
+the sequence of inter-click intervals within one coda; it does not use caller
+identity, exchange order, or the RQ1/RQ2 interaction features.
+
+Run preparation and its read-only independent validation from the repository root:
+
+```sh
+PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json
+PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json
+```
+
+Preparation preserves all 32,956 raw rows in
+`data/interim/rq3/rq3_codas_normalized.jsonl`. The primary 3–10-click,
+assigned-clan sample has 31,528 codas and is exported as:
+
+- **`data/processed/rq3/rq3_codas.csv`**: the model-ready table with coda ID,
+  source dataset, clan, click count, and an unpadded continuous ICI sequence.
+- **`data/processed/rq3/rq3_codas_metadata.csv`**: the same eligible rows plus
+  provenance and diagnostic fields.
+- **`reports/rq3_preprocessing.md`**: source checksums, eligibility counts, and
+  artifact checksums.
+
+ICI discretisation is deliberately not performed by preparation: for each
+transfer direction, bins must be fit on the training clan only and then applied
+unchanged to the target clan.

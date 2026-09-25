@@ -17,7 +17,7 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 - 82.5% of targets repeat the whale's own last coda: $A$-conditions below the repeat-own-last baseline = optimisation failure; matching it is a finding (nothing beyond repetition).
 - One shared unseen-label (`UNK`) policy for all labelling schemes.
 - Never use `pair_category` as a feature. Caller codes (`Whale`, `local_caller_id`) are segment-local, not identified animals.
-- Pacific and `DominicaCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
+- `CarribeanCodas.csv` and `PacificCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
 - Claims are about dyadic exchanges only. "Not persistence" ≠ grammar — no grammar/syntax conclusions.
 - Don't redo Assayag et al.'s bout-threshold correlation sweep or Leitão et al.'s VLMC/KL analysis; cite them.
 
@@ -28,14 +28,16 @@ Python 3.10+, `preprocessing/` is stdlib-only. Run with `PYTHONPATH=src`.
 ```sh
 PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare      # RQ1 → rq1_* tables, reports/rq1.md
 PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare_rq2  # Sharma pipeline → rq2_*, reports/rq2.md
+PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json
+PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json
 ```
 
-No test suite: `prepare.validate()` independently recomputes every derived field and raises on mismatch. A clean run of **both** pipelines is the test; treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in `validate()`.
+No test suite: the RQ1/RQ2 `prepare.validate()` and RQ3's separate read-only validator independently recompute derived fields and raise on mismatch. A clean run of every applicable pipeline is the test; treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in the relevant validator.
 
 ## Traps
 
 - All text I/O via `io_utils.py`, never bare `open` (UTF-8 + LF pinned; artifact checksums are part of the output).
-- `reports/rq1.md`, `reports/rq2.md` are generated — edit the builder code, not the markdown.
+- `reports/rq1.md`, `reports/rq2.md`, and `reports/rq3_preprocessing.md` are generated — edit the builder code, not the markdown.
 - `data/raw/` is never modified; `data/` is committed, so a pipeline run is a diff — review it.
 - Prefer failing loudly over guessing: flag, exclude with a recorded reason, or leave unresolved.
 

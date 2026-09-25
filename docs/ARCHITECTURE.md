@@ -2,7 +2,7 @@
 
 Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-22: preparation only, no model code.
 
-## Stages
+## RQ1/RQ2 stages
 
 Four stages, each a module with `run(config_path)`, each runnable alone with `--config`:
 
@@ -33,10 +33,16 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 - Explicit differences from the Assayag release (also in `reports/rq2.md`): no Tag/Bout/Date/Focal → `tag_id = recording_id`, REC is the only hard boundary, `strict_focal_subset` always False; `recording_date` holds the deployment prefix `^sw\d+` (schema parity, no chronological meaning); `rhythms.p` joined by row index; unseen types → `UNK` via `apply_unk_policy` (preserves `Ct_raw`), moving to the shared module per DEC-7.
 - One `Duration=0` row excludes all of `sw061b003` (731 rows) — expected conservative behaviour, not a bug.
 
+## RQ3 preprocessing (`src/rq3/preprocessing/`)
+
+- `prepare.py` reads `CarribeanCodas.csv` and `PacificCodas.csv`, preserves every source row in an interim audit JSONL, and writes two 3–10-click continuous-ICI tables: the core model table and its metadata superset. It never globally discretises ICIs; binning must be fitted on a training clan only downstream.
+- `validate.py` is read-only. It independently checks raw-source coverage, eligibility, ICI sequences, and agreement between the interim, core, and metadata artifacts.
+- Run from the repository root with `PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json`, then `PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json`.
+
 ## Conventions
 
 - **`io_utils.py`** for all text I/O (`read_text/write_text/read_json/read_jsonl/write_jsonl`): UTF-8 (configs contain Hebrew month aliases) and `\n` newlines, because checksums are reported output. `.gitattributes` pins LF.
-- **Reports:** `reports/rq1.md`, `reports/rq2.md` generated; `reports/data_dictionary.md` hand-written — the reference for field semantics, provenance, and questions open with source authors.
+- **Reports:** `reports/rq1.md`, `reports/rq2.md`, and `reports/rq3_preprocessing.md` are generated; `reports/data_dictionary.md` is hand-written — the reference for field semantics, provenance, and questions open with source authors.
 - **Data:** `data/raw/`, `data/interim/`, `data/processed/` all committed; raw never modified.
 - **Identity:** `local_caller_id`, `identity_status: provisional_local_code`, exchange IDs like `provisional:g7:row0`. `coda_id`s are not stable across source versions.
 - **Failing loudly:** unparseable → `None` + audit flag; ambiguous segments excluded with a reason; unestablished facts (absolute timestamps, individual identity, Bout scope) stay unresolved.
@@ -49,8 +55,11 @@ Detail and verified counts: PLAN §2.
 |---|---|
 | `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | Assayag et al. 2026; RQ1 + both RQ2 labellings |
 | `data/raw/sperm-whale-dialogues.csv`, `rhythms.p` | Sharma et al. 2024; secondary RQ2 labels, standalone pipeline. `tempos-dict.p`, `ornaments.p` still to fetch |
-| `data/raw/DominicaCodas.csv` | EC1 + EC2; RQ3 sympatric test (unwired) |
-| Hersh et al. 2022 (not in repo) | RQ3 allopatric extension |
+| `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3 sympatric transfer source |
+| `data/raw/PacificCodas.csv` | Hersh et al. 2022 Pacific data; RQ3 allopatric extension |
+| `data/interim/rq3/rq3_codas_normalized.jsonl` | All-row RQ3 normalization and audit artifact |
+| `data/processed/rq3/rq3_codas.csv` | Core RQ3 model-ready continuous-ICI table |
+| `data/processed/rq3/rq3_codas_metadata.csv` | RQ3 core rows plus provenance and diagnostic metadata |
 
 ## Known gotchas
 
