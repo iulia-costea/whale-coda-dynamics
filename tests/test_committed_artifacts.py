@@ -30,27 +30,33 @@ PREPROCESSING = [
     ('preprocessing.folds', 'config/rq1_folds_retrospective.json'),
 ]
 
-# Result summaries whose recorded input hashes are known not to match main, with the reason.
-# Remove an entry when that result is regenerated from the committed inputs; the test below
-# fails for entries that are no longer needed, so this list can only shrink.
-# Reason for all current entries: fitted on a local rq1_targets.jsonl whose rows carried the
-# old CRLF-based source_sha256 (aa4159d1...). Content otherwise identical to the committed file
-# (verified 2026-09-28: substituting that hash into the committed file reproduces 5fbf54da...).
-# The fold manifests built from it differ only in their recorded input hash.
-_STALE_TARGETS = '5fbf54dae03b'
-KNOWN_STALE = {
-    ('data/results/rq1/evaluation/summary.json', 'data/processed/rq1_targets.jsonl'): _STALE_TARGETS,
-    ('data/results/rq1/evaluation/summary.json', 'data/processed/rq1_folds/manifest.json'): '2ab9020a1954',
-    ('data/results/rq1_logistic_v2/evaluation/summary.json', 'data/processed/rq1_targets.jsonl'): _STALE_TARGETS,
-    ('data/results/rq1_logistic_v2/evaluation/summary.json', 'data/processed/rq1_folds/manifest.json'): '2ab9020a1954',
-    ('data/results/rq1_logistic_v2_retrospective/evaluation/summary.json', 'data/processed/rq1_targets.jsonl'): _STALE_TARGETS,
-    ('data/results/rq1_logistic_v2_retrospective/evaluation/summary.json', 'data/processed/rq1_folds_retrospective/manifest.json'): '2d4b1dd9fc79',
-    ('data/results/rq1_lstm/evaluation/summary.json', 'data/processed/rq1_targets.jsonl'): _STALE_TARGETS,
-    ('data/results/rq1_lstm/evaluation/summary.json', 'data/processed/rq1_folds/manifest.json'): '2ab9020a1954',
-    ('data/results/rq1_lstm_reproduction/evaluation/summary.json', 'data/processed/rq1_targets.jsonl'): _STALE_TARGETS,
-    ('data/results/rq1_lstm_reproduction/evaluation/summary.json', 'data/processed/rq1_folds/manifest.json'): '2ab9020a1954',
+# Result summaries fitted before the CRLF provenance fix (2026-09-28). Their inputs were the
+# committed files except for one provenance field: rq1_targets.jsonl rows carried source_sha256 of
+# the raw CSV read with CRLF line endings, and the fold manifests built from that file record its
+# hash. The test does not trust this list: for each listed summary it rebuilds that variant of the
+# committed inputs and requires the recorded hash to match it exactly, so any real change to the
+# committed targets or manifests still fails. Remove an entry when that result is regenerated; the
+# test fails for entries that are no longer needed, so this list can only shrink.
+CRLF_PROVENANCE = {
+    'data/results/rq1/evaluation/summary.json',
+    'data/results/rq1_logistic_v2/evaluation/summary.json',
+    'data/results/rq1_logistic_v2_retrospective/evaluation/summary.json',
+    'data/results/rq1_lstm/evaluation/summary.json',
+    'data/results/rq1_lstm_reproduction/evaluation/summary.json',
 }
 
+
+def crlf_provenance_variant(path):
+    """SHA-256 of a committed input as it was before the fix: raw-CSV hash computed from CRLF
+    line endings, and (in manifests) the hash of the targets file carrying that value."""
+    raw = (ROOT / read_json(ROOT / 'config' / 'preprocessing.json')['input']).read_bytes()
+    lf_raw = hashlib.sha256(raw).hexdigest().encode()
+    crlf_raw = hashlib.sha256(raw.replace(b'\n', b'\r\n')).hexdigest().encode()
+    targets = (ROOT / 'data' / 'processed' / 'rq1_targets.jsonl').read_bytes()
+    old_targets = hashlib.sha256(targets.replace(lf_raw, crlf_raw)).hexdigest().encode()
+    content = Path(path).read_bytes().replace(lf_raw, crlf_raw)
+    content = content.replace(hashlib.sha256(targets).hexdigest().encode(), old_targets)
+    return hashlib.sha256(content).hexdigest()
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -98,7 +104,8 @@ class RecordedHashTests(unittest.TestCase):
                 self.assertEqual(manifest['source_sha256'], sha256(ROOT / raw))
 
     def test_result_summaries_match_committed_inputs(self):
-        used = set()
+        self.assertTrue(SUMMARIES)
+        still_old = set()
         for summary_path in SUMMARIES:
             summary_rel = summary_path.relative_to(ROOT).as_posix()
             for recorded_path, recorded_hash in read_json(summary_path).get('input_sha256', {}).items():
@@ -107,13 +114,14 @@ class RecordedHashTests(unittest.TestCase):
                     self.assertTrue((ROOT / path).is_file(), 'recorded input no longer exists')
                     if recorded_hash == sha256(ROOT / path):
                         continue
-                    stale = KNOWN_STALE.get((summary_rel, path))
-                    self.assertTrue(stale and recorded_hash.startswith(stale),
-                                    'result was produced from inputs that differ from the committed ones; '
-                                    'rerun it from a clean checkout')
-                    used.add((summary_rel, path))
-        self.assertEqual(sorted(set(KNOWN_STALE) - used), [],
-                         'these results now match main: remove them from KNOWN_STALE')
+                    self.assertIn(summary_rel, CRLF_PROVENANCE,
+                                  'result was produced from inputs that differ from the committed ones; '
+                                  'rerun it from a clean checkout')
+                    self.assertEqual(recorded_hash, crlf_provenance_variant(ROOT / path),
+                                     'inputs differ from the committed ones beyond the known CRLF provenance field')
+                    still_old.add(summary_rel)
+        self.assertEqual(sorted(CRLF_PROVENANCE - still_old), [],
+                         'these results now match main: remove them from CRLF_PROVENANCE')
 
 
 class FoldManifestTests(unittest.TestCase):
