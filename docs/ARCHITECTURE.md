@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-22: preparation only, no model code.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-23: Phase 1 complete (DEC-1, shared UNK policy, missingness note, long-coda flag); preparation only, no model code. The leave-one-day-out harness and shared evaluation are implemented; models are next.
 
 ## Stages
 
@@ -30,7 +30,7 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 
 - Reuses `group_exchanges`, `build_features`, `assign_splits`/`validate`/`write_table` **unchanged**; RQ1 outputs must be unaffected by work here. `run_exchanges_rq2()` exists because `exchanges.py` hardcodes `from .audit import run` — deliberate glue, don't refactor away.
 - Role since DEC-3: whole-preprocessing-chain robustness only. Tokenisation tests (primary `guy_coda_type` vs `decision_tree_coda_type`; secondary Sharma rhythm × tempo on matched exchanges) run inside the RQ1 pipeline as label-column swaps.
-- Explicit differences from the Assayag release (also in `reports/rq2.md`): no Tag/Bout/Date/Focal → `tag_id = recording_id`, REC is the only hard boundary, `strict_focal_subset` always False; `recording_date` holds the deployment prefix `^sw\d+` (schema parity, no chronological meaning); `rhythms.p` joined by row index; unseen types → `UNK` via `apply_unk_policy` (preserves `Ct_raw`), moving to the shared module per DEC-7.
+- Explicit differences from the Assayag release (also in `reports/rq2.md`): no Tag/Bout/Date/Focal → `tag_id = recording_id`, REC is the only hard boundary, `strict_focal_subset` always False; `recording_date` holds the deployment prefix `^sw\d+` (schema parity, no chronological meaning); `rhythms.p` joined by row index; rare/unseen types → `UNK` via shared `vocabulary.py` (preserves `Ct_raw`), per DEC-7/10.
 - One `Duration=0` row excludes all of `sw061b003` (731 rows) — expected conservative behaviour, not a bug.
 
 ## Conventions
@@ -56,3 +56,41 @@ Detail and verified counts: PLAN §2.
 
 - DEC-1 changed the $S$ fields (and renamed `response_delay_s` → `retrospective_delay_s`) — say so in the commit.
 - Old `retrospective_delay_s` for continuations runs to 50 s while switches are capped at 6.76 s by the 7 s gap, so the old delay identifies turn category. Why it isn't the primary $S$.
+
+## Shared vocabulary and completed audit items
+
+`vocabulary.py` is used by both preparation orchestrators after original feature validation. `fit_vocabulary` receives unique retained training events, counts each coda once (including context-only codas), and retains types with frequency at least `unk_min_count` (default 2). `apply_vocabulary` maps targets and both histories in every split; `validate_mapping` independently checks labels against original events. `Ct_raw` and history IDs preserve recoverability for future folds. Priors count mapped training comparison targets with additive smoothing over the same vocabulary. Both pipelines export a label-prior JSON and mapping counts in their generated reports. Current splits are unchanged; refitting per leave-one-day-out fold remains Phase 2.
+
+The hand-written data dictionary records source-verified pair-category missingness (1,597/2,425 unlabelled versus 756/1,508 labelled codas non-focal; all 157 missing-Focal codas unlabelled).
+
+Sharma normalization exports `long_coda` (`nClicks > 10`, null if invalid/missing). The RQ2 orchestrator independently checks it against raw click counts and copies it into both prepared tables without changing the shared grouping or feature core. It is diagnostic metadata, not an input or exclusion rule. The generated report counts flagged source, retained, and comparison rows.
+
+## RQ1 leave-one-day-out harness
+
+Run `PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.folds` with `config/rq1_folds.json`. It reads the complete prepared targets table, restores original target/history labels, and assigns 14 folds. The next day in cyclic SHA-256(seed:day) order is validation; the other 12 days train. Every day is test and validation once. No labels or outcomes choose the validation day.
+
+`prepare_fold(rows, fold, preparation)` returns fresh mapped rows and the fitted vocabulary/prior. It reruns the shared history/timing validator and independent mapping validator. Model consumers select comparison-eligible rows and only declared input columns; numerical transforms remain training-only work for the model encoder. The original fixed-split preparation tables are not rewritten.
+
+`data/processed/rq1_folds/manifest.json` records all fold assignments, comparison IDs shared by all conditions, training counts, vocabularies, priors, UNK statistics and input/config hashes. `reports/rq1_folds.md` summarizes sizes. Exactly-once coverage currently concerns test assignments; prediction coverage will be checked by the future evaluator. Shared evaluation is implemented; model code remains unimplemented.
+
+## Shared evaluation in bits
+
+`evaluation.py` exposes `evaluate(predictions, manifest, targets, seeds, ...)`, `log_likelihood_bits`, `repeat_switch_bits`, and `day_bootstrap_bits`. It fits no models. Run `PYTHONPATH=src python3 -m whale_coda_dynamics.evaluation --config config/rq1_evaluation.json` once actual predictions exist; the default prediction file is not generated yet.
+
+Prediction JSONL schema: `coda_id`, `fold_id`, `condition`, integer `seed`, and `probabilities` (label-to-probability object containing exactly the fold vocabulary). Every comparison target must appear once for every condition and configured seed. Use one seed for deterministic reference models, three for neural models. Predictor metadata cannot override the target, day or own-last label, which are recovered from the manifest and prepared rows. The CLI rejects stale target hashes, missing/extra/duplicate predictions, mismatched vocabularies, non-normalized distributions, and zero/nonfinite probabilities. Zero is rejected rather than silently clipped; models must provide finite positive probabilities. Majority-class hard predictions are evaluated separately through `classification_metrics`, not given artificial likelihoods.
+
+Likelihoods are averaged across seeds per coda before pairing conditions. Accuracy and macro-F1 are computed per seed and averaged; macro-F1 uses the union of observed true/predicted labels for that seed. Argmax ties use sorted labels. The 2,000-replicate seeded percentile bootstrap samples complete days with replacement, recomputing token-weighted means. Reports include positive-day counts, three primary contrasts, all 12 add-one-input pairs and negative-contrast flags. The additional A_B versus better A/B comparison is descriptive: its interval conditions on the selected single-history reference.
+
+Repeat/switch decomposition uses the fold's mapped vocabulary so the algebra matches the scored likelihood; raw and mapped repeat counts are both reported. Switch-choice contributions are averaged over all eligible targets, not just switches. Targets lacking own history retain their total likelihood but are excluded from decomposition. Prepared RQ1 comparison targets all have own history. CIs with 14 days remain approximate.
+
+Outputs: `scored_predictions.jsonl`, `paired_contrasts.jsonl`, and `summary.json`, with configuration and input hashes. The original prediction JSONL retains full probability vectors. No synthetic validation predictions are saved as research outputs. Tests include mathematical identities, seed log-averaging, bootstrap weighting, and invalid/missing predictions; the complete 14-fold manifest was also exercised with 12,376 synthetic uniform predictions.
+
+## Logistic-regression reference runner
+
+Install the optional modeling dependencies with `python -m pip install '.[modeling]'` in a virtual environment. Run `PYTHONPATH=src .venv/bin/python -m whale_coda_dynamics.logistic` using `config/rq1_logistic.json`. NumPy and SciPy are modeling-only dependencies; preparation and evaluation remain standard-library code.
+
+The runner reconstructs each fold with `prepare_fold`, verifies its policy against the manifest, and trains seven contextual multinomial models plus the unigram condition. It minimizes mean cross-entropy plus fixed L2 (0.01/2 times squared coefficients, including intercepts) with L-BFGS-B. Penalizing intercepts keeps probabilities finite for full-vocabulary classes absent from training targets, without adding synthetic targets. It checks solver success and gradient magnitude, and fails on nonconvergence. The last three history lags use one-hot labels; missing lags are zero vectors only within enabled streams. Timing includes raw and log1p features, each standardized using training comparison targets. Turn categories are fitted on training only; unseen categories yield zero vectors. Validation days remain excluded because no hyperparameter tuning or early stopping is performed.
+
+The repeat baseline estimates mapped-label repetition frequency from training comparison targets, then allocates the remaining mass by the fold's add-1 prior excluding own-last. Degenerate repeat rates fail explicitly. Majority-class predictions get accuracy/macro-F1 only. Saved models include feature names, vocabulary, scaling, categories and weights; convergence diagnostics are saved per fit.
+
+`data/results/rq1/` holds probabilities, baseline predictions, models and convergence records; `evaluation/` holds shared-evaluator outputs with versions/configuration/input hashes. `reports/rq1_logistic.md` is generated. All 98 contextual fits converged in the first run, but five add-input contrasts were negative and the full model fell slightly below repeat-own-last in LL. These diagnostics remain unresolved research/model-capacity checks, not evidence that partner content or timing is harmful. No settings were changed after inspecting test results. Retrospective-delay sensitivity and neural models remain pending.

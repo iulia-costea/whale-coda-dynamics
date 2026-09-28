@@ -18,7 +18,7 @@ passed: coverage, history timing/identity/order, target alignment, day/tag/excha
 See reports/data_dictionary.md for feature definitions and README.md for modeling limitations.
 
 Types in train absent from training: [].
-Types in validation absent from training: ['1+31'].
+Types in validation absent from training: [].
 Types in test absent from training: [].
 
 ## RQ1 input conditions
@@ -50,6 +50,22 @@ Recording day is the normalized source Date, not a reconstructed absolute timest
 Same-caller overlaps (preceding coda is the target caller's own): 0.
 Targets starting after the preceding coda ends but before an earlier coda ends: 0.
 Sensitivity field: targets whose retrospective_delay_s uses a post-onset endpoint: 441; overlaps_prior_interlocutor: 441.
+
+## Shared label vocabulary and UNK policy
+
+Vocabulary counts each retained training coda once, including context-only codas. Minimum frequency: 2. Below-threshold and unseen types map to `UNK` in all partitions, including training.
+Vocabulary size including UNK: 22. Rare training types: [].
+Prior: mapped training comparison-target counts with additive alpha=1.0, over exactly this vocabulary.
+Ct_raw preserves original labels; raw histories are recoverable via history IDs in the complete targets table. Refit from original labels for each future fold.
+
+| Scope | Split | UNK targets | UNK history entries | Mapped target types | Mapped history types |
+|---|---|---:|---:|---|---|
+| all_retained | train | 0 | 0 | {} | {} |
+| all_retained | validation | 0 | 0 | {} | {} |
+| all_retained | test | 0 | 0 | {} | {} |
+| comparison | train | 0 | 0 | {} | {} |
+| comparison | validation | 0 | 0 | {} | {} |
+| comparison | test | 0 | 0 | {} | {} |
 
 ## Audit flags
 
@@ -132,7 +148,10 @@ Run configuration:
         "gap_s",
         "overlap_elapsed_s"
       ]
-    }
+    },
+    "unk_min_count": 2,
+    "unk_token": "UNK",
+    "unk_smoothing_alpha": 1.0
   },
   "exchanges": {
     "normalization_config": "config/preprocessing.json",
@@ -173,9 +192,10 @@ Run configuration:
 
 Output SHA-256 checksums:
 
-- `rq1_comparison.csv`: `e02858ded71b496a8c7a1a58235b136680118f17cca9e31a8d2fc58ee3aa5489`
-- `rq1_comparison.jsonl`: `7ce8b3c8a293f57c1996f5179fb34999f08e183ad88de0f9aea191e6de9aaee6`
+- `rq1_comparison.csv`: `e6c8a96ee6b76cdf573410e6e35481bb00134ad08e0ec4fb9ef033fa37504a4f`
+- `rq1_comparison.jsonl`: `6768fcd452b4f82f846023e601163262625a3280c2515fa21bc56b55869c2665`
 - `rq1_day_splits.csv`: `51641340353ba5b12c24e602c32c5bbc7a22406b6fd63ddb9787cc1e49a4171e`
 - `rq1_day_splits.jsonl`: `17c707260ceaf1d867ce19a1e338981b4e0ce510201b5ca42963997530b45b3b`
-- `rq1_targets.csv`: `113190459bb1da68cefa966bb7d68ab1aac496bae313f6c6d065cdcb591366a5`
-- `rq1_targets.jsonl`: `bef05da838d3e4d5c080944466185c1e6ea5c1573f020e48b0b1274bdc49937a`
+- `rq1_label_prior.json`: `4a70efa0a3fc5844f4a666260f89c200ceb661419a667cc8d700eae486b3817d`
+- `rq1_targets.csv`: `ac56934721851c81655f9df92049f5ab9946f9e00646f32fb15129aa618f6d05`
+- `rq1_targets.jsonl`: `9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02`

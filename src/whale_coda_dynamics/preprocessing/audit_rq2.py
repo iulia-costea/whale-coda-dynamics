@@ -94,6 +94,7 @@ def normalize(rows, rhythms, columns, config):
             flag(i, "invalid_onset", "TsTo")
         if target["click_count"] is None or target["click_count"] < 3:
             flag(i, "invalid_coda_click_count", "nClicks")
+        target["long_coda"] = target["click_count"] > 10 if target["click_count"] is not None else None
         result.append(target)
 
     groups = {}
@@ -141,6 +142,7 @@ def run(config_path):
         "unique_deployments": len(deployments),
         "whale_code_counts": dict(sorted(Counter(r["Whale"] for r in rows).items(), key=lambda kv: int(kv[0]) if kv[0].isdigit() else -1)),
         "rhythm_label_counts": dict(sorted(Counter(rhythms).items())),
+        "long_codas": sum(r["long_coda"] is True for r in normalized),
         "limitations": [
             "No Tag, Bout, Date, Focal, or individual-ID columns exist in this release; tag_id is set equal to recording_id (REC)",
             "date_candidate holds a deployment prefix parsed from REC (^sw\\d+), used only to keep same-deployment recordings together across splits; it is not a calendar date",

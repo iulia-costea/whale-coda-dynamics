@@ -1,0 +1,8 @@
+{
+  "input": "data/processed/rq1_targets.jsonl",
+  "preparation_config": "config/rq1_retrospective.json",
+  "expected_days": 14,
+  "validation_seed": 42,
+  "output": "data/processed/rq1_folds_retrospective/manifest.json",
+  "report": "reports/rq1_folds_retrospective.md"
+}

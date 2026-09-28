@@ -1,0 +1,9 @@
+{
+  "manifest": "data/processed/rq1_folds_retrospective/manifest.json",
+  "predictions": "data/results/rq1_logistic_v2_retrospective/predictions.jsonl",
+  "output_directory": "data/results/rq1_logistic_v2_retrospective/evaluation",
+  "seeds": [42],
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95
+}

@@ -1,0 +1,11 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "evaluation_config": "config/rq1_evaluation.json",
+  "output_directory": "data/results/rq1",
+  "report": "reports/rq1_logistic.md",
+  "history_order": 3,
+  "l2": 0.01,
+  "max_iterations": 2000,
+  "gradient_tolerance": 0.000001,
+  "seed": 42
+}
