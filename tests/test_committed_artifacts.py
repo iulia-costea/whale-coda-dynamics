@@ -114,12 +114,12 @@ class RecordedHashTests(unittest.TestCase):
                     self.assertTrue((ROOT / path).is_file(), 'recorded input no longer exists')
                     if recorded_hash == sha256(ROOT / path):
                         continue
+                    still_old.add(summary_rel)
                     self.assertIn(summary_rel, CRLF_PROVENANCE,
                                   'result was produced from inputs that differ from the committed ones; '
                                   'rerun it from a clean checkout')
                     self.assertEqual(recorded_hash, crlf_provenance_variant(ROOT / path),
                                      'inputs differ from the committed ones beyond the known CRLF provenance field')
-                    still_old.add(summary_rel)
         self.assertEqual(sorted(CRLF_PROVENANCE - still_old), [],
                          'these results now match main: remove them from CRLF_PROVENANCE')
 
