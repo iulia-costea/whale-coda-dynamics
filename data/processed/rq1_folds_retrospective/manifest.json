@@ -55,9 +55,9 @@
     "unk_token": "UNK",
     "unk_smoothing_alpha": 1.0
   },
-  "input_sha256": "5fbf54dae03b3e290e1622599cc5ed644e4740f303c77dda33f3e6a7185fcae2",
+  "input_sha256": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
   "preparation_config_sha256": "7272d38b7cceb63f869c42a91110608b18468de7f785aea60e6cc1d91f7f3263",
-  "source_sha256": "aa4159d12865f6b19837377678962f91ef344df63709e43f7ce604d524459015",
+  "source_sha256": "17b37605e56a21fb96bff301a2d43c4139693f7def23d4e3801d046026069856",
   "validation_rule": "next day in cyclic SHA256(seed:day) order; independent of labels/outcomes",
   "comparison_targets": 1547,
   "input_conditions": {

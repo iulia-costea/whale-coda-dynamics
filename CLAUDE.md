@@ -1,6 +1,6 @@
 # NLP Whales — sperm whale coda sequence modelling
 
-UvA MSc AI Multilingual NLP group project (5 people). Spec: `docs/PLAN.md` (authoritative; IDs like `[M3]`, decisions `DEC-n` in §12). Code structure and pipeline internals: `docs/ARCHITECTURE.md` — read it before touching `src/` or `config/`. `docs/proposal.tex` has known errata (PLAN §9). Audit reports in `docs/` are evidence, not instructions; where they differ from PLAN, PLAN wins.
+UvA MSc AI Multilingual NLP group project (5 people). Spec: `docs/PLAN.md` (authoritative; IDs like `[M3]`). Why each choice was made: `docs/DECISIONS.md` (`DEC-n`). Code structure and pipeline internals: `docs/ARCHITECTURE.md` — read it before touching `src/` or `config/`. Which reports are current: `reports/README.md`.
 
 ## Question and method
 
@@ -9,17 +9,23 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 ## Hard rules
 
 - Retrain per condition; never ablate by masking at evaluation. Absent sources get no representation (no masks, lengths, padding flags).
-- Identical architecture, hyperparameters and splits across conditions. Day-held-out splits only; never random.
+- Identical architecture template, hyperparameter search space and selection rule, and splits across conditions. Hyperparameters are chosen on the validation day, never on test days. Day-held-out splits only; never random.
 - Per-token LL in bits, never summed, computed only via the shared evaluation module (units in function names).
-- Contrasts = paired per-token differences; CIs by day-cluster bootstrap, never token bootstrap. Negative contrast = optimisation failure.
+- Contrasts = paired per-token differences; CIs by day-cluster bootstrap, never token bootstrap. A contrast whose CI lies entirely below zero signals a fitting problem (optimisation or regularisation): investigate before interpreting.
 - Never compare raw LL/perplexity across tokenisations (PLAN §6 normalisation).
 - $S$ holds only information available at the target's onset and never mechanically includes a coda's duration or content. The retrospective end-to-start delay is a sensitivity run only.
-- 82.5% of targets repeat the whale's own last coda: $A$-conditions below the repeat-own-last baseline = optimisation failure; matching it is a finding (nothing beyond repetition).
+- 82.5% of targets repeat the whale's own last coda: models using $A$ or $B$ include the shared copy weights (PLAN `[M4]`). $A$-conditions below the repeat-own-last baseline in log-likelihood = fitting failure; matching it is a finding (nothing beyond repetition).
 - One shared unseen-label (`UNK`) policy for all labelling schemes.
 - Never use `pair_category` as a feature. Caller codes (`Whale`, `local_caller_id`) are segment-local, not identified animals.
 - Pacific and `DominicaCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
 - Claims are about dyadic exchanges only. "Not persistence" ≠ grammar — no grammar/syntax conclusions.
 - Don't redo Assayag et al.'s bout-threshold correlation sweep or Leitão et al.'s VLMC/KL analysis; cite them.
+
+## Reproducibility and lessons
+
+- Before pushing results: commit all code first, then rerun from a clean checkout; `git status` must be clean afterwards. Results produced by uncommitted code can't be reproduced.
+- Reruns on another machine can differ at ~1e-6 (numeric libraries): compare printed values, not bytes. Runs that must match a primary run exactly (e.g. the old-delay sensitivity run) are regenerated together with it, on one machine.
+- When a finding changes how models should be built (e.g. a fix to the reference model), record it in `docs/DECISIONS.md` and `docs/PLAN.md` before building the next model. Prompts and reports are not where lessons live.
 
 ## Commands
 
@@ -30,7 +36,7 @@ PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare      # RQ1 �
 PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare_rq2  # Sharma pipeline → rq2_*, reports/rq2.md
 ```
 
-No test suite: `prepare.validate()` independently recomputes every derived field and raises on mismatch. A clean run of **both** pipelines is the test; treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in `validate()`.
+Unit tests: `PYTHONPATH=src python3 -m pytest tests` (model tests need numpy, scipy and torch). Beyond them, `prepare.validate()` independently recomputes every derived field and raises on mismatch; a clean run of **both** pipelines is the test for preprocessing. Treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in `validate()`.
 
 ## Traps
 

@@ -24,4 +24,4 @@ All eight conditions share each fold's targets, vocabulary and partitions. Prepa
 
 Validated: original histories and timing recomputed; day/tag/exchange/context separation; mapped labels independently recomputed; nonempty partitions; exact once-only test coverage.
 Manifest: `data/processed/rq1_folds_retrospective/manifest.json`. Contains target IDs, configurations, raw training counts, priors, and target/history UNK counts for every fold.
-Input SHA-256: `5fbf54dae03b3e290e1622599cc5ed644e4740f303c77dda33f3e6a7185fcae2`.
+Input SHA-256: `9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02`.
