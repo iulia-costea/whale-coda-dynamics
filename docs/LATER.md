@@ -18,9 +18,16 @@ Deferred to keep stage 1 simple. Nothing here is required before the first logis
 - **RQ3:** they remain the intended within-coda (dICI) models there.
 
 ## Already in PLAN but only relevant later
-- **RQ3 (PLAN §8):**
-  - The sympatric vs allopatric comparison is confounded with one-pipeline vs many-pipeline data. It is stated as a difference-in-differences with identity codas, with the stated assumption that pipeline effects hit identity and non-identity codas equally.
-  - dICI bins are fitted on the training clan only.
+- **RQ3 (PLAN §8):** the old difference-in-differences and clan-fitted bins were superseded by DEC-19; see "RQ3, deferred by DEC-19" below.
 - **RQ2 (PLAN `[R2-6]`, `DEC-15`):**
   - UNK rates are reported per labelling.
   - A tempo fallback from `Duration` applies only if the tempo pickle can't be fetched.
+
+## RQ3, deferred by DEC-19
+- **Pooled training across clans (the backup).**
+  - One model on all clans with clan tags and size-balanced sampling (the mBART recipe, Liu et al. 2020, trained from scratch); leave-one-clan-out; with vs without the tag.
+  - Compare within one model family: the pooled model against own-clan models of the same kind, with the count models as reference.
+  - Uses `[R3-0]`–`[R3-3]` unchanged. Relevant if the lecturer asks for a standard multilingual experiment.
+- **Size-matched reruns.** Cap every source clan's training data at the smallest clan's size and redraw it several times, to check whether large source clans transfer better only because they are large.
+- **Within-type transfer** (Leitão et al. SI §2.4.2): train and score one coda type at a time across clans, which removes usage and coverage. Feasible for 1–17 shared types per Pacific pair.
+- **The Caribbean ↔ Pacific difference-in-differences** (old DEC-14), as a secondary reading of the matrix, if EC1/EC2 identity codas get a source.
