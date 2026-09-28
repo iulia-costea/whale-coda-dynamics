@@ -235,7 +235,7 @@ def run(config_path):
     write_jsonl(eval_output / 'paired_contrasts.jsonl', paired)
     summary.update(configuration=config, baseline_metrics=baseline_metrics, repeat_baseline_checks=baseline_checks,
                    versions={'numpy': np.__version__, 'torch': torch.__version__},
-                   input_sha256={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in (source, manifest_path, path)})
+                   input_sha256={p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in (source, manifest_path, path)})
     write_text(eval_output / 'summary.json', json.dumps(summary, indent=2, allow_nan=False) + '\n')
 
     stop_reasons = check_stop_conditions(summary, baseline_metrics, baseline_checks)

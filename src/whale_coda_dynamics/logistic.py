@@ -296,7 +296,7 @@ def run(config_path):
     write_jsonl(eval_output/'paired_contrasts.jsonl',paired)
     summary.update(configuration=config,baseline_metrics=baseline_metrics,repeat_baseline_checks=baseline_checks,
                    versions={'numpy':np.__version__,'scipy':scipy.__version__},
-                   input_sha256={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,manifest_path,path)})
+                   input_sha256={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,manifest_path,path)})
     write_text(eval_output/'summary.json',json.dumps(summary,indent=2,allow_nan=False)+'\n')
     lines=['# RQ1 logistic-regression reference results','',
            'Fourteen leave-one-day-out folds, fixed settings, no test-driven tuning. These reference results precede the neural study.',
@@ -451,7 +451,7 @@ def _fit_and_evaluate_v2(config_path):
     write_jsonl(eval_output/'paired_contrasts.jsonl',paired)
     summary.update(configuration=config,baseline_metrics=baseline_metrics,repeat_baseline_checks=baseline_checks,
                    versions={'numpy':np.__version__,'scipy':scipy.__version__},
-                   input_sha256={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,manifest_path,path)})
+                   input_sha256={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,manifest_path,path)})
     write_text(eval_output/'summary.json',json.dumps(summary,indent=2,allow_nan=False)+'\n')
     return root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics
 
