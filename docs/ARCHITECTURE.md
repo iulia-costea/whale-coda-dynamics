@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-23: Phase 1 complete (DEC-1, shared UNK policy, missingness note, long-coda flag); preparation only, no model code. The leave-one-day-out harness and shared evaluation are implemented; models are next.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `neural.py` (LSTM); their design is PLAN `[M4]`. This file covers preprocessing and repo conventions.
 
 ## Stages
 

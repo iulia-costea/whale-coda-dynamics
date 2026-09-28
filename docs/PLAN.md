@@ -4,12 +4,13 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Why** each choice was made, and how this differs from the proposal: `docs/DECISIONS.md`.
 - **Deferred** ideas: `docs/LATER.md`.
 
-**Status (2026-09-23):**
+**Status (2026-09-28):**
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
 - **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
-- **Done:** Phase 2 infrastructure: 14 leave-one-day-out folds and shared evaluation, verified with synthetic predictions.
-- **In progress:** Phase 3. Baselines and logistic regression completed on all 14 folds; diagnostics and results are in `reports/rq1_logistic.md`. LSTM and retrospective sensitivity remain pending.
-- **Not started:** neural models.
+- **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
+- **Done:** logistic-regression reference v2 with copy weights and validation-chosen L2 (DEC-16), plus the old-delay sensitivity run: `reports/rq1_logistic_v2.md`, `reports/rq1_retrospective_sensitivity.md`. A rerun with the extended L2 grid is still to do.
+- **Superseded:** logistic regression v1 and LSTM v1 (fixed settings, no copy path); kept as a record, see `reports/README.md`.
+- **In progress:** LSTM v2 (DEC-17), pilot first.
 
 See §12 for the order of work.
 
@@ -106,7 +107,7 @@ $A$ = the whale's own preceding codas, $B$ = the partner's preceding codas, $S$ 
 - **Majority class:** reported for accuracy and macro-F1 only; it has no usable log-likelihood.
 - **Repeat-own-last:**
   - It predicts the whale's last coda with probability equal to the training repeat rate; the rest is spread by frequency.
-  - An $A$-model *below* it has failed to train. *Matching* it is a finding: own history carries nothing beyond repetition.
+  - An $A$-model *below* it in log-likelihood (CI entirely below zero) has failed to train. Every $A$-model has the copy weight (`[M4]`), so it can express repetition with one number; *matching* the baseline is therefore a finding: own history carries nothing beyond repetition.
 
 **`[M2]` Contrasts**
 
@@ -125,26 +126,27 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
   - A contrast is the mean over test codas of the per-coda difference in $\log_2$ probability.
   - Neural models average over 3 seeds per coda.
 - **Uncertainty:**
-  - day-level bootstrap CI (resample the 14 days, never individual codas);
-  - the number of days, out of 14, with a positive contrast.
+  - day-level bootstrap CI (resample the 14 days, never individual codas; 10,000 replicates);
+  - the number of days, out of 14, with a positive contrast;
+  - the unweighted mean of the 14 day-level contrasts, next to the token-weighted mean. The token-weighted mean is the primary estimand; three days hold 58% of the targets, so the unweighted mean shows whether a result rests on a few days.
   - Note in the write-up that 14 days give rough CIs.
 
-**`[M4]` Models**
-- **Main model: LSTM.**
-  - Reported for all eight conditions.
-  - One LSTM encoder per coda-history input ($A$, $B$) and a small feed-forward encoder for $S$, concatenated into a shared output layer. An absent input means its encoder is removed.
-  - Settings as in the literature: 64-dim hidden, Adam (lr 1e-4, weight decay 1e-5), batch 32, early stopping on the validation day. They are fixed and identical across conditions.
-  - For comparability with Assayag et al., take their exact LSTM spec from their paper and match it where it applies.
-- **Reference and debug model: multinomial logistic regression, run first.**
-  - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, and the two timing values (standardised, plus `log1p`).
-  - Fixed L2 penalty, the same for every condition.
-  - Why run it first:
-    - It can't fail to train, so it tests the evaluation pipeline end-to-end before any neural model.
-    - It later serves as the reference the LSTM must not fall below (`[U1]`).
-- **Reproduction check:** condition (iv) (partner history only) should roughly reproduce Assayag et al.'s reported cross-whale result. A large mismatch means we investigate before interpreting anything.
-- **Later:**
-  - a small Transformer with the same per-input structure;
-  - Kneser-Ney/VLMC models (`docs/LATER.md`).
+**`[M4]` Models** (DEC-12, DEC-16, DEC-17)
+- **Shared copy weights, in every model that uses $A$ or $B$.** For each candidate coda type $c$:
+  $$\text{score}(c) = \text{usual per-type terms} + \beta\,\mathbb{1}[c = \text{own last coda}] + \gamma\,\mathbb{1}[c = \text{partner's last coda}]$$
+  - $\beta$ exists only in conditions with $A$, $\gamma$ only in conditions with $B$. Each is one number shared across all coda types.
+  - Why: without it, a model has to learn "repeat the last coda" separately for every type, and rare types never learn it (DEC-16). It adds no new information, only a cheaper way to use what $A$ or $B$ already contain.
+- **Reference model: multinomial logistic regression**, run first; it is the `[U1]` reference.
+  - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, the two timing values (standardised, plus `log1p`), and the copy weights.
+  - L2 is chosen per fold and condition on the validation day from {0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0}, by validation log-likelihood; ties go to the larger value. The model trained on training days only is scored on the test day.
+- **Main model: LSTM**, reported for all eight conditions with 3 seeds.
+  - One 1-layer LSTM encoder per coda-history input ($A$, $B$) and a small feed-forward encoder for $S$, concatenated into a shared output layer, plus the copy weights. An absent input means its encoder and its copy weight are removed.
+  - Optimiser: Adam, learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch.
+  - Chosen per fold and condition on the validation day, with one grid and one rule for all conditions: dropout {0, 0.2, 0.4} × weight decay {1e-5, 1e-4, 1e-3} × hidden size {32, 64}. Criterion: validation log-likelihood averaged over the 3 seeds; ties go to the smaller, more regularised setting. The chosen setting's 3 seeds are the reported runs.
+  - **Pilot first:** conditions A and A+B+S on the three largest test days plus one small one (one seed and a reduced grid are fine), logging training and validation log-likelihood per epoch, compared with logistic regression on the same folds. Run the full study only if the pilot is at or above repeat-own-last and not reliably below logistic regression.
+- **Stop rules (log-likelihood only).** Stop and investigate before writing conclusions if any of these has a day-bootstrap CI entirely below zero: an $A$-condition against repeat-own-last; an add-one-input contrast; (LSTM) the paired difference to logistic regression on a condition. Accuracy and macro-F1 are reported but not used to stop. The LSTM *matching* logistic regression is acceptable.
+- **Context check against Assayag et al.** Their split is random, ours holds out whole days, so their accuracies are optimistic next to ours. Compare like with like, without retraining: condition (iv) on switch/overlap targets only against the majority class on that subset, and condition (iii) against their single-whale results.
+- **Later:** a small Transformer with the same per-input structure; Kneser-Ney/VLMC models (`docs/LATER.md`).
 
 **`[M5]` Metrics**
 - Report held-out log-likelihood **per coda, in bits**, never summed.
@@ -167,14 +169,14 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 | `[V1]` | Can turn category be predicted from coda types alone? Report $H(S \mid C)/H(S)$ | If yes, conditioning on $S$ is nearly meaningless |
 | `[V2]` | Does timing help predict the next coda given the previous one? | This is where persistence and composition diverge |
 | `[V3]` | Are the information estimates stable across bout thresholds? (secondary) | Assayag et al. only checked correlations |
-| `[U1]` | The LSTM must not do worse than logistic regression on the same condition (beyond seed spread) | Otherwise it is undertrained |
+| `[U1]` | The LSTM must not do worse than logistic regression on the same condition (paired CI entirely below zero) | Otherwise it is undertrained |
 | `[U2]` | For the 12 "add one input" pairs, the larger model should score at least as well; count violations | Violations signal fitting problems |
-| `[U3]` | Hidden size 32/64/128: contrasts should plateau | Capacity limits |
+| `[U3]` | Hidden size is selected from 32/64 per fold (`[M4]`); optionally check 128 afterwards. Contrasts should plateau | Capacity limits |
 | `[U4]` | Retrain on 25–100% of training days; contrasts should stabilise | Data limits |
 | `[U5]` | Variance across seeds | |
 | `[U6]` | Train–test gap per condition | |
 
-A negative contrast means a model failed to train, not a finding.
+An add-one-input contrast with a CI entirely below zero signals a fitting problem (optimisation or regularisation), not a finding: investigate before interpreting it.
 
 ---
 
@@ -234,7 +236,7 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 ## 9. Reporting and interpretation
 
 **Report for every contrast**
-- sign, day-bootstrap CI and positive-day count;
+- sign, token-weighted and unweighted day means, day-bootstrap CI and positive-day count;
 - repeat/switch parts;
 - baselines alongside;
 - the sensitivity run with the old delay;
@@ -283,11 +285,11 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
    - shared unknown-type module (DEC-7, DEC-10) — **done**, fitted on the current training split; fold-specific fitting follows in Phase 2;
    - record the `pair_category` missingness finding in the data dictionary — **done**, source counts verified;
    - flag long codas — **done**, 153 Sharma source codas flagged without filtering.
-2. **Phase 2 — evaluation and folds:** the shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
+2. **Phase 2 — evaluation and folds: done.** The shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
-   - Logistic regression on all eight conditions, plus the baselines. This is the debug step.
-   - Then the LSTM on all eight conditions, 3 seeds each.
-   - The Assayag reproduction check on (iv), and checks `[U1]`, `[U2]`.
+   - Logistic regression v1 (fixed L2) — done, superseded. v2 with copy weights and validation-chosen L2 (DEC-16) — done. Rerun with the extended L2 grid — to do.
+   - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
+   - LSTM v2 (DEC-17): pilot, then all eight conditions with 3 seeds; checks `[U1]`, `[U2]`; the Assayag context check.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 primary:** swap the label column.
 6. **RQ3 sympatric:** EC1 ↔ EC2.

@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28).
 
 ## After the audit
 
@@ -61,7 +61,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 **DEC-11 — Neural architecture: one encoder per input source, shared output head.**
 - **Scope:** relevant from phase 4.
 - **Why:** the conditions can't literally share one architecture, since (i) has no input and (ii) has no sequence.
-- **WhaleLM:** keep its settings (64-dim, Adam 1e-4, etc.), not its encoder–decoder design, which predicts a single sequence rather than one coda from several inputs.
+- **WhaleLM:** keep its settings (64-dim, Adam 1e-4, etc.), not its encoder–decoder design, which predicts a single sequence rather than one coda from several inputs. *Settings superseded by DEC-17: they are now chosen on the validation day.*
 
 **DEC-12 — Main model is an LSTM; logistic regression runs first as reference and debug step.**
 - **Why an LSTM:**
@@ -74,7 +74,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Deferred:** Kneser-Ney/VLMC and the Transformer.
 
 **DEC-13 — Stage-1 uncertainty: day bootstrap plus a count of positive days.**
-- **Deferred:** the stronger options (exact sign-flip test, unweighted day mean, jackknife) are in `docs/LATER.md`.
+- **Deferred:** the stronger options (exact sign-flip test, jackknife) are in `docs/LATER.md`. *The unweighted day mean is now reported (DEC-16).*
 - **Why:** keep stage 1 simple, and state in the write-up that 14 days give rough CIs.
 
 **DEC-14 — RQ3 hypothesis tested as an interaction.**
@@ -85,7 +85,38 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Decision:** if Sharma's tempo file can't be fetched, assign each coda to the nearest of the five tempo modes in Sharma et al. 2024a Fig. 3 (0.33, 0.51, 0.80, 1.02, 1.26 s), labelled "reconstructed".
 - **Why:** it is closer to their scheme than rhythm alone. It approximates their clustering; it doesn't reproduce it.
 
-## Differences from the submitted proposal (`docs/proposal.tex`)
+## After the first model results (2026-09-28)
+
+**DEC-16 — Logistic-regression reference v2: shared copy weights, L2 chosen on the validation day, log-likelihood stop rules.**
+- **Decision:**
+  - Conditions with $A$ add one shared weight $\beta$ to the score of the coda type equal to the whale's own last coda; conditions with $B$ add $\gamma$ for the partner's last coda. Each is a single number shared across all coda types, with the same L2 as the other weights.
+  - L2 is chosen per fold and condition by validation-day log-likelihood from one grid, now {0.0001 … 1.0}, with the same rule for all conditions; ties go to the larger value. The model trained on training days only is scored on the test day.
+  - Stop rules use log-likelihood only: stop and investigate if an $A$-condition's contrast against repeat-own-last, or any add-one-input contrast, has a CI entirely below zero. Accuracy is reported, not used to stop.
+  - Also reported: the unweighted mean of the 14 day-level contrasts; 10,000 bootstrap replicates.
+- **Why:**
+  - v1 (fixed L2 = 0.01, no copy weight) could learn repetition only as a separate weight per coda type, each shrunk by L2, so rare types never learned it. Its $A$-models only matched the repeat baseline (accuracy 79% vs 82.5%, macro-F1 0.18 vs 0.41).
+  - With one shared weight, repetition is learned from all targets at once: condition $A$ went from −1.363 to −1.088 bits/coda and beats the repeat baseline by +0.30 bits, positive on 14/14 days.
+  - One fixed L2 can't suit conditions with very different numbers of features.
+  - v2's accuracy-based stop conditions fired on differences of 3–7 codas out of 1,547; log-likelihood is the estimand.
+  - v2 chose the grid's lowest value (0.001) for the $A$-models in 7–10 of 14 folds, so the grid is extended down to 0.0001; this needs a rerun (minutes).
+- **Supersedes:** the fixed L2 of the first logistic-regression version and the stage-1 "fixed settings, no tuning" rule.
+
+**DEC-17 — LSTM v2: copy weights, Assayag-style optimiser, regularisation chosen on the validation day, pilot first.**
+- **Decision:**
+  - Same template (one 1-layer LSTM encoder per history, small feed-forward encoder for $S$, shared output layer; an absent input removes its encoder), plus the copy weights $\beta$, $\gamma$ of DEC-16.
+  - Optimiser: Adam, learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch.
+  - Chosen per fold and condition on the validation day, one grid and one rule for all conditions: dropout {0, 0.2, 0.4} × weight decay {1e-5, 1e-4, 1e-3} × hidden size {32, 64}. Criterion: validation log-likelihood averaged over the 3 seeds; ties go to the smaller, more regularised setting.
+  - Pilot first (conditions A and A+B+S on the three largest test days plus one small one), with per-epoch training and validation log-likelihood, before the full run.
+  - Stop rules as in DEC-16, plus `[U1]`: stop if the LSTM's paired difference to logistic regression on a condition has a CI entirely below zero. Matching logistic regression is acceptable.
+  - The Assayag comparison becomes a context check, not a reproduction: condition (iv) on switch/overlap targets against the majority class on that subset, and condition (iii) against their single-whale results.
+- **Why:**
+  - LSTM v1 used WhaleLM's settings (learning rate 1e-4, weight decay 1e-5, batch 32, at most 100 epochs). WhaleLM is a language model that gets a training signal from every token of long sequences; we get one per target (~1,100–1,500 per fold). 27 of 42 condition-$A$ runs hit the epoch cap while others stopped at epoch 6 on small validation days.
+  - v1 had no copy path (the same failure as logistic v1), no dropout, and ~25k parameters per encoder for ~1,300 targets. It fell below logistic v2 on 6 of 7 conditions, and adding inputs made it worse.
+  - Assayag et al. (learning rate 1e-3, 300 epochs) is the closer precedent for optimisation. Neither paper's regularisation fits our data size, so it is chosen on the validation day, like the L2 in DEC-16.
+  - Their random 70/15/15 split puts codas from the same day in training and test, so their accuracies are optimistic next to our held-out days; hence a context check rather than a reproduction.
+- **Supersedes:** the fixed WhaleLM settings in DEC-11 and in the first version of PLAN `[M4]`. LSTM v1 results are kept as a record (`reports/README.md`).
+
+## Differences from the submitted proposal
 
 **Content changes**
 - Condition (i) is the smoothed unigram, not "majority-class floor" (DEC-9).
