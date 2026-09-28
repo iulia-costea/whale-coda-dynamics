@@ -74,10 +74,12 @@ def day_bootstrap_bits(day_values, replicates=2000, seed=42, confidence=0.95):
         hi = math.ceil(position)
         return samples[lo] + (position - lo) * (samples[hi] - samples[lo])
     tail = (1 - confidence) / 2
+    day_means = {d: sums[d] / sizes[d] for d in days}
     return {"mean_bits_per_coda": math.fsum(sums.values()) / sum(sizes.values()),
+            "unweighted_mean_bits_per_coda": math.fsum(day_means.values()) / len(days),
             "ci_bits_per_coda": [quantile(tail), quantile(1 - tail)],
             "positive_days": sum(sums[d] > 0 for d in days), "days": len(days),
-            "day_means_bits": {d: sums[d] / sizes[d] for d in days}}
+            "day_means_bits": day_means}
 
 
 def evaluate(predictions, manifest, targets, seeds, replicates=2000, bootstrap_seed=42, confidence=0.95):
