@@ -4,7 +4,7 @@ from scipy.optimize import check_grad
 
 from whale_coda_dynamics.logistic import (
     Encoder, objective, fit, probabilities, repeat_distribution, last_label_index, select_l2_and_fit,
-    check_stop_conditions,
+    check_stop_conditions, is_timing_feature,
 )
 
 
@@ -137,3 +137,31 @@ class LogisticTests(unittest.TestCase):
         self.assertAlmostEqual(p['b'],.12)
         with self.assertRaises(ValueError):
             repeat_distribution('a',1,{'a':.5,'b':.5})
+
+    def test_is_timing_feature(self):
+        self.assertTrue(is_timing_feature('turn:switch'))
+        self.assertTrue(is_timing_feature('gap_s'))
+        self.assertTrue(is_timing_feature('log1p:overlap_elapsed_s'))
+        self.assertTrue(is_timing_feature('retrospective_delay_s'))
+        self.assertFalse(is_timing_feature('A_history:lag1:a'))
+        self.assertFalse(is_timing_feature('B_history:lag2:UNK'))
+
+    def test_split_l2_gradient(self):
+        x=np.array([[1.,1.],[-1.,1.],[.5,1.],[.2,-.3]])
+        y=np.array([0,1,0,2])
+        l2_vector=np.array([.3,.05])
+        error=check_grad(lambda a:objective(a,x,y,3,.01,feature_l2=l2_vector)[0],
+                         lambda a:objective(a,x,y,3,.01,feature_l2=l2_vector)[1],np.arange(6,dtype=float)/10)
+        self.assertLess(error,1e-6)
+
+    def test_selection_splits_l2_only_when_s_present(self):
+        vocab=['a','b','UNK']
+        rows=[dict(coda_id=f'r{i}',Ct=vocab[(i+1)%2],A_history=[vocab[i%2]],B_history=[vocab[i%2]],
+                   turn_category='switch',gap_s=float(i%3),overlap_elapsed_s=0.0,split='train') for i in range(10)]
+        config=dict(history_order=1,l2_grid=[.01,.1,1.0],s_l2_grid=[.01,.1,1.0],max_iterations=500,gradient_tolerance=1e-6)
+        _,chosen_a,grid_a=select_l2_and_fit(rows,rows,vocab,['A_history'],config)
+        self.assertNotIn('s_l2',chosen_a)
+        self.assertEqual(len(grid_a),3)
+        _,chosen_as,grid_as=select_l2_and_fit(rows,rows,vocab,['A_history','turn_category','gap_s','overlap_elapsed_s'],config)
+        self.assertIsNotNone(chosen_as['s_l2'])
+        self.assertEqual(len(grid_as),9)

@@ -123,6 +123,28 @@ class LogisticSmokeTests(unittest.TestCase):
 
 @unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
 class NeuralSmokeTests(unittest.TestCase):
+    def test_lstm_v2_runner(self):
+        from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl, read_text
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.evaluation('eval.json', PRIMARY, [42])
+            reference = box.config('reference.json', manifest=PRIMARY, evaluation_config='config/eval.json',
+                                   output_directory='out/reference', report='out/reference.md', **LOGISTIC_V2)
+            box.run('logistic', reference)
+            config = box.config('lstm_v2.json', version='v2', mode='full', manifest=PRIMARY,
+                                evaluation_config='config/eval.json', output_directory='out/lstm_v2',
+                                report='out/lstm_v2.md', compare_against_logistic='out/reference/evaluation/summary.json',
+                                seeds=[42], hidden_grid=[4], dropout_grid=[0.], weight_decay_grid=[1e-4],
+                                s_weight_decay_grid=[.1], embedding_dim=4, learning_rate=1e-3,
+                                batch_size=256, max_epochs=2, patience=2, device='cpu', workers=1)
+            box.run('neural', config)
+            summary = read_json(box.root / 'out/lstm_v2/summary.json')
+            self.assertEqual(set(summary['metrics']), CONDITIONS)
+            self.assertEqual(summary['device'], 'cpu')
+            self.assertEqual(len(read_jsonl(box.root / 'out/lstm_v2/selection.jsonl')), 98)
+            self.assertEqual(len(read_jsonl(box.root / 'out/lstm_v2/epochs.jsonl')), 196)
+            self.assertTrue(read_text(box.root / 'out/lstm_v2.md').strip())
+
     def test_lstm_runner(self):
         with tempfile.TemporaryDirectory() as tmp:
             box = Sandbox(tmp)

@@ -12,6 +12,10 @@ import argparse
 import copy
 import hashlib
 import json
+import itertools
+import time
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
 from pathlib import Path
 
@@ -55,7 +59,7 @@ class HistoryEncoder(nn.Module):
         # Padding after each row's true length cannot influence earlier steps
         # (the LSTM is causal), so indexing the true last step needs no packing.
         idx = (lengths - 1).clamp(min=0)
-        return out[torch.arange(seqs.shape[0]), idx]
+        return out[torch.arange(seqs.shape[0], device=seqs.device), idx]
 
 
 class TimingEncoder(nn.Module):
@@ -350,10 +354,181 @@ def write_report(root, config, summary, baseline_metrics, baseline_checks, conve
     write_text(report, '\n'.join(lines))
 
 
+class ConditionModelV2(nn.Module):
+    """The same additive linear head, partitioned by source for Adam decay.
+
+    Each head has no bias; one shared output bias belongs to the base group.
+    Creating history parameters before S keeps their initial values independent
+    of whether S is enabled, useful for the validation suppression diagnostic.
+    """
+    def __init__(self, vocab_size, fields, config, timing_dim):
+        super().__init__()
+        self.fields = fields
+        hidden = config['hidden_dim']
+        for letter in ('a', 'b'):
+            if letter.upper() + '_history' in fields:
+                setattr(self, letter + '_encoder', HistoryEncoder(vocab_size, config['embedding_dim'], hidden, vocab_size))
+                setattr(self, letter + '_output', nn.Linear(hidden, vocab_size, bias=False))
+                setattr(self, 'beta' if letter == 'a' else 'gamma', nn.Parameter(torch.zeros(())))
+        self.output_bias = nn.Parameter(torch.zeros(vocab_size))
+        if timing_dim is not None:
+            self.s_encoder = TimingEncoder(timing_dim, hidden)
+            self.s_output = nn.Linear(hidden, vocab_size, bias=False)
+        self.dropout = nn.Dropout(config['dropout'])
+
+    def forward(self, batch):
+        count = next(iter(batch.values())).shape[0]
+        logits = self.output_bias.unsqueeze(0).expand(count, -1)
+        for letter in ('a', 'b'):
+            if not hasattr(self, letter + '_encoder'):
+                continue
+            seq, lengths = batch[letter + '_seq'], batch[letter + '_len']
+            encoded = getattr(self, letter + '_encoder')(seq, lengths)
+            logits = logits + getattr(self, letter + '_output')(self.dropout(encoded))
+            last = seq.gather(1, (lengths - 1).unsqueeze(1))
+            weight = self.beta if letter == 'a' else self.gamma
+            logits = logits.scatter_add(1, last, weight.expand(count, 1))
+        if hasattr(self, 's_encoder'):
+            logits = logits + self.s_output(self.dropout(self.s_encoder(batch['s_features'])))
+        return logits
+
+    def optimizer_groups(self, config):
+        base, timing = [], []
+        for name, parameter in self.named_parameters():
+            (timing if name.startswith(('s_encoder.', 's_output.')) else base).append(parameter)
+        groups = [{'params': base, 'weight_decay': config['weight_decay']}]
+        if timing:
+            groups.append({'params': timing, 'weight_decay': config['s_weight_decay']})
+        return groups
+
+
+def v2_probabilities(model, batch):
+    model.eval()
+    with torch.no_grad():
+        # Double precision softmax prevents avoidable underflow in evaluation.
+        return torch.softmax(model(batch).double(), dim=1).cpu().numpy()
+
+
+def mean_ll_bits(probabilities, rows, vocab):
+    index = {label: i for i, label in enumerate(vocab)}
+    return sum(log_likelihood_bits(float(p[index[r['Ct']]])) for p, r in zip(probabilities, rows)) / len(rows)
+
+
+def fit_condition_v2(train, validation, vocab, fields, config, seed, max_len):
+    """Train only on train; choose the epoch only on validation. Never sees test."""
+    if not train or any(r['split'] != 'train' for r in train):
+        raise ValueError('Training requires nonempty training rows')
+    if not validation or any(r['split'] != 'validation' for r in validation):
+        raise ValueError('Early stopping requires nonempty validation rows')
+    device = config.get('device', 'cpu')
+    if device not in ('cpu', 'cuda'):
+        raise ValueError('device must be cpu or cuda')
+    if device == 'cuda' and not torch.cuda.is_available():
+        raise ValueError('CUDA requested but unavailable')
+    torch.set_num_threads(config.get('torch_threads', 1))
+    torch.use_deterministic_algorithms(True)
+    torch.manual_seed(seed)
+    if device == 'cuda':
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+    timing_fields = [f for f in fields if not f.endswith('_history')]
+    timing_encoder = Encoder(train, vocab, timing_fields) if timing_fields else None
+    model = ConditionModelV2(len(vocab), fields, config,
+                             len(timing_encoder.names) if timing_encoder else None).to(device)
+    optimizer = torch.optim.Adam(model.optimizer_groups(config), lr=config['learning_rate'])
+    batches = [{k: v.to(device) for k, v in build_batch(rs, vocab, fields, max_len, timing_encoder).items()}
+               for rs in (train, validation)]
+    y = torch.tensor([vocab.index(r['Ct']) for r in train], device=device)
+    generator = torch.Generator().manual_seed(seed)
+    best_ll, best_state, best_epoch, stale = -float('inf'), None, 0, 0
+    epochs = []
+    started = time.perf_counter()
+    for epoch in range(1, config['max_epochs'] + 1):
+        model.train()
+        order = torch.randperm(len(train), generator=generator).to(device)
+        for start in range(0, len(train), config['batch_size']):
+            indices = order[start:start + config['batch_size']]
+            batch = {k: v[indices] for k, v in batches[0].items()}
+            loss = nn.functional.cross_entropy(model(batch), y[indices])
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        train_ll = mean_ll_bits(v2_probabilities(model, batches[0]), train, vocab)
+        val_ll = mean_ll_bits(v2_probabilities(model, batches[1]), validation, vocab)
+        epochs.append(dict(epoch=epoch, training_log_likelihood_bits=train_ll,
+                           validation_log_likelihood_bits=val_ll))
+        if val_ll > best_ll:
+            best_ll, best_state, best_epoch, stale = val_ll, copy.deepcopy(model.state_dict()), epoch, 0
+        else:
+            stale += 1
+            if stale >= config['patience']:
+                break
+    if best_state is None:
+        raise ValueError('No valid validation epoch')
+    model.load_state_dict(best_state)
+    model.eval()
+    if device == 'cuda':
+        torch.cuda.synchronize()
+    convergence = dict(epochs_trained=len(epochs), best_epoch=best_epoch,
+                       best_validation_log_likelihood_bits=best_ll,
+                       early_stopped=stale >= config['patience'],
+                       hit_epoch_cap=len(epochs) == config['max_epochs'],
+                       seconds=time.perf_counter() - started, device=device,
+                       beta=float(model.beta.detach().cpu()) if hasattr(model, 'beta') else None,
+                       gamma=float(model.gamma.detach().cpu()) if hasattr(model, 'gamma') else None)
+    return model, timing_encoder, convergence, epochs
+
+
+def v2_settings(fields, config):
+    timing = any(not f.endswith('_history') for f in fields)
+    s_axis = config['s_weight_decay_grid'] if timing else [None]
+    return [dict(hidden_dim=h, dropout=d, weight_decay=w, **({'s_weight_decay': s} if s is not None else {}))
+            for h, d, w, s in itertools.product(config['hidden_grid'], config['dropout_grid'],
+                                               config['weight_decay_grid'], s_axis)]
+
+
+def _v2_candidate_fit(job):
+    train, validation, vocab, fields, config, seed, max_len, setting_id, setting = job
+    model, encoder, convergence, epochs = fit_condition_v2(train, validation, vocab, fields,
+                                                          dict(config, **setting), seed, max_len)
+    return dict(setting_id=setting_id, setting=setting, seed=seed, convergence=convergence, epochs=epochs,
+                state={k: v.detach().cpu().numpy().copy() for k, v in model.state_dict().items()})
+
+
+def select_neural_setting(train, validation, vocab, fields, config, max_len):
+    """Averaged-seed validation selection. Test rows cannot enter this interface."""
+    settings = v2_settings(fields, config)
+    jobs = [(train, validation, vocab, fields, config, seed, max_len, i, setting)
+            for i, setting in enumerate(settings) for seed in config['seeds']]
+    workers = config.get('workers', 1)
+    if workers > 1:
+        if config.get('device', 'cpu') != 'cpu':
+            raise ValueError('Concurrent CPU fits require device=cpu')
+        with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context('spawn')) as pool:
+            fits = list(pool.map(_v2_candidate_fit, jobs))
+    else:
+        fits = [_v2_candidate_fit(job) for job in jobs]
+    candidates = []
+    for i, setting in enumerate(settings):
+        values = [f['convergence']['best_validation_log_likelihood_bits'] for f in fits if f['setting_id'] == i]
+        candidates.append(dict(setting_id=i, setting=setting, validation_log_likelihood_bits=sum(values) / len(values)))
+    def key(candidate):
+        s = candidate['setting']
+        return (candidate['validation_log_likelihood_bits'], -s['hidden_dim'], s['dropout'],
+                s['weight_decay'], s.get('s_weight_decay', 0))
+    chosen = max(candidates, key=key)
+    return chosen, candidates, fits
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default='config/rq1_lstm.json')
     args = parser.parse_args()
+    if read_json(args.config).get('version') == 'v2':
+        from .neural_v2 import run_v2
+        run_v2(args.config)
+        return
     _, stop_reasons, underperform = run(args.config)
     total = len(stop_reasons) + len(underperform)
     if total:

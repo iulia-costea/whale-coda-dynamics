@@ -1,0 +1,66 @@
+{
+  "version": "v2",
+  "mode": "pilot",
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "evaluation_config": "config/rq1_evaluation_lstm_v2_pilot.json",
+  "output_directory": "data/results/rq1_lstm_v2/pilot",
+  "report": "reports/rq1_lstm_v2_pilot.md",
+  "compare_against_logistic": "data/results/rq1_logistic_v4/evaluation/summary.json",
+  "seeds": [
+    42
+  ],
+  "embedding_dim": 32,
+  "learning_rate": 0.001,
+  "batch_size": 32,
+  "max_epochs": 300,
+  "patience": 20,
+  "hidden_grid": [
+    32,
+    64
+  ],
+  "dropout_grid": [
+    0,
+    0.2,
+    0.4
+  ],
+  "weight_decay_grid": [
+    1e-05,
+    0.0001,
+    0.001
+  ],
+  "s_weight_decay_grid": [
+    1e-05,
+    0.001,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "device": "cpu",
+  "workers": 6,
+  "torch_threads": 1,
+  "benchmark": true,
+  "require_suppression": true,
+  "pilot_conditions": [
+    "A",
+    "A_B_S"
+  ],
+  "pilot_folds": [
+    "test-2015-03-02",
+    "test-2015-03-31",
+    "test-2015-03-26",
+    "test-2016-04-24"
+  ],
+  "suppression_report": "reports/rq1_lstm_v2_suppression.md",
+  "suppression": {
+    "fold_id": "test-2015-03-02",
+    "hidden_dim": 32,
+    "dropout": 0.0,
+    "weight_decay": 0.0001,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "tolerance_bits": 0.01
+  }
+}

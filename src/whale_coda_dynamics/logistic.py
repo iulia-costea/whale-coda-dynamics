@@ -156,6 +156,14 @@ def probabilities(x, w, beta=None, gamma=None, own_last_idx=None, partner_last_i
     return np.exp(logits - logsumexp(logits, axis=1, keepdims=True))
 
 
+def is_timing_feature(name):
+    """DEC-1/DEC-20: the S block, everything Encoder derives from turn_category,
+    gap_s, overlap_elapsed_s or retrospective_delay_s. Everything else (history
+    lag one-hots, and the intercept, which Encoder appends unnamed) is history."""
+    return name.startswith('turn:') or name in (
+        'gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s')
+
+
 def select_l2_and_fit(train, validation, vocab, fields, config):
     """Grid-search L2 on the validation day only; `test` is never an argument
     here, so it is structurally impossible for test data to influence selection."""
@@ -174,7 +182,7 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
         for s_l2 in timing_grid:
             penalties = None
             if s_l2 is not None:
-                penalties = [l2 if name.startswith(('A_history:', 'B_history:')) else s_l2
+                penalties = [s_l2 if is_timing_feature(name) else l2
                              for name in encoder.names] + [l2]
             w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2),
                                                own_train, partner_train, penalties)

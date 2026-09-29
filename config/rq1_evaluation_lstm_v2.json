@@ -1,0 +1,11 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95
+}
