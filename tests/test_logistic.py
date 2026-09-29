@@ -4,10 +4,55 @@ from scipy.optimize import check_grad
 
 from whale_coda_dynamics.logistic import (
     Encoder, objective, fit, probabilities, repeat_distribution, last_label_index, select_l2_and_fit,
+    check_stop_conditions,
 )
 
 
 class LogisticTests(unittest.TestCase):
+    def test_separate_penalty_gradient_and_shared_penalty_equivalence(self):
+        x = np.array([[1., 0., 1.], [-1., .5, 1.], [.5, 1., 1.]])
+        y = np.array([0, 1, 0])
+        own, partner = np.array([0, 1, 2]), np.array([1, 0, 2])
+        weights = np.arange(11, dtype=float) / 10
+        penalties = np.array([.001, 1., .001])
+        args = (x, y, 3, .001, own, partner, penalties)
+        error = check_grad(lambda w: objective(w, *args)[0], lambda w: objective(w, *args)[1], weights)
+        self.assertLess(error, 1e-6)
+        old = objective(weights, x, y, 3, .001, own, partner)
+        new = objective(weights, x, y, 3, .001, own, partner, np.full(3, .001))
+        self.assertAlmostEqual(old[0], new[0])
+        np.testing.assert_allclose(old[1], new[1])
+
+    def test_separate_selection_and_no_s_invariance(self):
+        vocab = ['a', 'b', 'UNK']
+        train = [dict(split='train', Ct=vocab[i % 2], A_history=[vocab[i % 2]],
+                      turn_category='switch', gap_s=float(i % 3), overlap_elapsed_s=0.) for i in range(20)]
+        validation = [dict(r, split='validation') for r in train[:6]]
+        config = dict(history_order=1, l2_grid=[.01, .1], max_iterations=2000, gradient_tolerance=1e-6)
+        split_config = dict(config, s_l2_grid=[.01, 1.])
+        _, legacy, old_grid = select_l2_and_fit(train, validation, vocab, ['A_history'], config)
+        _, split, new_grid = select_l2_and_fit(train, validation, vocab, ['A_history'], split_config)
+        self.assertEqual(len(old_grid), len(new_grid))
+        self.assertEqual(legacy['l2'], split['l2'])
+        np.testing.assert_array_equal(legacy['w'], split['w'])
+        self.assertEqual(legacy['beta'], split['beta'])
+        self.assertNotIn('s_l2', split)
+        fields = ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s']
+        _, selected, grid = select_l2_and_fit(train, validation, vocab, fields, split_config)
+        self.assertEqual({(g['l2'], g['s_l2']) for g in grid}, {(.01, .01), (.01, 1.), (.1, .01), (.1, 1.)})
+        expected = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2'], g['s_l2']))
+        self.assertIs(selected, expected)
+        with self.assertRaises(ValueError):
+            fit(np.ones((3, 2)), np.array([0, 1, 0]), 3, dict(config, l2=.01), feature_l2=[.01, -1.])
+
+    def test_stop_rules_use_likelihood_not_accuracy(self):
+        checks = {c: {'ci_bits_per_coda': [-.1, .1]} for c in ('A', 'A_B', 'A_S', 'A_B_S')}
+        summary = {'metrics': {c: {'accuracy': 0.} for c in checks}, 'contrasts': {}}
+        baseline = {'repeat_own_last': {'accuracy': 1.}}
+        self.assertEqual(check_stop_conditions(summary, baseline, checks), [])
+        checks['A']['ci_bits_per_coda'] = [-.2, -.01]
+        self.assertEqual(len(check_stop_conditions(summary, baseline, checks)), 1)
+
     def test_gradient_and_absent_class(self):
         x=np.array([[1.,1.],[-1.,1.],[.5,1.]])
         y=np.array([0,1,0]);w=np.arange(6,dtype=float)/10

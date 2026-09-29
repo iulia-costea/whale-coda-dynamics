@@ -20,7 +20,7 @@ import torch
 from torch import nn
 
 from .evaluation import evaluate, classification_metrics, log_likelihood_bits, day_bootstrap_bits
-from .logistic import Encoder, repeat_distribution, check_stop_conditions, classify_add_input_contrasts, describe
+from .logistic import Encoder, repeat_distribution, check_stop_conditions, classify_add_input_contrasts, describe, format_ci
 from .preprocessing.folds import prepare_fold
 from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 
@@ -270,7 +270,7 @@ def check_against_logistic(lstm_scored, logistic_summary, root, evaluation_confi
             continue
         check = day_bootstrap_bits(days, evaluation_config['bootstrap_replicates'], evaluation_config['bootstrap_seed'], evaluation_config['confidence'])
         if check['ci_bits_per_coda'][1] < 0:
-            reasons.append(f"{condition}: LSTM reliably below logistic regression (CI {check['ci_bits_per_coda']})")
+            reasons.append(f"{condition}: LSTM reliably below logistic regression (CI {format_ci(check['ci_bits_per_coda'])})")
     return reasons
 
 
@@ -296,7 +296,7 @@ def write_report(root, config, summary, baseline_metrics, baseline_checks, conve
              '| Condition | LL contrast | CI | Positive days | Accuracy | Macro-F1 |', '|---|---:|---|---:|---:|---:|']
     for c in ('A', 'A_B', 'A_S', 'A_B_S'):
         check = baseline_checks[c]
-        lines.append(f"| {c} | {check['mean_bits_per_coda']:.5f} | {check['ci_bits_per_coda']} | "
+        lines.append(f"| {c} | {check['mean_bits_per_coda']:.5f} | {format_ci(check['ci_bits_per_coda'])} | "
                      f"{check['positive_days']}/{check['days']} | {summary['metrics'][c]['accuracy']:.3%} | "
                      f"{summary['metrics'][c]['macro_f1']:.4f} |")
 
@@ -304,7 +304,7 @@ def write_report(root, config, summary, baseline_metrics, baseline_checks, conve
              '| Pair | Weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---:|---:|---|---:|']
     for d in classify_add_input_contrasts(summary):
         lines.append(f"| adding {d['added']} to {describe(d['base'])} | {d['mean']:.5f} | {d['unweighted_mean']:.5f} | "
-                     f"[{d['low']:.5f}, {d['high']:.5f}] | {d['positive_days']}/{d['days']} |")
+                     f"{format_ci([d['low'], d['high']])} | {d['positive_days']}/{d['days']} |")
 
     if logistic_summary is not None:
         lines += ['', '## LSTM vs logistic regression (v2), by condition [U1]', '',
@@ -332,7 +332,7 @@ def write_report(root, config, summary, baseline_metrics, baseline_checks, conve
         lines += ['']
     else:
         lines += ['## Result', '',
-                 'No A-condition falls below repeat-own-last in log-likelihood or accuracy, no add-one-input '
+                 'No A-condition falls below repeat-own-last in log-likelihood, no add-one-input '
                  'contrast has a confidence interval entirely below zero, and the LSTM does not fall reliably '
                  'below logistic regression on any condition.', '']
 

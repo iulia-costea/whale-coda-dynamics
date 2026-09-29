@@ -12,7 +12,7 @@ from scipy.special import logsumexp
 
 from .evaluation import evaluate, classification_metrics, log_likelihood_bits, day_bootstrap_bits
 from .preprocessing.folds import prepare_fold
-from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
+from .preprocessing.io_utils import read_json, read_jsonl, read_text, write_jsonl, write_text
 
 
 class Encoder:
@@ -104,15 +104,22 @@ def _copy_logits(logits, beta, own_last_idx, gamma, partner_last_idx):
     return logits
 
 
-def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None):
+def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None, feature_l2=None):
     n_features = x.shape[1]
     w, beta, gamma = _unpack(weights, n_features, classes, own_last_idx, partner_last_idx)
     logits = _copy_logits(x @ w, beta, own_last_idx, gamma, partner_last_idx)
     logs = logits - logsumexp(logits, axis=1, keepdims=True)
-    loss = -logs[np.arange(len(y)), y].mean() + l2 * (np.square(w).sum() + (beta or 0.0)**2 + (gamma or 0.0)**2) / 2
+    if feature_l2 is None:
+        # Preserve the original arithmetic for all legacy and no-S fits.
+        loss = -logs[np.arange(len(y)), y].mean() + l2 * (np.square(w).sum() + (beta or 0.0)**2 + (gamma or 0.0)**2) / 2
+        weight_penalty = l2
+    else:
+        weight_penalty = np.asarray(feature_l2)[:, None]
+        loss = (-logs[np.arange(len(y)), y].mean() + (weight_penalty * np.square(w)).sum() / 2
+                + l2 * ((beta or 0.0)**2 + (gamma or 0.0)**2) / 2)
     residual = np.exp(logs)
     residual[np.arange(len(y)), y] -= 1
-    grad = [(x.T @ residual / len(y) + l2 * w).ravel()]
+    grad = [(x.T @ residual / len(y) + weight_penalty * w).ravel()]
     if beta is not None:
         mask = own_last_idx >= 0
         grad.append(np.array([residual[mask, own_last_idx[mask]].sum() / len(y) + l2 * beta]))
@@ -122,15 +129,19 @@ def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=No
     return loss, np.concatenate(grad)
 
 
-def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None):
+def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None, feature_l2=None):
     # Penalize intercepts too, making absent target classes (including UNK)
     # well-defined and finite without synthetic targets or post-hoc clipping.
     if not np.isfinite(config['l2']) or config['l2'] <= 0:
         raise ValueError('Require positive finite L2')
+    if feature_l2 is not None:
+        feature_l2 = np.asarray(feature_l2, dtype=float)
+        if feature_l2.shape != (x.shape[1],) or not np.all(np.isfinite(feature_l2)) or np.any(feature_l2 <= 0):
+            raise ValueError('Require one positive finite penalty per feature, including intercept')
     n_features = x.shape[1]
     n_extra = (own_last_idx is not None) + (partner_last_idx is not None)
     result = minimize(objective, np.zeros(n_features*classes + n_extra),
-                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx),
+                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx, feature_l2),
                       jac=True, method='L-BFGS-B', options={'maxiter': config['max_iterations'],
                       'gtol': config['gradient_tolerance'], 'ftol': 1e-14})
     gradient = float(np.max(np.abs(result.jac)))
@@ -157,12 +168,27 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     own_val = last_label_index(validation, 'A_history', vocab) if 'A_history' in fields else None
     partner_val = last_label_index(validation, 'B_history', vocab) if 'B_history' in fields else None
     grid = []
+    has_s = any(not f.endswith('_history') for f in fields)
+    timing_grid = config['s_l2_grid'] if has_s and 's_l2_grid' in config else [None]
     for l2 in config['l2_grid']:
-        w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2), own_train, partner_train)
-        p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
-        val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
-        grid.append(dict(l2=l2, validation_log_likelihood_bits=val_ll, w=w, beta=beta, gamma=gamma, convergence=convergence))
-    chosen = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2']))
+        for s_l2 in timing_grid:
+            penalties = None
+            if s_l2 is not None:
+                penalties = [l2 if name.startswith(('A_history:', 'B_history:')) else s_l2
+                             for name in encoder.names] + [l2]
+            w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2),
+                                               own_train, partner_train, penalties)
+            p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
+            val_ll = sum(log_likelihood_bits(float(p)) for p in p_val[np.arange(len(validation)), y_val]) / len(validation)
+            # Legacy fits retain their original reduction, including exact no-S v3 reproduction.
+            if s_l2 is None:
+                val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
+            candidate = dict(l2=l2, validation_log_likelihood_bits=val_ll, w=w, beta=beta,
+                             gamma=gamma, convergence=convergence)
+            if s_l2 is not None:
+                candidate['s_l2'] = s_l2
+            grid.append(candidate)
+    chosen = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2'], g.get('s_l2', 0)))
     return encoder, chosen, grid
 
 
@@ -425,6 +451,11 @@ def _fit_and_evaluate_v2(config_path):
                 selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
                                        grid=[dict(l2=g['l2'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
                                                  convergence=g['convergence']) for g in grid]))
+                if 's_l2' in chosen:
+                    models[-1]['chosen_s_l2'] = chosen['s_l2']
+                    selections[-1]['chosen_s_l2'] = chosen['s_l2']
+                    for record, candidate in zip(selections[-1]['grid'], grid):
+                        record['s_l2'] = candidate['s_l2']
             for row, probs in zip(test,p):
                 predictions.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],condition=condition,
                                         seed=config['seed'],probabilities=dict(zip(vocab,map(float,probs)))))
@@ -467,6 +498,8 @@ def run_v2(config_path):
     v1_summary = read_json(root / config['compare_against']) if config.get('compare_against') else None
     write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics, stop_reasons, v1_summary,
                     version_label=config.get('version_label', 'v2'), compare_label=config.get('compare_label', 'v1'))
+    if config.get('version_label') in ('v3', 'v4'):
+        write_gate_summary(root, config, summary, selections, stop_reasons)
     return summary, stop_reasons
 
 
@@ -478,11 +511,13 @@ def run_v2_sensitivity(config_path):
     root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics = _fit_and_evaluate_v2(config_path)
     stop_reasons = check_stop_conditions(summary, baseline_metrics, baseline_checks)
     primary_summary = read_json(root / config['compare_against'])
-    for c in ('A', 'B', 'A_B'):
+    for c in ('none', 'A', 'B', 'A_B'):
         if summary['metrics'][c] != primary_summary['metrics'][c]:
             raise ValueError(f"Condition {c} does not use S but differs from the primary run")
     write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary,
                              version_label=config.get('version_label', 'v2'))
+    if config.get('version_label') in ('v3', 'v4'):
+        write_gate_summary(root, config, summary, selections, stop_reasons)
     return summary, stop_reasons
 
 
@@ -576,10 +611,9 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
                      f"{format_ci(a['ci_bits_per_coda'])} | {a['positive_days']}/{a['days']} | "
                      f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
 
-    total_fits = len(selections[0]['grid'])*len(selections) if selections else 0
+    total_fits = sum(len(selection['grid']) for selection in selections)
     lines += ['', f"All {total_fits} fits ({len({s['fold_id'] for s in selections})} folds times "
-             f"{len({s['condition'] for s in selections})} non-unigram conditions times {len(config['l2_grid'])} grid "
-             "values) converged; fit() raises immediately on non-convergence, so reaching this report already "
+             f"{len({s['condition'] for s in selections})} non-unigram conditions; candidate counts are recorded per fit) converged; fit() raises immediately on non-convergence, so reaching this report already "
              "confirms it. Full per-grid-value convergence is in l2_selection.jsonl; the "
              f"{len(diagnostics)} selected models' convergence is in convergence.jsonl.", '']
 
@@ -670,6 +704,70 @@ def write_sensitivity_report(root, config, summary, baseline_metrics, baseline_c
     report = root / config['report']
     report.parent.mkdir(parents=True, exist_ok=True)
     write_text(report, '\n'.join(lines))
+
+
+def write_gate_summary(root, config, summary, selections, stop_reasons):
+    """Persist gate evidence and a complete, directly postable stage summary."""
+    edges, boundary_failures = {}, []
+    lines = ['', '## Penalty distributions and gate 1', '',
+             '| Condition | Penalty | Value: fold count | Lower edge | Upper edge |',
+             '|---|---|---|---:|---:|']
+    for condition in summary['metrics']:
+        records = [r for r in selections if r['condition'] == condition]
+        if not records:
+            continue
+        edges[condition] = {}
+        for key, grid_key in [('chosen_l2', 'l2_grid'), ('chosen_s_l2', 's_l2_grid')]:
+            counts = Counter(r[key] for r in records if key in r)
+            if not counts:
+                continue
+            lo, hi = min(config[grid_key]), max(config[grid_key])
+            count = sum(counts.values())
+            edges[condition][key] = dict(distribution=dict(sorted(counts.items())),
+                                        lower=counts[lo], upper=counts[hi], folds=count)
+            distribution = ', '.join(f'{value}: {n}' for value, n in sorted(counts.items()))
+            lines.append(f'| {condition} | {key} | {distribution} | {counts[lo]}/{count} | {counts[hi]}/{count} |')
+            if counts[lo] > count / 2:
+                boundary_failures.append(f'{condition}: {key} selects the lower edge in {counts[lo]}/{count} folds')
+    all_converged = all(g['convergence']['max_gradient'] <= 10 * config['gradient_tolerance']
+                        for r in selections for g in r['grid'])
+    failures = list(stop_reasons) + boundary_failures
+    if not all_converged:
+        failures.append('At least one fit did not meet the gradient convergence tolerance')
+    gate = dict(numerical_checks_passed=not failures, failures=failures,
+                all_fits_converged=all_converged, fits=sum(len(r['grid']) for r in selections),
+                penalty_edges=edges,
+                note='Full test suite and committed-artifact checks are separate required gate checks.')
+    write_text(root / config['output_directory'] / 'gate1.json', json.dumps(gate, indent=2) + '\n')
+    lines += ['', 'DEC-16 and grid checks: ' + ('FAIL' if failures else 'PASS') + '.', '']
+    lines += ['- ' + reason for reason in failures]
+    reference = read_json(root / config['compare_against'])
+    lines += ['', '## Complete likelihood contrasts versus reference', '',
+              '| Contrast | Run | Weighted bits/coda | Unweighted day mean | 95% CI | Positive days |',
+              '|---|---|---:|---:|---|---:|']
+    names = ['own_history', 'partner_content', 'timing'] + [n for n in summary['contrasts'] if n.startswith('add_input:')]
+    for name in names:
+        for label, result in [('reference', reference), (config['version_label'], summary)]:
+            a = result['contrasts'][name]['components']['log_likelihood_bits']
+            lines.append(f"| {name} | {label} | {a['mean_bits_per_coda']:.5f} | "
+                         f"{a['unweighted_mean_bits_per_coda']:.5f} | {format_ci(a['ci_bits_per_coda'])} | "
+                         f"{a['positive_days']}/{a['days']} |")
+    report = root / config['report']
+    content = read_text(report)
+    if 's_l2_grid' in config:
+        # The shared report's v2/v3 description assumes a single penalty.
+        first_table = content.index('## ')
+        description = (f"# RQ1 logistic regression {config['version_label']}: separate penalties\n\n"
+                       f"Joint validation-day selection over base L2 {config['l2_grid']} and S L2 {config['s_l2_grid']}. "
+                       "History lag weights, copy weights and the shared intercept use base L2; all timing and "
+                       "turn-category coefficients use S L2. Ties prefer larger base L2, then larger S L2. "
+                       "No-S conditions retain v3's fit exactly. Training excludes validation and test days. "
+                       "Preprocessing, folds, vocabulary and shared evaluation are unchanged.\n\n")
+        if config.get('sensitivity'):
+            description += ('Sensitivity only: S uses the retrospective end-to-start delay. The primary and '
+                            'retrospective runs reproduce all no-S conditions exactly on this machine.\n\n')
+        content = description + content[first_table:]
+    write_text(report, content + '\n'.join(lines) + '\n')
 
 
 def main():

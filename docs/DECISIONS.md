@@ -138,6 +138,17 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Rejected for now:** the sympatric × identity difference-in-differences as the main test; bins fitted per clan; size-matched reruns; pooled training across clans (the backup in `docs/LATER.md`).
 - **Supersedes:** DEC-14; the "EC1 ↔ EC2 first" part of DEC-4.
 
+## Separate history and timing penalties (2026-09-29)
+
+**DEC-20 — Choose history/base and timing regularisation independently on validation days.**
+- Logistic v3 remains a recorded failed gate: adding S to A_B has a day-bootstrap CI entirely below zero. The user explicitly authorised preserving v3 and continuing to v4; convergence, test and provenance requirements remain in force.
+- Jointly select history/base L2 and S L2 from the same nine-point grid in PLAN [M4]. History lag weights, beta/gamma and the shared intercept receive the base penalty; turn-category and timing coefficients receive S's penalty. Conditions without S retain v3's implementation and search exactly. Ties prefer larger base L2, then larger S L2.
+- The S-only model still has a shared intercept: its base and S penalties are jointly selected. No absent history features or copy weights are introduced.
+- Why: optional ignorance motivates allowing a model to suppress an input. Separate penalties allow S to shrink independently of the useful history features; they do not guarantee better validation or test scores. The committed v2 selection artifacts verify lower best validation LL for A_B_S than A_B on 10/14 folds (A_S versus A: 12/14; B_S versus B: 7/14).
+- Logistic v4 replaces v3 as the neural reference only after gate 1 passes, including the old-delay sensitivity run. Report selected-penalty distributions and both grid boundaries; do not adjust the grids to pass a gate.
+- LSTM v2 uses separate Adam parameter groups: history encoders, copy weights, history output weights and shared output bias use base decay; S encoder and S output weights use S decay. Proposed and approved grids: base {1e-5, 1e-4, 1e-3}, S {1e-5, 1e-3, 0.1, 1, 10}, dropout {0, 0.2, 0.4}, hidden {32, 64}. The pilot measures affordability. A validation-only suppression diagnostic precedes the pilot; details and all gates are in `docs/RQ1_EXECUTION_PROMPT.md`.
+- DEC-19 retains its RQ3 meaning. This decision supersedes only the shared-penalty portions of DEC-16/17; likelihood stop rules remain unchanged.
+
 ## Differences from the submitted proposal
 
 **Content changes**

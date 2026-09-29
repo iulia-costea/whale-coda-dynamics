@@ -72,6 +72,27 @@ LOGISTIC_V2 = dict(history_order=3, l2_grid=[0.01], max_iterations=2000, gradien
 
 @unittest.skipUnless(HAS_SCIPY, 'needs numpy and scipy (pip install ".[modeling]")')
 class LogisticSmokeTests(unittest.TestCase):
+    def test_v4_runner_and_retrospective_sensitivity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.evaluation('eval.json', PRIMARY, [42])
+            box.evaluation('eval_retro.json', RETROSPECTIVE, [42])
+            reference = box.config('v3.json', manifest=PRIMARY, evaluation_config='config/eval.json',
+                                   output_directory='out/v3', report='out/v3.md', **LOGISTIC_V2)
+            box.run('logistic', reference)
+            settings = dict(LOGISTIC_V2, s_l2_grid=[.1], version_label='v4', compare_label='v3')
+            primary = box.config('v4.json', manifest=PRIMARY, evaluation_config='config/eval.json',
+                                 output_directory='out/v4', report='out/v4.md',
+                                 compare_against='out/v3/evaluation/summary.json', **settings)
+            box.run('logistic', primary)
+            box.check_outputs(self, 'out/v4', 'out/v4.md')
+            retro = box.config('v4_retro.json', manifest=RETROSPECTIVE, evaluation_config='config/eval_retro.json',
+                               output_directory='out/v4_retro', report='out/v4_retro.md',
+                               compare_against='out/v4/evaluation/summary.json',
+                               sensitivity='retrospective_delay', **settings)
+            box.run('logistic', retro)
+            box.check_outputs(self, 'out/v4_retro', 'out/v4_retro.md')
+
     def test_v1_runner(self):
         with tempfile.TemporaryDirectory() as tmp:
             box = Sandbox(tmp)
