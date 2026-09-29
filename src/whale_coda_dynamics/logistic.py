@@ -201,23 +201,26 @@ def classify_add_input_contrasts(summary):
     return details
 
 
+def format_ci(ci):
+    """Round a day-bootstrap CI to 4dp for markdown reports; summary.json keeps full precision."""
+    return f"[{ci[0]:.4f}, {ci[1]:.4f}]"
+
+
 def check_stop_conditions(summary, baseline_metrics, baseline_checks):
-    """PLAN [M1b]/[U2]: reasons to stop and show the results before writing conclusions."""
+    """DEC-16: log-likelihood-only stop rules. Accuracy and macro-F1 are reported
+    but never used to stop (v2's accuracy-based rule fired on differences of a
+    few codas out of 1,547; log-likelihood is the estimand)."""
     reasons = []
-    repeat_accuracy = baseline_metrics['repeat_own_last']['accuracy']
     for condition in ('A', 'A_B', 'A_S', 'A_B_S'):
         check = baseline_checks[condition]
         if check['ci_bits_per_coda'][1] < 0:
             reasons.append(f"{condition}: reliably below repeat-own-last in log-likelihood "
-                           f"(CI {check['ci_bits_per_coda']})")
-        accuracy = summary['metrics'][condition]['accuracy']
-        if accuracy < repeat_accuracy:
-            reasons.append(f"{condition}: accuracy {accuracy:.3%} below repeat-own-last {repeat_accuracy:.3%}")
+                           f"(CI {format_ci(check['ci_bits_per_coda'])})")
     for name, contrast in summary['contrasts'].items():
         if name.startswith('add_input:'):
             ci = contrast['components']['log_likelihood_bits']['ci_bits_per_coda']
             if ci[1] < 0:
-                reasons.append(f"{name}: contrast CI entirely below zero {ci}")
+                reasons.append(f"{name}: contrast CI entirely below zero {format_ci(ci)}")
     return reasons
 
 
@@ -462,7 +465,8 @@ def run_v2(config_path):
     root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics = _fit_and_evaluate_v2(config_path)
     stop_reasons = check_stop_conditions(summary, baseline_metrics, baseline_checks)
     v1_summary = read_json(root / config['compare_against']) if config.get('compare_against') else None
-    write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics, stop_reasons, v1_summary)
+    write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics, stop_reasons, v1_summary,
+                    version_label=config.get('version_label', 'v2'), compare_label=config.get('compare_label', 'v1'))
     return summary, stop_reasons
 
 
@@ -477,25 +481,28 @@ def run_v2_sensitivity(config_path):
     for c in ('A', 'B', 'A_B'):
         if summary['metrics'][c] != primary_summary['metrics'][c]:
             raise ValueError(f"Condition {c} does not use S but differs from the primary run")
-    write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary)
+    write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary,
+                             version_label=config.get('version_label', 'v2'))
     return summary, stop_reasons
 
 
-def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics, stop_reasons, v1_summary):
+def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics,
+                    stop_reasons, v1_summary, version_label='v2', compare_label='v1'):
     conditions = list(summary['metrics'])
-    lines = ['# RQ1 logistic-regression reference results, v2 (copy features and tuned L2)', '',
-             "Same fourteen leave-one-day-out folds as v1. Two changes to the reference model only: conditions "
-             "containing A get a shared scalar added to the logit of the class matching the whale's own last coda, "
-             "and conditions containing B get a shared scalar added to the logit of the class matching the "
-             "partner's last coda, both penalized by the same L2 as every other weight. L2 itself is chosen per "
-             f"fold and condition from {config['l2_grid']} by the highest mean log-likelihood on that fold's "
-             "validation day (ties go to the larger value), then the model trained on the training days only is "
-             "scored on the test day, with no refit on train plus validation. Bootstrap replicates are 10,000. "
-             "Preprocessing, folds, the UNK policy and the S definition are unchanged; v1 results are kept for "
-             "comparison, not overwritten.", '']
+    lines = [f'# RQ1 logistic-regression reference results, {version_label}', '',
+             f"Same fourteen leave-one-day-out folds as {compare_label}. Conditions containing A get a shared "
+             "scalar added to the logit of the class matching the whale's own last coda, and conditions containing "
+             "B get a shared scalar added to the logit of the class matching the partner's last coda, both "
+             "penalized by the same L2 as every other weight. L2 itself is chosen per fold and condition from "
+             f"{config['l2_grid']} by the highest mean log-likelihood on that fold's validation day (ties go to "
+             "the larger value), then the model trained on the training days only is scored on the test day, with "
+             f"no refit on train plus validation. Bootstrap replicates are 10,000. Preprocessing, folds, the UNK "
+             f"policy and the S definition are unchanged; {compare_label} results are kept for comparison, not "
+             "overwritten.", '']
 
-    lines += ['## Metrics, v1 vs v2', '',
-             '| Condition | v1 LL bits/coda | v2 LL bits/coda | v1 Accuracy | v2 Accuracy | v1 Macro-F1 | v2 Macro-F1 |',
+    lines += [f'## Metrics, {compare_label} vs {version_label}', '',
+             f'| Condition | {compare_label} LL bits/coda | {version_label} LL bits/coda | {compare_label} Accuracy '
+             f'| {version_label} Accuracy | {compare_label} Macro-F1 | {version_label} Macro-F1 |',
              '|---|---:|---:|---:|---:|---:|---:|']
     for c in conditions:
         v1m = v1_summary['metrics'][c] if v1_summary else None
@@ -533,37 +540,40 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
         gmin, gmax = (f"{min(gammas):.4f}", f"{max(gammas):.4f}") if gammas else ('n/a', 'n/a')
         lines.append(f"| {c} | {bmin} | {bmax} | {gmin} | {gmax} |")
 
-    lines += ['', '## A-conditions vs repeat-own-last, v1 vs v2', '',
+    lines += ['', f'## A-conditions vs repeat-own-last, {compare_label} vs {version_label}', '',
              f"Repeat-own-last: {baseline_metrics['repeat_own_last']['accuracy']:.3%} accuracy, "
              f"{baseline_metrics['repeat_own_last']['macro_f1']:.4f} macro-F1, "
              f"{baseline_metrics['repeat_own_last']['mean_log_likelihood_bits']:.5f} bits/coda.", '',
-             '| Condition | v1 LL contrast | v1 CI | v1 +days | v2 LL contrast | v2 CI | v2 +days | v2 Accuracy | v2 Macro-F1 |',
+             f'| Condition | {compare_label} LL contrast | {compare_label} CI | {compare_label} +days | '
+             f'{version_label} LL contrast | {version_label} CI | {version_label} +days | {version_label} Accuracy '
+             f'| {version_label} Macro-F1 |',
              '|---|---:|---|---:|---:|---|---:|---:|---:|']
     for c in ('A', 'A_B', 'A_S', 'A_B_S'):
         v1c = v1_summary['repeat_baseline_checks'][c] if v1_summary else None
         v2c = baseline_checks[c]
         v1mean = f"{v1c['mean_bits_per_coda']:.5f}" if v1c else 'n/a'
-        v1ci = f"{v1c['ci_bits_per_coda']}" if v1c else 'n/a'
+        v1ci = format_ci(v1c['ci_bits_per_coda']) if v1c else 'n/a'
         v1days = f"{v1c['positive_days']}/{v1c['days']}" if v1c else 'n/a'
-        lines.append(f"| {c} | {v1mean} | {v1ci} | {v1days} | {v2c['mean_bits_per_coda']:.5f} | {v2c['ci_bits_per_coda']} | "
+        lines.append(f"| {c} | {v1mean} | {v1ci} | {v1days} | {v2c['mean_bits_per_coda']:.5f} | {format_ci(v2c['ci_bits_per_coda'])} | "
                      f"{v2c['positive_days']}/{v2c['days']} | {summary['metrics'][c]['accuracy']:.3%} | "
                      f"{summary['metrics'][c]['macro_f1']:.4f} |")
 
-    lines += ['', '## All twelve add-one-input contrasts (v2)', '',
+    lines += ['', f'## All twelve add-one-input contrasts ({version_label})', '',
              '| Pair | Weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---:|---:|---|---:|']
     for d in classify_add_input_contrasts(summary):
         lines.append(f"| adding {d['added']} to {describe(d['base'])} | {d['mean']:.5f} | {d['unweighted_mean']:.5f} | "
-                     f"[{d['low']:.5f}, {d['high']:.5f}] | {d['positive_days']}/{d['days']} |")
+                     f"{format_ci([d['low'], d['high']])} | {d['positive_days']}/{d['days']} |")
 
-    lines += ['', '## Main contrasts, v1 vs v2', '',
-             '| Contrast | v1 bits/coda | v2 bits/coda | v2 unweighted | v2 CI | v2 +days | v2 Repeat part | v2 Switch part |',
+    lines += ['', f'## Main contrasts, {compare_label} vs {version_label}', '',
+             f'| Contrast | {compare_label} bits/coda | {version_label} bits/coda | {version_label} unweighted | '
+             f'{version_label} CI | {version_label} +days | {version_label} Repeat part | {version_label} Switch part |',
              '|---|---:|---:|---:|---|---:|---:|---:|']
     for name in ('own_history', 'partner_content', 'timing'):
         v1a = v1_summary['contrasts'][name]['components']['log_likelihood_bits'] if v1_summary else None
         comp = summary['contrasts'][name]['components']; a = comp['log_likelihood_bits']
         v1txt = f"{v1a['mean_bits_per_coda']:.5f}" if v1a else 'n/a'
         lines.append(f"| {name} | {v1txt} | {a['mean_bits_per_coda']:.5f} | {a['unweighted_mean_bits_per_coda']:.5f} | "
-                     f"{a['ci_bits_per_coda']} | {a['positive_days']}/{a['days']} | "
+                     f"{format_ci(a['ci_bits_per_coda'])} | {a['positive_days']}/{a['days']} | "
                      f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
 
     total_fits = len(selections[0]['grid'])*len(selections) if selections else 0
@@ -581,9 +591,8 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
         lines += ['']
     else:
         lines += ['## Result', '',
-                 'No A-condition falls below repeat-own-last in log-likelihood or accuracy, and no add-one-input '
-                 'contrast has a confidence interval entirely below zero. The copy features and validation-tuned '
-                 'L2 resolve the expressiveness gap identified in v1.', '']
+                 'No A-condition is reliably below repeat-own-last in log-likelihood, and no add-one-input '
+                 'contrast has a confidence interval entirely below zero.', '']
 
     lines += ['Statistical uncertainty and restricted feature capacity limit inference from this reference model; '
              'this report does not establish grammar or causal mechanisms. Day-bootstrap intervals use 10,000 '
@@ -598,14 +607,15 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
     write_text(report, '\n'.join(lines))
 
 
-def write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary):
+def write_sensitivity_report(root, config, summary, baseline_metrics, baseline_checks, stop_reasons, primary_summary,
+                             version_label='v2'):
     """PLAN S9: the retrospective-delay sensitivity run, reported separately from
-    the primary onset-available results. Same v2 model (copy features, tuned L2)
-    on both sides; only the timing fields feeding the S-containing conditions
+    the primary onset-available results. Same model version (copy features, tuned
+    L2) on both sides; only the timing fields feeding the S-containing conditions
     differ. No interpretation is written here, only the numbers."""
     lines = ['# RQ1 retrospective-delay sensitivity run', '',
-             "Same fourteen leave-one-day-out folds, vocabulary and v2 model (shared copy features, L2 tuned per "
-             "fold and condition on the validation day) as the primary results. Only the timing fields feeding "
+             f"Same fourteen leave-one-day-out folds, vocabulary and {version_label} model (shared copy features, "
+             "L2 tuned per fold and condition on the validation day) as the primary results. Only the timing fields feeding "
              "S, A_S, B_S and A_B_S change: turn_category is kept, but gap_s and overlap_elapsed_s are replaced "
              "by retrospective_delay_s, the onset-to-previous-interlocutor-offset delay used before DEC-1. That "
              "field can be negative (the predecessor coda had not finished when the target started) and is only "
@@ -631,12 +641,12 @@ def write_sensitivity_report(root, config, summary, baseline_metrics, baseline_c
     lines[-1] = ('| Comparison | Primary bits/coda | Primary CI | Primary +days | Retrospective bits/coda | '
                  'Retrospective CI | Retrospective +days |')
     lines.append('|---|---:|---|---:|---:|---|---:|')
-    lines.append(f"| timing (A_B_S - A_B) | {pt['mean_bits_per_coda']:.5f} | {pt['ci_bits_per_coda']} | "
-                 f"{pt['positive_days']}/{pt['days']} | {rt['mean_bits_per_coda']:.5f} | {rt['ci_bits_per_coda']} | "
+    lines.append(f"| timing (A_B_S - A_B) | {pt['mean_bits_per_coda']:.5f} | {format_ci(pt['ci_bits_per_coda'])} | "
+                 f"{pt['positive_days']}/{pt['days']} | {rt['mean_bits_per_coda']:.5f} | {format_ci(rt['ci_bits_per_coda'])} | "
                  f"{rt['positive_days']}/{rt['days']} |")
     pc, rc = primary_summary['repeat_baseline_checks']['A_B_S'], baseline_checks['A_B_S']
-    lines.append(f"| A_B_S vs repeat-own-last | {pc['mean_bits_per_coda']:.5f} | {pc['ci_bits_per_coda']} | "
-                 f"{pc['positive_days']}/{pc['days']} | {rc['mean_bits_per_coda']:.5f} | {rc['ci_bits_per_coda']} | "
+    lines.append(f"| A_B_S vs repeat-own-last | {pc['mean_bits_per_coda']:.5f} | {format_ci(pc['ci_bits_per_coda'])} | "
+                 f"{pc['positive_days']}/{pc['days']} | {rc['mean_bits_per_coda']:.5f} | {format_ci(rc['ci_bits_per_coda'])} | "
                  f"{rc['positive_days']}/{rc['days']} |")
 
     lines += ['', 'The A, B and A_B conditions do not use S and are refit identically to the primary run '
