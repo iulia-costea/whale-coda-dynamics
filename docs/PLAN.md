@@ -8,7 +8,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
 - **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
 - **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
-- **Done:** logistic-regression reference v2 with copy weights and validation-chosen L2 (DEC-16), plus the old-delay sensitivity run: `reports/rq1_logistic_v2.md`, `reports/rq1_retrospective_sensitivity.md`. A rerun with the extended L2 grid is still to do.
+- **Done:** logistic-regression reference v2 with copy weights and validation-chosen L2 (DEC-16), plus the old-delay sensitivity run: `reports/rq1_logistic_v2.md`, `reports/rq1_retrospective_sensitivity.md`. v3 extended the grid but retained a negative timing CI. v4 uses separate history/base and S penalties (DEC-20); both primary and sensitivity numerical gates pass.
 - **Superseded:** logistic regression v1 and LSTM v1 (fixed settings, no copy path); kept as a record, see `reports/README.md`.
 - **In progress:** LSTM v2 (DEC-17), pilot first.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
@@ -307,7 +307,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - flag long codas — **done**, 153 Sharma source codas flagged without filtering.
 2. **Phase 2 — evaluation and folds: done.** The shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
-   - Logistic regression v1 (fixed L2) — done, superseded. v2 with copy weights and validation-chosen L2 (DEC-16) — done. Rerun with the extended L2 grid — to do.
+   - Logistic regression v1 (fixed L2) — done, superseded. v2 with copy weights and validation-chosen L2 (DEC-16) — done. v3 extended-grid rerun — done, failed DEC-16. v4 separate-penalty rerun — done; primary and old-delay numerical gates pass.
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
    - LSTM v2 (DEC-17): pilot, then all eight conditions with 3 seeds; checks `[U1]`, `[U2]`; the Assayag context check.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
