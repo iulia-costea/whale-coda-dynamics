@@ -8,9 +8,9 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
 - **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
 - **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
-- **Done:** logistic-regression reference v2 with copy weights and validation-chosen L2 (DEC-16), plus the old-delay sensitivity run: `reports/rq1_logistic_v2.md`, `reports/rq1_retrospective_sensitivity.md`. A rerun with the extended L2 grid is still to do.
-- **Superseded:** logistic regression v1 and LSTM v1 (fixed settings, no copy path); kept as a record, see `reports/README.md`.
-- **In progress:** LSTM v2 (DEC-17), pilot first.
+- **Done:** logistic-regression reference v4 with copy weights and separate validation-chosen penalties for the history and $S$ blocks (DEC-16, DEC-20): `reports/rq1_logistic_v4.md`, `reports/rq1_retrospective_sensitivity_v4.md`. Gate 1 fully holds: all 4,914 fits converged, no DEC-16 stop rule fires in either the primary or old-delay run, and no condition sits at a grid edge in a majority of folds for its real feature blocks. The `add_input:A_B_S-A_B` failure that persisted through v2 and v3 is resolved: the timing contrast now spans zero (`-0.020`, CI `[-0.046, 0.001]`) instead of being reliably negative, confirming DEC-20's diagnosis.
+- **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
+- **In progress:** LSTM v2 (DEC-17, DEC-20), pilot first.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -136,18 +136,19 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
   - the unweighted mean of the 14 day-level contrasts, next to the token-weighted mean. The token-weighted mean is the primary estimand; three days hold 58% of the targets, so the unweighted mean shows whether a result rests on a few days.
   - Note in the write-up that 14 days give rough CIs.
 
-**`[M4]` Models** (DEC-12, DEC-16, DEC-17)
+**`[M4]` Models** (DEC-12, DEC-16, DEC-17, DEC-20)
 - **Shared copy weights, in every model that uses $A$ or $B$.** For each candidate coda type $c$:
   $$\text{score}(c) = \text{usual per-type terms} + \beta\,\mathbb{1}[c = \text{own last coda}] + \gamma\,\mathbb{1}[c = \text{partner's last coda}]$$
   - $\beta$ exists only in conditions with $A$, $\gamma$ only in conditions with $B$. Each is one number shared across all coda types.
   - Why: without it, a model has to learn "repeat the last coda" separately for every type, and rare types never learn it (DEC-16). It adds no new information, only a cheaper way to use what $A$ or $B$ already contain.
+- **Separate penalties for history and timing (DEC-20).** Every model with $S$ splits its regularisation in two: one for the history blocks ($A$/$B$'s features plus $\beta$/$\gamma$), one for $S$. Both are chosen jointly on the validation day from the same grid; conditions without $S$ keep a single penalty. Why: a single shared penalty cannot suit both a small, possibly-uninformative block and a large, informative one, so the model may be unable to switch $S$ off even when it should (violating the optional-ignorance assumption behind conditional 𝒱-information).
 - **Reference model: multinomial logistic regression**, run first; it is the `[U1]` reference.
   - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, the two timing values (standardised, plus `log1p`), and the copy weights.
-  - L2 is chosen per fold and condition on the validation day from {0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0}, by validation log-likelihood; ties go to the larger value. The model trained on training days only is scored on the test day.
+  - L2 for the history blocks and, where $S$ is present, a separate L2 for $S$, both chosen per fold and condition on the validation day from {0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0}, by validation log-likelihood; ties go to the larger value on each axis. The model trained on training days only is scored on the test day.
 - **Main model: LSTM**, reported for all eight conditions with 3 seeds.
   - One 1-layer LSTM encoder per coda-history input ($A$, $B$) and a small feed-forward encoder for $S$, concatenated into a shared output layer, plus the copy weights. An absent input means its encoder and its copy weight are removed.
   - Optimiser: Adam, learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch.
-  - Chosen per fold and condition on the validation day, with one grid and one rule for all conditions: dropout {0, 0.2, 0.4} × weight decay {1e-5, 1e-4, 1e-3} × hidden size {32, 64}. Criterion: validation log-likelihood averaged over the 3 seeds; ties go to the smaller, more regularised setting. The chosen setting's 3 seeds are the reported runs.
+  - Chosen per fold and condition on the validation day, with one grid and one rule for all conditions: dropout {0, 0.2, 0.4} × hidden size {32, 64} × weight decay for the history encoders {1e-5, 1e-4, 1e-3} and, where $S$ is present, a separate weight decay for the $S$ encoder {1e-5, 1e-3, 1.0} (wide enough to verify $S$ can be switched off in practice). Criterion: validation log-likelihood averaged over the 3 seeds; ties go to the smaller, more regularised setting on each axis. The chosen setting's 3 seeds are the reported runs.
   - **Pilot first:** conditions A and A+B+S on the three largest test days plus one small one (one seed and a reduced grid are fine), logging training and validation log-likelihood per epoch, compared with logistic regression on the same folds. Run the full study only if the pilot is at or above repeat-own-last and not reliably below logistic regression.
 - **Stop rules (log-likelihood only).** Stop and investigate before writing conclusions if any of these has a day-bootstrap CI entirely below zero: an $A$-condition against repeat-own-last; an add-one-input contrast; (LSTM) the paired difference to logistic regression on a condition. Accuracy and macro-F1 are reported but not used to stop. The LSTM *matching* logistic regression is acceptable.
 - **Context check against Assayag et al.** Their split is random, ours holds out whole days, so their accuracies are optimistic next to ours. Compare like with like, without retraining: condition (iv) on switch/overlap targets only against the majority class on that subset, and condition (iii) against their single-whale results.

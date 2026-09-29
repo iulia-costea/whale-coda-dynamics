@@ -104,15 +104,21 @@ def _copy_logits(logits, beta, own_last_idx, gamma, partner_last_idx):
     return logits
 
 
-def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None):
+def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None, l2_vector=None):
+    """l2 penalizes beta/gamma (and every main weight, when l2_vector is not
+    given: the plain single-penalty path used by v1 through v3). l2_vector,
+    when given, is a per-feature penalty (DEC-20: separate history/S
+    penalties) applied to the main weights instead of the scalar l2."""
     n_features = x.shape[1]
     w, beta, gamma = _unpack(weights, n_features, classes, own_last_idx, partner_last_idx)
     logits = _copy_logits(x @ w, beta, own_last_idx, gamma, partner_last_idx)
     logs = logits - logsumexp(logits, axis=1, keepdims=True)
-    loss = -logs[np.arange(len(y)), y].mean() + l2 * (np.square(w).sum() + (beta or 0.0)**2 + (gamma or 0.0)**2) / 2
+    l2w = np.broadcast_to(l2 if l2_vector is None else l2_vector, (n_features,))
+    loss = (-logs[np.arange(len(y)), y].mean() + (l2w[:, None] * np.square(w)).sum() / 2
+           + l2 * ((beta or 0.0)**2 + (gamma or 0.0)**2) / 2)
     residual = np.exp(logs)
     residual[np.arange(len(y)), y] -= 1
-    grad = [(x.T @ residual / len(y) + l2 * w).ravel()]
+    grad = [(x.T @ residual / len(y) + l2w[:, None] * w).ravel()]
     if beta is not None:
         mask = own_last_idx >= 0
         grad.append(np.array([residual[mask, own_last_idx[mask]].sum() / len(y) + l2 * beta]))
@@ -122,7 +128,7 @@ def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=No
     return loss, np.concatenate(grad)
 
 
-def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None):
+def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None, l2_vector=None):
     # Penalize intercepts too, making absent target classes (including UNK)
     # well-defined and finite without synthetic targets or post-hoc clipping.
     if not np.isfinite(config['l2']) or config['l2'] <= 0:
@@ -130,7 +136,7 @@ def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None):
     n_features = x.shape[1]
     n_extra = (own_last_idx is not None) + (partner_last_idx is not None)
     result = minimize(objective, np.zeros(n_features*classes + n_extra),
-                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx),
+                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx, l2_vector),
                       jac=True, method='L-BFGS-B', options={'maxiter': config['max_iterations'],
                       'gtol': config['gradient_tolerance'], 'ftol': 1e-14})
     gradient = float(np.max(np.abs(result.jac)))
@@ -145,9 +151,20 @@ def probabilities(x, w, beta=None, gamma=None, own_last_idx=None, partner_last_i
     return np.exp(logits - logsumexp(logits, axis=1, keepdims=True))
 
 
+def is_timing_feature(name):
+    """DEC-1/DEC-20: the S block, everything Encoder derives from turn_category,
+    gap_s, overlap_elapsed_s or retrospective_delay_s. Everything else (history
+    lag one-hots, and the intercept, which Encoder appends unnamed) is history."""
+    return name.startswith('turn:') or name in (
+        'gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s')
+
+
 def select_l2_and_fit(train, validation, vocab, fields, config):
     """Grid-search L2 on the validation day only; `test` is never an argument
-    here, so it is structurally impossible for test data to influence selection."""
+    here, so it is structurally impossible for test data to influence selection.
+    DEC-20: when the condition includes S, history and S get separate penalties,
+    chosen jointly from the same grid (a 2D search); conditions without S keep
+    the original single-penalty 1D search, unchanged."""
     encoder = Encoder(train, vocab, fields, config['history_order'])
     x_train, x_val = encoder.transform(train), encoder.transform(validation)
     y_train = np.array([vocab.index(r['Ct']) for r in train])
@@ -156,13 +173,20 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     partner_train = last_label_index(train, 'B_history', vocab) if 'B_history' in fields else None
     own_val = last_label_index(validation, 'A_history', vocab) if 'A_history' in fields else None
     partner_val = last_label_index(validation, 'B_history', vocab) if 'B_history' in fields else None
+    timing_mask = np.array([is_timing_feature(name) for name in encoder.names] + [False])  # intercept -> history
+    has_timing = bool(timing_mask.any())
+    s_axis = config['l2_grid'] if has_timing else [None]
     grid = []
-    for l2 in config['l2_grid']:
-        w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2), own_train, partner_train)
-        p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
-        val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
-        grid.append(dict(l2=l2, validation_log_likelihood_bits=val_ll, w=w, beta=beta, gamma=gamma, convergence=convergence))
-    chosen = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2']))
+    for l2_history in config['l2_grid']:
+        for l2_s in s_axis:
+            l2_vector = np.where(timing_mask, l2_s, l2_history) if has_timing else None
+            w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2_history),
+                                              own_train, partner_train, l2_vector=l2_vector)
+            p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
+            val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
+            grid.append(dict(l2=l2_history, l2_s=l2_s, validation_log_likelihood_bits=val_ll,
+                            w=w, beta=beta, gamma=gamma, convergence=convergence))
+    chosen = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2'], g['l2_s'] or 0))
     return encoder, chosen, grid
 
 
@@ -421,9 +445,11 @@ def _fit_and_evaluate_v2(config_path):
                                    fields=fields,order=encoder.order,categories=encoder.categories,
                                    feature_names=encoder.names+['intercept'],mean=encoder.mean.tolist(),
                                    scale=encoder.scale.tolist(),weights=chosen['w'].tolist(),
-                                   beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2']))
+                                   beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2'],
+                                   chosen_l2_s=chosen['l2_s']))
                 selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
-                                       grid=[dict(l2=g['l2'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
+                                       chosen_l2_s=chosen['l2_s'],
+                                       grid=[dict(l2=g['l2'],l2_s=g['l2_s'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
                                                  convergence=g['convergence']) for g in grid]))
             for row, probs in zip(test,p):
                 predictions.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],condition=condition,
@@ -516,18 +542,31 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
         ll = f"{m['mean_log_likelihood_bits']:.5f}" if 'mean_log_likelihood_bits' in m else 'n/a'
         lines.append(f"| {c} | {ll} | {ll} | {m['accuracy']:.3%} | {m['accuracy']:.3%} | {m['macro_f1']:.4f} | {m['macro_f1']:.4f} |")
 
-    lines += ['', '## Chosen L2 per condition', '', '| Condition | Min | Median | Max | Folds at grid edge |',
-             '|---|---:|---:|---:|---|']
+    lines += ['', '## Chosen L2 per condition (DEC-20: history and S penalties chosen separately)', '',
+             '| Condition | History min | History median | History max | History at grid edge | S min | S median | S max | S at grid edge |',
+             '|---|---:|---:|---:|---|---:|---:|---:|---|']
     grid_min, grid_max = min(config['l2_grid']), max(config['l2_grid'])
+    def l2_stats(values):
+        values = sorted(values)
+        mid = len(values)//2
+        median = values[mid] if len(values)%2 else (values[mid-1]+values[mid])/2
+        return values[0], median, values[-1]
     for c in conditions:
         if c == 'none':
             continue
-        chosen = sorted(s['chosen_l2'] for s in selections if s['condition'] == c)
-        edge_folds = [s['fold_id'] for s in selections if s['condition'] == c and s['chosen_l2'] in (grid_min, grid_max)]
-        mid = len(chosen)//2
-        median = chosen[mid] if len(chosen)%2 else (chosen[mid-1]+chosen[mid])/2
-        edge_note = f" ({', '.join(edge_folds)})" if edge_folds else ''
-        lines.append(f"| {c} | {chosen[0]} | {median} | {chosen[-1]} | {len(edge_folds)}/{len(chosen)}{edge_note} |")
+        rows = [s for s in selections if s['condition'] == c]
+        h_values = [s['chosen_l2'] for s in rows]
+        h_min, h_med, h_max = l2_stats(h_values)
+        h_edge = [s['fold_id'] for s in rows if s['chosen_l2'] in (grid_min, grid_max)]
+        h_edge_note = f" ({', '.join(h_edge)})" if h_edge else ''
+        if rows[0]['chosen_l2_s'] is not None:
+            s_values = [s['chosen_l2_s'] for s in rows]
+            s_min, s_med, s_max = l2_stats(s_values)
+            s_edge = [s['fold_id'] for s in rows if s['chosen_l2_s'] in (grid_min, grid_max)]
+            s_cell = f"{s_min} | {s_med} | {s_max} | {len(s_edge)}/{len(s_values)}"
+        else:
+            s_cell = 'n/a | n/a | n/a | n/a'
+        lines.append(f"| {c} | {h_min} | {h_med} | {h_max} | {len(h_edge)}/{len(h_values)}{h_edge_note} | {s_cell} |")
 
     lines += ['', '## Fitted beta and gamma per condition (range over folds)', '',
              '| Condition | Beta min | Beta max | Gamma min | Gamma max |', '|---|---:|---:|---:|---:|']
@@ -576,10 +615,12 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
                      f"{format_ci(a['ci_bits_per_coda'])} | {a['positive_days']}/{a['days']} | "
                      f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
 
-    total_fits = len(selections[0]['grid'])*len(selections) if selections else 0
-    lines += ['', f"All {total_fits} fits ({len({s['fold_id'] for s in selections})} folds times "
-             f"{len({s['condition'] for s in selections})} non-unigram conditions times {len(config['l2_grid'])} grid "
-             "values) converged; fit() raises immediately on non-convergence, so reaching this report already "
+    total_fits = sum(len(s['grid']) for s in selections)
+    grid_n = len(config['l2_grid'])
+    lines += ['', f"All {total_fits} fits converged, across {len({s['fold_id'] for s in selections})} folds and "
+             f"{len({s['condition'] for s in selections})} non-unigram conditions: conditions without S search "
+             f"{grid_n} history L2 values, conditions with S jointly search {grid_n} history values times {grid_n} "
+             "S values (DEC-20). fit() raises immediately on non-convergence, so reaching this report already "
              "confirms it. Full per-grid-value convergence is in l2_selection.jsonl; the "
              f"{len(diagnostics)} selected models' convergence is in convergence.jsonl.", '']
 

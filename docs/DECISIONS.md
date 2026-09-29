@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -137,6 +137,13 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Kept from the plan on `rq3-cross-clan`:** the preprocessing and its audit trail, the n-gram and VLMC models, transfer loss as own-clan minus transfer score, tuning on the source clan only, both directions reported, type diagnostics within a dataset.
 - **Rejected for now:** the sympatric × identity difference-in-differences as the main test; bins fitted per clan; size-matched reruns; pooled training across clans (the backup in `docs/LATER.md`).
 - **Supersedes:** DEC-14; the "EC1 ↔ EC2 first" part of DEC-4.
+
+## After logistic v3's gate 1 (2026-09-29)
+
+**DEC-20 — Separate validation-chosen penalties for history and timing blocks.**
+- **Decision:** each model that includes $S$ splits its penalty in two: one for the history blocks ($A$/$B$'s features and their copy weights $\beta$/$\gamma$), one for $S$ (turn category and timing). Both are chosen jointly per fold and condition on the validation day from the same grid; ties go to the larger values. Conditions without $S$ keep a single penalty, unchanged. Logistic v4 replaces v3 as the reference for stages 2 and 3.
+- **Why:** conditional 𝒱-information (Xu et al. 2020) assumes a model can choose to ignore an input that adds nothing. A single shared penalty can't separately suit a small, possibly-uninformative block ($S$) and a large, informative one (history): in v2/v3, adding $S$ lowered validation-day log-likelihood on 10 of 14 folds even at the best available L2, so the model was structurally unable to turn $S$ off while still fitting history well. Same class of problem as v1's (DEC-16), different dimension: there it was too few coefficients for repetition; here it's one penalty doing two jobs.
+- **Extends to LSTM v2 (stage 2):** weight decay splits the same way (history encoders and their output weights vs the $S$ encoder and its output weights), chosen jointly with dropout and hidden size on the validation day. The $S$ grid includes a value strong enough to verify $S$ can be switched off in practice.
 
 ## Differences from the submitted proposal
 
