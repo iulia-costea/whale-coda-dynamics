@@ -113,6 +113,32 @@ class NeuralSmokeTests(unittest.TestCase):
             box.run('neural', config)
             box.check_outputs(self, 'out/lstm', 'out/lstm.md')
 
+    def test_lstm_v2_full_runner(self):
+        """DEC-17 stage 2: full manifest, one value per grid axis, 2 epochs, one seed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.evaluation('eval.json', PRIMARY, [42])
+            config = box.config('lstm_v2.json', manifest=PRIMARY, evaluation_config='config/eval.json',
+                                output_directory='out/lstm_v2', report='out/lstm_v2.md', seeds=[42],
+                                embedding_dim=4, learning_rate=1e-3, batch_size=256, max_epochs=2, patience=1,
+                                dropout_grid=[0.0], hidden_grid=[4], weight_decay_history_grid=[1e-4],
+                                weight_decay_s_grid=[1e-4])
+            box.run('neural', config)
+            box.check_outputs(self, 'out/lstm_v2', 'out/lstm_v2.md')
+
+    def test_lstm_v2_pilot_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.evaluation('eval.json', PRIMARY, [42])
+            config = box.config('lstm_v2_pilot.json', manifest=PRIMARY, evaluation_config='config/eval.json',
+                                output_directory='out/lstm_v2_pilot', report='out/lstm_v2_pilot.md', seeds=[42],
+                                test_days=['2014-04-16', '2015-04-01'], conditions=['A'],
+                                embedding_dim=4, learning_rate=1e-3, batch_size=256, max_epochs=2, patience=1,
+                                dropout_grid=[0.0], hidden_grid=[4], weight_decay_history_grid=[1e-4],
+                                weight_decay_s_grid=[1e-4])
+            box.run('neural', config)
+            box.check_outputs(self, 'out/lstm_v2_pilot', 'out/lstm_v2_pilot.md', conditions={'A'})
+
     def test_assayag_reproduction_runner(self):
         with tempfile.TemporaryDirectory() as tmp:
             box = Sandbox(tmp)
