@@ -36,7 +36,7 @@ PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare      # RQ1 â
 PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare_rq2  # Sharma pipeline â†’ rq2_*, reports/rq2.md
 ```
 
-Unit tests: `PYTHONPATH=src python3 -m pytest tests` (model tests need numpy, scipy and torch). Beyond them, `prepare.validate()` independently recomputes every derived field and raises on mismatch; a clean run of **both** pipelines is the test for preprocessing. Treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in `validate()`.
+Tests: `PYTHONPATH=src python3 -m pytest tests` (model tests need numpy, scipy and torch; about 1.5 minutes locally; longer on GitHub's runners). They also run automatically on every PR and push to `main` (`.github/workflows/checks.yml`); don't merge a PR whose checks fail. Besides unit tests they rerun preprocessing and require byte-identical output, check every recorded SHA-256 against the committed files, and run each model runner end to end on tiny settings. A new runner gets a smoke test in `tests/test_pipeline_smoke.py`. Beyond them, `prepare.validate()` independently recomputes every derived field and raises on mismatch; a clean run of **both** pipelines is the test for preprocessing. Treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in `validate()`.
 
 ## Traps
 

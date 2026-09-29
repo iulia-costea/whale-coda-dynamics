@@ -207,7 +207,7 @@ def run(config_path):
                                       config['seeds'], config['bootstrap_replicates'],
                                       config['bootstrap_seed'], config['confidence'])
     summary['configuration'] = config
-    summary['input_sha256'] = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+    summary['input_sha256'] = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                                for p in (manifest_path, target_path, prediction_path)}
     output = root / config['output_directory']
     output.mkdir(parents=True, exist_ok=True)
