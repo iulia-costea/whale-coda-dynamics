@@ -19,7 +19,7 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 - Never use `pair_category` as a feature. Caller codes (`Whale`, `local_caller_id`) are segment-local, not identified animals.
 - Pacific and `DominicaCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
 - Claims are about dyadic exchanges only. "Not persistence" ≠ grammar — no grammar/syntax conclusions.
-- Don't redo Assayag et al.'s bout-threshold correlation sweep or Leitão et al.'s VLMC/KL analysis; cite them.
+- Don't redo Assayag et al.'s bout-threshold correlation sweep or Leitão et al.'s VLMC/KL comparison as results; cite them. Their bins and VLMC may be used as tools (DEC-19).
 
 ## Reproducibility and lessons
 

@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28).
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -30,6 +30,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 **DEC-4 — RQ3 starts with EC1 ↔ EC2.**
 - **Decision:** the first RQ3 test uses `DominicaCodas.csv`, which is already in the repo. Pacific data comes second.
 - **Why:** the two sympatric clans test Leitão et al.'s prediction directly.
+- *Superseded in part by DEC-19: EC1 ↔ EC2 is now two cells of the full transfer matrix, reported descriptively.*
 
 **DEC-5 — Two-whale exchanges only** (recorded, not new).
 - **Decision:** the existing pipeline already kept only exactly-two-caller segments. This makes that explicit as the scope of the claims.
@@ -80,6 +81,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 **DEC-14 — RQ3 hypothesis tested as an interaction.**
 - **Decision:** test (sympatric vs allopatric) × (identity vs non-identity codas), with discretisation bins fitted on the training clan only.
 - **Why:** the Caribbean vs Pacific difference is also a one-programme vs many-programmes difference. The identity contrast separates the two, assuming recording differences affect both coda kinds equally.
+- *Superseded by DEC-19.*
 
 **DEC-15 — Tempo fallback.**
 - **Decision:** if Sharma's tempo file can't be fetched, assign each coda to the nearest of the five tempo modes in Sharma et al. 2024a Fig. 3 (0.33, 0.51, 0.80, 1.02, 1.26 s), labelled "reconstructed".
@@ -116,6 +118,26 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Their random 70/15/15 split puts codas from the same day in training and test, so their accuracies are optimistic next to our held-out days; hence a context check rather than a reproduction.
 - **Supersedes:** the fixed WhaleLM settings in DEC-11 and in the first version of PLAN `[M4]`. LSTM v1 results are kept as a record (`reports/README.md`).
 
+## After the RQ3 review (2026-09-29)
+
+**DEC-19 — RQ3 becomes a descriptive transfer study on shared building blocks.**
+- **Decision:** PLAN §8, `[R3-0]`–`[R3-7]`:
+  - shared building blocks: processed codas with day groups and flags, one fixed tokeniser, one fold file, one score format;
+  - the 9 × 9 transfer matrix, with own-clan and transfer scores on the same codas and from models trained on the same share of a clan;
+  - a coverage breakdown of every transfer loss;
+  - one exploratory overlap test within the Pacific.
+- **Why:**
+  - Bins fitted on each training clan (DEC-14) give the two scores in a transfer loss different symbols, so the scores can't be compared. Leitão et al. fixed their bins across clans for this reason. Fixed bins also fit nothing to any clan, which is what DEC-14's rule was for.
+  - A transfer loss is only fair if both scores cover the same codas and come from models trained on similar amounts of data. Cross-fitting and averaging each source's fold models give both.
+  - `[D6]` dates come in two formats; grouping by the raw string would put one recording day on both sides of a split.
+  - The sympatry test can't be run with useful power. EC1 ↔ EC2 is a single, weak case: EC2 units visit from a range elsewhere, the clans don't associate, and their codas were marked by different annotators (Gero et al. 2016). Within the Pacific, 21 clan pairs give roughly 30–40% power at Leitão et al.'s effect size (r² = 0.11), and clans that overlap were often recorded in the same regions.
+  - Hersh et al.'s SI (Tables S2 and S4) supplies the Pacific identity lists and overlap values the identity analysis was waiting for. EC1/EC2 have no comparable list.
+  - The Pacific ↔ Pacific cells need no new code, only more cells.
+  - Time: results freeze on 4 October; the report is due 11 October.
+- **Kept from the plan on `rq3-cross-clan`:** the preprocessing and its audit trail, the n-gram and VLMC models, transfer loss as own-clan minus transfer score, tuning on the source clan only, both directions reported, type diagnostics within a dataset.
+- **Rejected for now:** the sympatric × identity difference-in-differences as the main test; bins fitted per clan; size-matched reruns; pooled training across clans (the backup in `docs/LATER.md`).
+- **Supersedes:** DEC-14; the "EC1 ↔ EC2 first" part of DEC-4.
+
 ## Differences from the submitted proposal
 
 **Content changes**
@@ -124,7 +146,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - Caller identities are segment-local, not identified whales.
 - The response delay is redefined (DEC-1).
 - RQ2's primary test is the two Assayag labellings; Sharma's scheme is secondary (DEC-3).
-- RQ3 starts with EC1 ↔ EC2 and is framed as an interaction (DEC-4, DEC-14).
+- RQ3 is a descriptive transfer matrix over nine clans with one exploratory overlap test, not a sympatry test (DEC-19).
 - The claim is scoped to two-whale exchanges (DEC-5).
 
 **Added since the proposal**
