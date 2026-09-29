@@ -94,3 +94,10 @@ The runner reconstructs each fold with `prepare_fold`, verifies its policy again
 The repeat baseline estimates mapped-label repetition frequency from training comparison targets, then allocates the remaining mass by the fold's add-1 prior excluding own-last. Degenerate repeat rates fail explicitly. Majority-class predictions get accuracy/macro-F1 only. Saved models include feature names, vocabulary, scaling, categories and weights; convergence diagnostics are saved per fit.
 
 `data/results/rq1/` holds probabilities, baseline predictions, models and convergence records; `evaluation/` holds shared-evaluator outputs with versions/configuration/input hashes. `reports/rq1_logistic.md` is generated. All 98 contextual fits converged in the first run, but five add-input contrasts were negative and the full model fell slightly below repeat-own-last in LL. These diagnostics remain unresolved research/model-capacity checks, not evidence that partner content or timing is harmful. No settings were changed after inspecting test results. Retrospective-delay sensitivity and neural models remain pending.
+
+
+## LSTM v2 runners
+
+`neural.py` retains the v1 API and adds `ConditionModelV2`, `fit_condition_v2`, and `select_neural_setting` (DEC-18/20). The v2 config routes the CLI to `neural_v2.py`, which reuses the committed fold manifest and shared metric helpers. The pilot scores only the declared condition/fold subset; it never changes the full-manifest evaluator or the fold assignments. Full-manifest smoke runs use `evaluate` unchanged.
+
+`config/rq1_lstm_v2_suppression.json` runs the predeclared validation-only check. `config/rq1_lstm_v2_pilot.json` requires that check to pass before running the four-fold pilot. Results go under `data/results/rq1_lstm_v2/pilot`, with one JSONL epoch record per fit/epoch and JSON selection/convergence records. All candidates are fitted on training rows and selected on validation rows before any test predictions are made. Separate worker processes use deterministic seeds; timing measurements are reported independently of model scores.

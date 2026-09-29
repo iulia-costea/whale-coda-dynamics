@@ -14,7 +14,10 @@ Which report is current and which is kept only as a record. All reports here exc
 | `rq1_logistic_v3.md` | Extended shared-L2 grid | DEC-16 timing stop rule fired; preserved by explicit instruction |
 | `rq1_retrospective_sensitivity_v3.md` | v3 old-delay sensitivity | DEC-16 timing stop rule fired; kept as a record |
 | `rq1_logistic_v4.md` | Separately selected history/base and S penalties (DEC-20) | Current reference; numerical gate 1 passes |
+| `rq1_retrospective_sensitivity_v4.md` | Independent concurrent v4 sensitivity run from commit `19be209` | Historical contributor run; current reconciled artifacts use the report below |
 | `rq1_logistic_v4_retrospective.md` | v4 old-delay sensitivity | Current; numerical gate 1 passes; no-S predictions match primary exactly |
+| `rq1_lstm_v2_suppression.md` | Predeclared validation-only S suppression diagnostic | Passed: mean difference 0.0019 bits/coda, tolerance 0.01 |
+| `rq1_lstm_v2_pilot.md` | Four-fold CPU pilot with separate decay selection | Specified pilot numerical gate passes; both conditions beat logistic only on the small fold. Full study not run: CUDA unavailable |
 | `rq1_lstm.md` | LSTM v1: fixed WhaleLM settings, no copy weights | Superseded by DEC-17; kept as a record of why |
 | `rq1_lstm_reproduction.md` | Assayag partner-only reproduction, v1 | Superseded: reframed as a context check in DEC-17 |
 | `data_dictionary.md` | Field meanings, provenance and open questions (hand-written) | Current |

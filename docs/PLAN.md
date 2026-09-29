@@ -10,7 +10,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
 - **Done:** logistic-regression reference v2 with copy weights and validation-chosen L2 (DEC-16), plus the old-delay sensitivity run: `reports/rq1_logistic_v2.md`, `reports/rq1_retrospective_sensitivity.md`. v3 extended the grid but retained a negative timing CI. v4 uses separate history/base and S penalties (DEC-20); both primary and sensitivity numerical gates pass.
 - **Superseded:** logistic regression v1 and LSTM v1 (fixed settings, no copy path); kept as a record, see `reports/README.md`.
-- **In progress:** LSTM v2 (DEC-17), pilot first.
+- **Pilot complete:** LSTM v2 (DEC-17/18/20), CPU, four predeclared folds and seed 42: the specified pilot numerical criteria pass, with no epoch-cap hits. Both conditions beat logistic only on the small fold; full-study performance remains unvalidated. The full run is not started because CUDA is unavailable, per the approved execution gate.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -309,7 +309,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 3. **Phase 3 — first numbers:**
    - Logistic regression v1 (fixed L2) — done, superseded. v2 with copy weights and validation-chosen L2 (DEC-16) — done. v3 extended-grid rerun — done, failed DEC-16. v4 separate-penalty rerun — done; primary and old-delay numerical gates pass.
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
-   - LSTM v2 (DEC-17): pilot, then all eight conditions with 3 seeds; checks `[U1]`, `[U2]`; the Assayag context check.
+   - LSTM v2 (DEC-17/18/20): CPU pilot done; full run awaits CUDA and the remaining device checks, then all eight conditions with 3 seeds; checks `[U1]`, `[U2]`; the Assayag context check.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 primary:** swap the label column.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.

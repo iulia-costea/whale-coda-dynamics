@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29). DEC-20 followed logistic v3’s gate 1 (2026-09-29). DEC-18 records the approved LSTM v2 run rules.
 
 ## After the audit
 
@@ -117,6 +117,17 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Assayag et al. (learning rate 1e-3, 300 epochs) is the closer precedent for optimisation. Neither paper's regularisation fits our data size, so it is chosen on the validation day, like the L2 in DEC-16.
   - Their random 70/15/15 split puts codas from the same day in training and test, so their accuracies are optimistic next to our held-out days; hence a context check rather than a reproduction.
 - **Supersedes:** the fixed WhaleLM settings in DEC-11 and in the first version of PLAN `[M4]`. LSTM v1 results are kept as a record (`reports/README.md`).
+
+## LSTM v2 execution rules (2026-09-29)
+
+**DEC-18 — Fix the pilot, suppression diagnostic and implementation details before fitting.**
+- Model/training/selection live in `neural.py`; `neural_v2.py` orchestrates diagnostics, pilot scoring, artifacts and reports. Legacy v1 remains available through its original config.
+- The linear head is represented as bias-free per-source projections plus one shared base-group output bias. This is mathematically the same concatenated linear head, but lets Adam assign independent penalties to S's output columns. History encoders/projections are initialised before S, so adding S does not change their initial parameters for a fixed seed. Beta/gamma exist only with their respective history.
+- Approved grids and tie order are DEC-20 and `docs/RQ1_EXECUTION_PROMPT.md`. Fit each candidate from scratch; restore its best validation epoch. Selection averages validation LL over configured seeds (pilot: 42; full run: 42/43/44). No test input enters the selection interface.
+- Before the pilot, on fold `test-2015-03-02` only, compare A_B_S at the largest S decay (10) to A_B: hidden 32, dropout 0, base decay 1e-4, seeds 42/43/44, otherwise the same training rule. Absolute difference between mean validation LLs must be <=0.01 bits/coda. This uses no test outcomes and is a diagnostic stop if unsuccessful; no grid change follows automatically.
+- Pilot: A and A_B_S on test days 2015-03-02, 2015-03-31, 2015-03-26 and 2016-04-24; full grids; seed 42. Gate compares unweighted means over the four folds against repeat-own-last, checks whether all four folds underperform logistic v4, and checks selected fits for the epoch cap. All epoch caps are also retained in candidate logs.
+- Device defaults to CPU. This machine has no CUDA. CPU fits use one Torch thread and up to six isolated worker processes; tests use CPU and one worker. Concurrency changes execution scheduling, not seeds, candidates or selection. GPU determinism/device-comparison checks and stage 3 require a CUDA machine.
+- Benchmark one pilot fold/condition's chosen setting at seeds 42/43/44. CPU wall-time projections assume ideal scaling across configured workers and are explicitly estimates, not measured full-run durations.
 
 ## After the RQ3 review (2026-09-29)
 
