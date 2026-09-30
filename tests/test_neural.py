@@ -4,7 +4,7 @@ import torch
 
 from whale_coda_dynamics.neural import (
     encode_history, ConditionModel, HistoryEncoder, build_batch, fit_condition, predict, check_against_logistic,
-    ConditionModelV2, fit_condition_v2, predict_v2, select_lstm_grid_and_fit,
+    ConditionModelV2, fit_condition_v2, predict_v2, select_lstm_grid_and_fit, check_s_suppression,
 )
 
 
@@ -181,6 +181,35 @@ class LstmV2Tests(unittest.TestCase):
             r['Ct'] = 'UNK'
         chosen2, _, _ = select_lstm_grid_and_fit(train, validation, vocab, ['A_history'], config, [42], 10, [])
         self.assertEqual(chosen1['validation_log_likelihood_bits'], chosen2['validation_log_likelihood_bits'])
+
+    def test_parallel_grid_search_matches_sequential(self):
+        vocab = ['a', 'b', 'c', 'UNK']
+        rows = make_rows(10, 20, vocab)
+        fields = ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s']
+        config = dict(hidden_dim=4, embedding_dim=4, learning_rate=1e-2, batch_size=5, max_epochs=2, patience=2,
+                      dropout_grid=[0.0, 0.2], hidden_grid=[4], weight_decay_history_grid=[1e-4],
+                      weight_decay_s_grid=[1e-4, 1e-3])
+        curve_seq, curve_par = [], []
+        chosen_seq, _, grid_seq = select_lstm_grid_and_fit(rows, rows, vocab, fields, config, [42], 10, curve_seq, workers=1)
+        chosen_par, _, grid_par = select_lstm_grid_and_fit(rows, rows, vocab, fields, config, [42], 10, curve_par, workers=2)
+        self.assertEqual(chosen_seq['validation_log_likelihood_bits'], chosen_par['validation_log_likelihood_bits'])
+        self.assertEqual(sorted(g['validation_log_likelihood_bits'] for g in grid_seq),
+                         sorted(g['validation_log_likelihood_bits'] for g in grid_par))
+        self.assertEqual(len(curve_seq), len(curve_par))
+
+    def test_s_suppression_diagnostic_shape(self):
+        vocab = ['a', 'b', 'c', 'UNK']
+        rows = make_rows(8, 21, vocab)
+        config = dict(hidden_dim=4, embedding_dim=4, dropout_rate=0.0, weight_decay_history=1e-4,
+                      learning_rate=1e-2, batch_size=4, max_epochs=2, patience=2)
+        result = check_s_suppression(rows, rows, vocab, ['A_history'],
+                                     ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s'],
+                                     config, weight_decay_s=1.0, seed=42, max_len=10)
+        self.assertEqual(set(result), {'weight_decay_s', 'seed', 'without_s_validation_log_likelihood_bits',
+                                       'with_s_validation_log_likelihood_bits', 'difference_bits'})
+        self.assertTrue(np.isfinite(result['difference_bits']))
+        self.assertAlmostEqual(result['difference_bits'],
+                              result['with_s_validation_log_likelihood_bits'] - result['without_s_validation_log_likelihood_bits'])
 
 
 if __name__ == '__main__':

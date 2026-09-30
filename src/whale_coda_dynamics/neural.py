@@ -9,6 +9,7 @@ differs by condition. Three neural seeds are averaged per coda by the
 shared evaluation module before contrasts are computed.
 """
 import argparse
+import concurrent.futures
 import copy
 import hashlib
 import json
@@ -307,8 +308,17 @@ def predict_v2(model, timing_encoder, rows, vocab, fields, max_len, device='cpu'
         return probs / probs.sum(axis=1, keepdims=True)
 
 
+def _fit_grid_point(task):
+    """Module-level (picklable) worker for select_lstm_grid_and_fit's optional
+    process-pool parallelism: fits one (setting, seed) combination."""
+    train, validation, vocab, fields, trial, seed, max_len, device = task
+    if device == 'cpu':
+        torch.set_num_threads(1)  # avoid oversubscription: process parallelism, not torch's own thread pool
+    return fit_condition_v2(train, validation, vocab, fields, trial, seed, max_len, device)
+
+
 def select_lstm_grid_and_fit(train, validation, vocab, fields, config, seeds, max_len, curve_sink, device='cpu',
-                             fold_id=None, condition=None):
+                             fold_id=None, condition=None, workers=1):
     """DEC-17/DEC-20: joint grid search on the validation day only (`test` is
     never an argument here, so it is structurally impossible for test data to
     influence selection, mirroring select_l2_and_fit's guarantee). Criterion
@@ -321,33 +331,115 @@ def select_lstm_grid_and_fit(train, validation, vocab, fields, config, seeds, ma
     Conditions without S search dropout x hidden x weight_decay_history only
     (weight_decay_s is None throughout); conditions with S jointly search all
     four axes. Every epoch of every fit (not just the chosen setting) is
-    appended to curve_sink, per DEC-17 stage 2's per-epoch logging."""
+    appended to curve_sink, per DEC-17 stage 2's per-epoch logging.
+
+    workers > 1 fits every (setting, seed) combination in a process pool
+    instead of one at a time (each grid point is independent); this only
+    changes wall time, not results, and defaults to 1 (sequential, the
+    original behaviour) so existing configs and tests are unaffected."""
     timing_fields = [f for f in fields if f in ('turn_category', 'gap_s', 'overlap_elapsed_s')]
     wd_s_axis = config['weight_decay_s_grid'] if timing_fields else [None]
+    settings = [(dropout, hidden, wd_history, wd_s)
+               for dropout in config['dropout_grid'] for hidden in config['hidden_grid']
+               for wd_history in config['weight_decay_history_grid'] for wd_s in wd_s_axis]
+    tasks, task_keys = [], []
+    for dropout, hidden, wd_history, wd_s in settings:
+        trial = dict(config, dropout_rate=dropout, hidden_dim=hidden, weight_decay_history=wd_history, weight_decay_s=wd_s)
+        for seed in seeds:
+            tasks.append((train, validation, vocab, fields, trial, seed, max_len, device))
+            task_keys.append((dropout, hidden, wd_history, wd_s, seed))
+    if workers > 1:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as pool:
+            fit_results = list(pool.map(_fit_grid_point, tasks))
+    else:
+        fit_results = [_fit_grid_point(t) for t in tasks]
+    by_setting = defaultdict(list)
+    for (dropout, hidden, wd_history, wd_s, seed), (model, timing_encoder, conv, curve) in zip(task_keys, fit_results):
+        for row in curve:
+            curve_sink.append(dict(row, fold_id=fold_id, condition=condition, dropout=dropout, hidden=hidden,
+                                  weight_decay_history=wd_history, weight_decay_s=wd_s, seed=seed))
+        by_setting[dropout, hidden, wd_history, wd_s].append((model, timing_encoder, conv))
+
     grid, best = [], None
-    for dropout in config['dropout_grid']:
-        for hidden in config['hidden_grid']:
-            for wd_history in config['weight_decay_history_grid']:
-                for wd_s in wd_s_axis:
-                    trial = dict(config, dropout_rate=dropout, hidden_dim=hidden,
-                                weight_decay_history=wd_history, weight_decay_s=wd_s)
-                    seed_fits = []
-                    for seed in seeds:
-                        model, timing_encoder, conv, curve = fit_condition_v2(train, validation, vocab, fields, trial, seed, max_len, device)
-                        for row in curve:
-                            curve_sink.append(dict(row, fold_id=fold_id, condition=condition, dropout=dropout, hidden=hidden,
-                                                  weight_decay_history=wd_history, weight_decay_s=wd_s, seed=seed))
-                        seed_fits.append((model, timing_encoder, conv))
-                    mean_val_ll = sum(c['best_validation_log_likelihood_bits'] for _, _, c in seed_fits) / len(seed_fits)
-                    entry = dict(dropout=dropout, hidden=hidden, weight_decay_history=wd_history, weight_decay_s=wd_s,
-                                validation_log_likelihood_bits=mean_val_ll,
-                                convergence=[c for _, _, c in seed_fits])
-                    key = (mean_val_ll, -hidden, dropout, wd_history, wd_s or 0)
-                    if best is None or key > best[0]:
-                        best = (key, entry, seed_fits)
-                    grid.append(entry)
+    for dropout, hidden, wd_history, wd_s in settings:
+        seed_fits = by_setting[dropout, hidden, wd_history, wd_s]
+        mean_val_ll = sum(c['best_validation_log_likelihood_bits'] for _, _, c in seed_fits) / len(seed_fits)
+        entry = dict(dropout=dropout, hidden=hidden, weight_decay_history=wd_history, weight_decay_s=wd_s,
+                    validation_log_likelihood_bits=mean_val_ll,
+                    convergence=[c for _, _, c in seed_fits])
+        key = (mean_val_ll, -hidden, dropout, wd_history, wd_s or 0)
+        if best is None or key > best[0]:
+            best = (key, entry, seed_fits)
+        grid.append(entry)
     _, chosen, chosen_fits = best
     return chosen, chosen_fits, grid
+
+
+def check_s_suppression(train, validation, vocab, fields_without_s, fields_with_s, config, weight_decay_s, seed, max_len, device='cpu'):
+    """DEC-20 sanity check: conditional V-information assumes a model can
+    choose to ignore an input that adds nothing (optional ignorance). This
+    fits the with-S condition at the strongest S weight decay the grid
+    offers (config['weight_decay_s_grid'] should include a value large
+    enough to test this) and the without-S condition at the same history
+    settings and seed, then compares validation log-likelihood: if a large
+    enough S penalty cannot bring the with-S model close to the without-S
+    one, the S encoder is not actually suppressible in practice, and the
+    grid (or the mechanism) needs revisiting before trusting DEC-20's
+    fix generalises from logistic regression to the LSTM."""
+    _, _, conv_without_s, _ = fit_condition_v2(train, validation, vocab, fields_without_s, config, seed, max_len, device)
+    with_s_config = dict(config, weight_decay_s=weight_decay_s)
+    _, _, conv_with_s, _ = fit_condition_v2(train, validation, vocab, fields_with_s, with_s_config, seed, max_len, device)
+    without_s_ll = conv_without_s['best_validation_log_likelihood_bits']
+    with_s_ll = conv_with_s['best_validation_log_likelihood_bits']
+    return dict(weight_decay_s=weight_decay_s, seed=seed,
+               without_s_validation_log_likelihood_bits=without_s_ll,
+               with_s_validation_log_likelihood_bits=with_s_ll,
+               difference_bits=with_s_ll - without_s_ll)
+
+
+def run_suppression_diagnostic(config_path):
+    """Runs check_s_suppression on one fold (config['test_day']), one
+    condition pair (config['fields_without_s']/config['fields_with_s']), at
+    config['weight_decay_s'] (should be the top of the grid actually used),
+    config['hidden_dim']/['dropout_rate']/['weight_decay_history'] fixed,
+    and seeds config['seeds'] (report each, plus the mean). Writes
+    reports/rq1_lstm_v2_suppression.md. This is a diagnostic, not a model
+    run: it does not touch the pilot or full-run configs or results."""
+    path = Path(config_path).resolve()
+    root, config = path.parent.parent, read_json(path)
+    manifest = read_json(root / config['manifest'])
+    rows = read_jsonl(root / manifest['configuration']['input'])
+    max_len = manifest['preparation_configuration']['history_limit']
+    fold = next(f for f in manifest['folds'] if f['test_day'] == config['test_day'])
+    mapped, policy = prepare_fold(rows, fold, manifest['preparation_configuration'])
+    train = [r for r in mapped if r['split'] == 'train' and r['comparison_eligible']]
+    validation = [r for r in mapped if r['split'] == 'validation' and r['comparison_eligible']]
+    vocab = policy['vocabulary']
+    device = config.get('device', 'cpu')
+    results = [check_s_suppression(train, validation, vocab, config['fields_without_s'], config['fields_with_s'],
+                                   config, config['weight_decay_s'], seed, max_len, device)
+              for seed in config['seeds']]
+    mean_diff = sum(r['difference_bits'] for r in results) / len(results)
+    passed = abs(mean_diff) <= config['tolerance_bits']
+    lines = ['# RQ1 LSTM v2 validation-only S-suppression diagnostic (DEC-20)', '',
+             f"Fold {config['test_day']}, without-S fields {config['fields_without_s']}, with-S fields "
+             f"{config['fields_with_s']}, S weight decay fixed at {config['weight_decay_s']} (the top of the grid "
+             f"actually used), history weight decay {config['weight_decay_history']}, dropout "
+             f"{config['dropout_rate']}, hidden {config['hidden_dim']}, seeds {config['seeds']}, tolerance "
+             f"{config['tolerance_bits']} bits/coda. If the with-S validation log-likelihood is not close to the "
+             "without-S one even at this penalty, the S encoder cannot actually be switched off in practice, and "
+             "DEC-20's fix would not generalise from logistic regression to the LSTM.", '',
+             '| Seed | Without-S validation LL | With-S validation LL | Difference |', '|---:|---:|---:|---:|']
+    for r in results:
+        lines.append(f"| {r['seed']} | {r['without_s_validation_log_likelihood_bits']:.5f} | "
+                     f"{r['with_s_validation_log_likelihood_bits']:.5f} | {r['difference_bits']:.5f} |")
+    lines += ['', f"Mean difference: {mean_diff:.5f} bits/coda. "
+             f"{'Passed' if passed else 'Failed'}: {'within' if passed else 'outside'} the "
+             f"{config['tolerance_bits']} bits/coda tolerance.", '']
+    report = root / config['report']
+    report.parent.mkdir(parents=True, exist_ok=True)
+    write_text(report, '\n'.join(lines))
+    return dict(results=results, mean_difference_bits=mean_diff, passed=passed)
 
 
 def run(config_path):
@@ -501,7 +593,8 @@ def _fit_lstm_v2(rows, manifest, folds, conditions, config, device):
                 continue
             chosen, chosen_fits, grid = select_lstm_grid_and_fit(train, validation, vocab, fields, config,
                                                                  config['seeds'], max_len, curves, device,
-                                                                 fold_id=fold['fold_id'], condition=condition)
+                                                                 fold_id=fold['fold_id'], condition=condition,
+                                                                 workers=config.get('workers', 1))
             for seed, (model, timing_encoder, conv) in zip(config['seeds'], chosen_fits):
                 p = predict_v2(model, timing_encoder, test, vocab, fields, max_len, device)
                 models.append(dict(fold_id=fold['fold_id'], condition=condition, seed=seed,
@@ -918,6 +1011,9 @@ def main():
     parser.add_argument('--config', default='config/rq1_lstm.json')
     args = parser.parse_args()
     config = read_json(Path(args.config).resolve())
+    if 'weight_decay_s' in config and 'fields_with_s' in config:
+        run_suppression_diagnostic(args.config)
+        return
     if config.get('test_days') or config.get('conditions'):
         _, stop_reasons, underperform = run_lstm_v2_pilot(args.config)
     elif 'dropout_grid' in config:
