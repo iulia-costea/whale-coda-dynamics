@@ -139,6 +139,33 @@ class NeuralSmokeTests(unittest.TestCase):
             box.run('neural', config)
             box.check_outputs(self, 'out/lstm_v2_pilot', 'out/lstm_v2_pilot.md', conditions={'A'})
 
+    def test_lstm_v2_suppression_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            config = box.config('suppression.json', manifest=PRIMARY, report='out/suppression.md',
+                                test_day='2014-04-16', fields_without_s=['A_history'],
+                                fields_with_s=['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s'],
+                                seeds=[42], device='cpu', embedding_dim=4, hidden_dim=4, dropout_rate=0.0,
+                                weight_decay_history=1e-4, weight_decay_s=1.0, learning_rate=1e-3,
+                                batch_size=256, max_epochs=2, patience=2, tolerance_bits=0.01)
+            box.run('neural', config)
+            self.assertTrue((box.root / 'out/suppression.md').read_text(encoding='utf-8').strip())
+
+    def test_lstm_v2_timing_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            config = box.config('timing.json', manifest=PRIMARY, report='out/timing.md',
+                                test_day='2014-04-16', fields=['A_history'], seeds=[42, 43],
+                                devices=['cpu', 'cuda'], embedding_dim=4, hidden_dim=4, dropout_rate=0.0,
+                                weight_decay_history=1e-4, weight_decay_s=None, learning_rate=1e-3,
+                                batch_size=256, max_epochs=2, patience=2, full_study_seeds=[42, 43, 44],
+                                full_study_folds=14, dropout_grid=[0.0], hidden_grid=[4],
+                                weight_decay_history_grid=[1e-4], weight_decay_s_grid=[1e-4])
+            box.run('neural', config)
+            text = (box.root / 'out/timing.md').read_text(encoding='utf-8')
+            self.assertIn('cpu', text)
+            self.assertIn('not available', text)  # no GPU on the CI/dev machine
+
     def test_assayag_reproduction_runner(self):
         with tempfile.TemporaryDirectory() as tmp:
             box = Sandbox(tmp)

@@ -13,6 +13,8 @@ import concurrent.futures
 import copy
 import hashlib
 import json
+import os
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -440,6 +442,128 @@ def run_suppression_diagnostic(config_path):
     report.parent.mkdir(parents=True, exist_ok=True)
     write_text(report, '\n'.join(lines))
     return dict(results=results, mean_difference_bits=mean_diff, passed=passed)
+
+
+def run_timing_determinism_check(config_path):
+    """DEC-17 stage 2 timing and determinism check. Fits one fold/condition's
+    already-chosen pilot setting with config['seeds'] on each of
+    config['devices'] ('cpu', and 'cuda' if listed and available), reports
+    seconds/fit per device, and estimates stage 3's wall time from the full
+    study's fit count (all 8 conditions x 14 folds x grid x 3 seeds).
+
+    GPU determinism: refits the first seed a second time with
+    torch.use_deterministic_algorithms(True) and checks it matches exactly.
+    PyTorch's nn.LSTM docs require CUBLAS_WORKSPACE_CONFIG to be set before
+    the process starts (not at runtime) for deterministic cuDNN RNNs on CUDA
+    10.2+, so this raises immediately if 'cuda' is requested without it,
+    rather than silently running non-deterministically.
+
+    CPU and GPU are not expected to match exactly (different kernels); the
+    check instead requires the CPU-GPU difference in mean validation
+    log-likelihood across seeds to be smaller than the spread across seeds
+    on one device."""
+    path = Path(config_path).resolve()
+    root, config = path.parent.parent, read_json(path)
+    manifest = read_json(root / config['manifest'])
+    rows = read_jsonl(root / manifest['configuration']['input'])
+    max_len = manifest['preparation_configuration']['history_limit']
+    fold = next(f for f in manifest['folds'] if f['test_day'] == config['test_day'])
+    mapped, policy = prepare_fold(rows, fold, manifest['preparation_configuration'])
+    train = [r for r in mapped if r['split'] == 'train' and r['comparison_eligible']]
+    validation = [r for r in mapped if r['split'] == 'validation' and r['comparison_eligible']]
+    vocab = policy['vocabulary']
+    fields = config['fields']
+    setting = dict(config, hidden_dim=config['hidden_dim'], dropout_rate=config['dropout_rate'],
+                  weight_decay_history=config['weight_decay_history'], weight_decay_s=config['weight_decay_s'])
+
+    device_results = {}
+    for device in config['devices']:
+        if device == 'cuda' and not torch.cuda.is_available():
+            device_results[device] = dict(available=False)
+            continue
+        if device == 'cuda':
+            if os.environ.get('CUBLAS_WORKSPACE_CONFIG') not in (':4096:8', ':16:8'):
+                raise ValueError("Set the environment variable CUBLAS_WORKSPACE_CONFIG=:4096:8 before starting "
+                                "this process (PyTorch nn.LSTM docs); it cannot be set at runtime.")
+            torch.use_deterministic_algorithms(True)
+        seed_timings = []
+        for seed in config['seeds']:
+            t0 = time.time()
+            _, _, conv, _ = fit_condition_v2(train, validation, vocab, fields, setting, seed, max_len, device)
+            seed_timings.append(dict(seed=seed, seconds=time.time() - t0,
+                                     validation_log_likelihood_bits=conv['best_validation_log_likelihood_bits']))
+        determinism = None
+        if device == 'cuda':
+            _, _, conv_repeat, _ = fit_condition_v2(train, validation, vocab, fields, setting, config['seeds'][0], max_len, device)
+            first_ll = seed_timings[0]['validation_log_likelihood_bits']
+            determinism = dict(first=first_ll, repeat=conv_repeat['best_validation_log_likelihood_bits'],
+                              exact_match=first_ll == conv_repeat['best_validation_log_likelihood_bits'])
+        device_results[device] = dict(available=True, seed_timings=seed_timings, determinism=determinism)
+
+    spread_check = None
+    cpu, gpu = device_results.get('cpu'), device_results.get('cuda')
+    if cpu and cpu.get('available') and gpu and gpu.get('available'):
+        cpu_lls = [s['validation_log_likelihood_bits'] for s in cpu['seed_timings']]
+        gpu_lls = [s['validation_log_likelihood_bits'] for s in gpu['seed_timings']]
+        cpu_mean, gpu_mean = sum(cpu_lls) / len(cpu_lls), sum(gpu_lls) / len(gpu_lls)
+        seed_spread = max(cpu_lls) - min(cpu_lls)
+        spread_check = dict(cpu_mean=cpu_mean, gpu_mean=gpu_mean, difference=abs(cpu_mean - gpu_mean),
+                           seed_spread=seed_spread, within_seed_spread=abs(cpu_mean - gpu_mean) < seed_spread)
+
+    grid_n = len(config['dropout_grid']) * len(config['hidden_grid']) * len(config['weight_decay_history_grid'])
+    grid_n_with_s = grid_n * len(config['weight_decay_s_grid'])
+    n_seeds = len(config['full_study_seeds'])
+    total_fits = config['full_study_folds'] * (3 * grid_n + 4 * grid_n_with_s) * n_seeds
+    estimates = {}
+    for device, result in device_results.items():
+        if not result.get('available'):
+            continue
+        mean_seconds = sum(s['seconds'] for s in result['seed_timings']) / len(result['seed_timings'])
+        workers = config.get('workers', 1) if device == 'cpu' else 1
+        estimates[device] = dict(mean_seconds_per_fit=mean_seconds, workers=workers,
+                                 estimated_hours=total_fits * mean_seconds / workers / 3600)
+
+    write_timing_report(root, config, device_results, spread_check, total_fits, estimates)
+    return dict(device_results=device_results, spread_check=spread_check, estimates=estimates)
+
+
+def write_timing_report(root, config, device_results, spread_check, total_fits, estimates):
+    lines = ['# RQ1 LSTM v2 timing and determinism check (DEC-17 stage 2)', '',
+             f"Fold {config['test_day']}, condition fields {config['fields']}, the pilot's chosen setting "
+             f"(dropout {config['dropout_rate']}, hidden {config['hidden_dim']}, weight decay history "
+             f"{config['weight_decay_history']}, weight decay S {config['weight_decay_s']}), seeds "
+             f"{config['seeds']}.", '']
+    for device, result in device_results.items():
+        if not result.get('available'):
+            lines += [f"## {device}: not available", '']
+            continue
+        lines += [f'## {device}', '', '| Seed | Seconds | Validation LL bits/coda |', '|---:|---:|---:|']
+        for s in result['seed_timings']:
+            lines.append(f"| {s['seed']} | {s['seconds']:.2f} | {s['validation_log_likelihood_bits']:.5f} |")
+        if result['determinism'] is not None:
+            d = result['determinism']
+            lines += ['', f"Determinism (seed {config['seeds'][0]} refit): first {d['first']:.5f}, repeat "
+                     f"{d['repeat']:.5f}, exact match: {d['exact_match']}."]
+        lines.append('')
+
+    if spread_check is not None:
+        lines += ['## CPU vs GPU spread check', '',
+                 f"CPU mean validation LL {spread_check['cpu_mean']:.5f}, GPU mean {spread_check['gpu_mean']:.5f}, "
+                 f"difference {spread_check['difference']:.5f}, spread across seeds {spread_check['seed_spread']:.5f}. "
+                 f"Within seed spread: {spread_check['within_seed_spread']}.", '']
+
+    lines += ['## Stage 3 wall time estimate', '',
+             f"Full study: {config['full_study_folds']} folds x 8 conditions (3 without S x grid, 4 with S x "
+             f"grid x S grid) x {len(config['full_study_seeds'])} seeds = {total_fits} fits.", '',
+             '| Device | Seconds/fit | Workers | Estimated hours |', '|---|---:|---:|---:|']
+    for device, e in estimates.items():
+        lines.append(f"| {device} | {e['mean_seconds_per_fit']:.2f} | {e['workers']} | {e['estimated_hours']:.2f} |")
+    lines += ['', 'Ideal scaling from one fold/condition/setting; excludes worker startup and variation across '
+             'settings and folds.', '']
+
+    report = root / config['report']
+    report.parent.mkdir(parents=True, exist_ok=True)
+    write_text(report, '\n'.join(lines))
 
 
 def run(config_path):
@@ -1011,6 +1135,9 @@ def main():
     parser.add_argument('--config', default='config/rq1_lstm.json')
     args = parser.parse_args()
     config = read_json(Path(args.config).resolve())
+    if 'devices' in config:
+        run_timing_determinism_check(args.config)
+        return
     if 'weight_decay_s' in config and 'fields_with_s' in config:
         run_suppression_diagnostic(args.config)
         return
