@@ -1,6 +1,6 @@
 # NLP Whales — sperm whale coda sequence modelling
 
-UvA MSc AI Multilingual NLP group project (5 people). Spec: `docs/PLAN.md` (authoritative; IDs like `[M3]`). Why each choice was made: `docs/DECISIONS.md` (`DEC-n`). Code structure and pipeline internals: `docs/ARCHITECTURE.md` — read it before touching `src/` or `config/`. Which reports are current: `reports/README.md`.
+UvA MSc AI Multilingual NLP group project (5 people). Spec: `docs/PLAN.md` (authoritative; IDs like `[M3]`). Why each choice was made: `docs/DECISIONS.md` (`DEC-n`). Code structure and pipeline internals: `docs/ARCHITECTURE.md` — read it before touching `src/` or `config/`. Which reports are current: `reports/README.md`. Things tried and ruled out: `docs/EXPERIMENTS.md`.
 
 ## Question and method
 
