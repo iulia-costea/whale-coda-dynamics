@@ -28,7 +28,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Why:** the existing RQ1/RQ2 pipelines differed in labels, segmentation, splits and unknown-type handling all at once.
 
 **DEC-4 — RQ3 starts with EC1 ↔ EC2.**
-- **Decision:** the first RQ3 test uses `DominicaCodas.csv`, which is already in the repo. Pacific data comes second.
+- **Decision:** the first RQ3 test uses `CarribeanCodas.csv`, which is already in the repo. Pacific data comes second.
 - **Why:** the two sympatric clans test Leitão et al.'s prediction directly.
 - *Superseded in part by DEC-19: EC1 ↔ EC2 is now two cells of the full transfer matrix, reported descriptively.*
 
