@@ -51,3 +51,10 @@ first since it changes DEC-2's fold design.
 **Open.** Root cause unresolved. Current best guess is optimization/
 architecture (e.g. how the copy weights interact with the B encoder), not
 validation design. Next step is Ardjano's call.
+
+*For contrast: logistic regression had a comparable "one mechanism doing two
+jobs" problem (a single L2 penalty couldn't let the model ignore a weak $S$
+while still fitting history well) and DEC-20's split history/S penalty fixed
+it cleanly (`reports/rq1_logistic_v4.md`). That it didn't fix the LSTM's gap
+here is more evidence the LSTM's problem isn't the same kind as logistic's
+was.*
