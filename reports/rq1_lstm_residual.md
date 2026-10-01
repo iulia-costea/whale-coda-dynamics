@@ -175,7 +175,9 @@ Fold test-2015-03-02, condition A, training and validation days only. Eligible t
 
 Gate (A's residual selected at the largest fraction): passed.
 
-f = 0 already selects A, and the residual only improves the planted targets at f >= 0.2. The plant is a deterministic copy, so what limits detection is how often it occurs, not how strong it is: the design only picks up the pattern once it occurs often enough, on this fold about 12 planted training targets. The 14-fold figures are in reports/rq1_lstm_residual_sensitivity.md.
+This one-fold check was the pre-run gate and stays as it was (on this fold the residual improved the planted validation targets from f = 0.2, about 12 planted training targets); its reading is superseded by the 14-fold planted-signal sensitivity run, reports/rq1_lstm_residual_sensitivity.md.
+
+Across all 14 folds, a planted lag-6 copy worth up to 0.137 bits/coda was not reliably recovered (recovery ratio at f = 0.4: 0.04 [−0.36, 0.46]); the one-fold threshold doesn't hold up. The residual network's null is therefore uninformative about own-history structure of this form at this data size.
 
 ### d. Device and throughput
 
