@@ -21,6 +21,8 @@ Residual gain = residual network minus logistic v4, paired per coda (seeds avera
 | majority | n/a | n/a | 57.207% | 57.207% | 0.0364 | 0.0364 | | | | | |
 | repeat_own_last | -1.39276 | -1.39276 | 82.547% | 82.547% | 0.4070 | 0.4070 | | | | | |
 
+Planted-signal sensitivity run for condition A over all 14 folds (synthetic labels only; whether, and from what size, a lag-6 copy pattern is recovered): reports/rq1_lstm_residual_sensitivity.md.
+
 Repetition: 1277 of 1547 comparison targets (82.5%) repeat the whale's own previous coda (1277 after UNK mapping).
 
 ## Lattices side by side
@@ -173,7 +175,7 @@ Fold test-2015-03-02, condition A, training and validation days only. Eligible t
 
 Gate (A's residual selected at the largest fraction): passed.
 
-f = 0 already selects A, and the residual only improves the planted targets at f >= 0.2, so the design detects strong patterns only.
+f = 0 already selects A, and the residual only improves the planted targets at f >= 0.2. The plant is a deterministic copy, so what limits detection is how often it occurs, not how strong it is: the design only picks up the pattern once it occurs often enough, on this fold about 12 planted training targets. The 14-fold figures are in reports/rq1_lstm_residual_sensitivity.md.
 
 ### d. Device and throughput
 

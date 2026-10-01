@@ -23,4 +23,5 @@ Which report is current and which is kept only as a record. All reports here exc
 | `rq1_lstm_residual_checks.md` | Residual LSTM checks before the full run, training and validation days only: wiring, learnability, planted signal (DEC-21, PLAN `[M4]`) | Current. All gates pass |
 | `rq1_lstm_residual_throughput.md` | Residual LSTM device and throughput measurement; chose CPU ×18 | Current |
 | `rq1_lstm_residual.md` | Residual LSTM on top of a frozen logistic v4 (DEC-21): the enlarged-family check, both lattices, residual gains, chosen candidates, Assayag context check | Current. No stop rule fires |
+| `rq1_lstm_residual_sensitivity.md` | Planted-signal sensitivity run for the residual LSTM's condition A: lag-6 own-coda copies planted on all 14 folds, synthetic labels only (protocol after Bastings et al. 2022) | Current. Gives no bound: the recovery ratio's lower bound is below zero at every f |
 | `data_dictionary.md` | Field meanings, provenance and open questions (hand-written) | Current |
