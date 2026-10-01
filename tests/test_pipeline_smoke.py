@@ -40,6 +40,11 @@ class Sandbox:
             shutil.copyfile(ROOT / rel, self.root / rel)
         (self.root / 'config').mkdir()
 
+    def copy(self, *relative_paths):
+        for rel in relative_paths:
+            (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / rel, self.root / rel)
+
     def config(self, name, **values):
         path = self.root / 'config' / name
         path.write_text(json.dumps(values, indent=2) + '\n', encoding='utf-8')
@@ -176,6 +181,49 @@ class NeuralSmokeTests(unittest.TestCase):
                                 learning_rate=1e-3, batch_size=256, max_epochs=2, patience=1)
             box.run('neural_reproduction', config)
             self.assertTrue((box.root / 'out/repro.md').read_text(encoding='utf-8').strip())
+
+
+V4 = 'data/results/rq1_logistic_v4/'
+V4_INPUTS = dict(logistic_models=V4 + 'models.jsonl', logistic_predictions=V4 + 'predictions.jsonl')
+TINY_RESIDUAL = dict(seeds=[42], embedding_dim=4, learning_rate=1e-3, weight_decay=0.1, batch_size=256, max_epochs=2,
+                     patience=1, hidden_grid=[4], dropout_grid=[0.0])
+
+
+@unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
+class ResidualSmokeTests(unittest.TestCase):
+    def test_residual_checks_throughput_and_full_runner(self):
+        """DEC-21: the checks, the device measurement (CPU only here) and the full run that reads both."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy('config/rq1_logistic_v4.json', V4 + 'models.jsonl', V4 + 'predictions.jsonl', V4 + 'l2_selection.jsonl',
+                     V4 + 'evaluation/scored_predictions.jsonl', V4 + 'evaluation/summary.json')
+            checks = box.config('checks.json', manifest=PRIMARY, logistic_config='config/rq1_logistic_v4.json',
+                                logistic_selection=V4 + 'l2_selection.jsonl', output_directory='out/checks',
+                                report='out/checks.md', workers=2, offset_tolerance=1e-9, **V4_INPUTS, **TINY_RESIDUAL,
+                                checks=dict(wiring=dict(hidden=4, dropout=0.0, seed=42, epoch0_tolerance_bits=1e-12),
+                                            learnability=dict(test_days=['2015-03-02'], conditions=['A'], hidden=4,
+                                                              dropout=0.0, max_epochs=2, seeds=[42], minimum_gain_bits=-1e9),
+                                            planted=dict(test_day='2015-03-02', lag=6, fractions=[0.4], sampling_seed=42)))
+            box.run('residual', checks)
+            summary = json.loads((box.root / 'out/checks/summary.json').read_text(encoding='utf-8'))
+            self.assertTrue(summary['gates']['wiring'])
+            throughput = box.config('throughput.json', manifest=PRIMARY, logistic_models=V4 + 'models.jsonl',
+                                    output_directory='out/throughput', report='out/throughput.md', **TINY_RESIDUAL,
+                                    throughput=dict(test_day='2015-03-02', condition='A_B_S', hidden=4, dropout=0.0,
+                                                    seeds=[42], cpu_workers=2, gpu_processes=[], tie_tolerance=0.05))
+            box.run('residual', throughput)
+            box.evaluation('eval.json', PRIMARY, [42])
+            full = box.config('residual.json', manifest=PRIMARY, evaluation_config='config/eval.json',
+                              checks_summary='out/checks/summary.json', throughput_summary='out/throughput/summary.json',
+                              logistic_scored=V4 + 'evaluation/scored_predictions.jsonl',
+                              logistic_summary=V4 + 'evaluation/summary.json', output_directory='out/residual',
+                              report='out/residual.md', offset_tolerance=1e-9, enforce_check_gates=False,
+                              **V4_INPUTS, **TINY_RESIDUAL)
+            box.run('residual', full)
+            summary = box.check_outputs(self, 'out/residual', 'out/residual.md')
+            # Condition none is logistic v4's prior on every fold: its gain must be exactly zero, not float noise.
+            none = summary['residual_gain']['none']
+            self.assertEqual((none['zero_days'], none['positive_days'], none['mean_bits_per_coda']), (14, 0, 0.0))
 
 
 if __name__ == '__main__':
