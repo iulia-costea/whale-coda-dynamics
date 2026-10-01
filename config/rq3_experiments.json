@@ -1,0 +1,26 @@
+{
+  "core_input": "data/processed/rq3/rq3_codas.csv",
+  "metadata_input": "data/processed/rq3/rq3_codas_metadata.csv",
+  "folds_input": "data/processed/rq3/rq3_folds.csv",
+  "identity_mapping_input": "config/rq3_identity_mapping.json",
+  "spatial_overlap_input": "config/rq3_spatial_overlap.json",
+  "self_scores_output": "data/results/rq3/rq3_self_scores.csv",
+  "calibration_output": "data/results/rq3/rq3_self_calibration.csv",
+  "report_output": "reports/rq3_self_calibration.md",
+  "tokenizer_id": "fixed-50ms-v1",
+  "candidates": [
+    {"family": "unigram", "context_order": 0, "alpha": 0.1},
+    {"family": "ngram", "context_order": 1, "alpha": 0.01},
+    {"family": "ngram", "context_order": 1, "alpha": 0.1},
+    {"family": "ngram", "context_order": 1, "alpha": 1.0},
+    {"family": "ngram", "context_order": 2, "alpha": 0.01},
+    {"family": "ngram", "context_order": 2, "alpha": 0.1},
+    {"family": "ngram", "context_order": 2, "alpha": 1.0},
+    {"family": "ngram", "context_order": 3, "alpha": 0.01},
+    {"family": "ngram", "context_order": 3, "alpha": 0.1},
+    {"family": "ngram", "context_order": 3, "alpha": 1.0},
+    {"family": "ngram", "context_order": 4, "alpha": 0.01},
+    {"family": "ngram", "context_order": 4, "alpha": 0.1},
+    {"family": "ngram", "context_order": 4, "alpha": 1.0}
+  ]
+}

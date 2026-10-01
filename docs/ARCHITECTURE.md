@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-22: preparation only, no model code.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status: RQ1/RQ2 preparation and RQ3 preprocessing plus own-clan calibration are implemented; RQ3 transfer experiments remain to be implemented.
 
 ## RQ1/RQ2 stages
 
@@ -42,6 +42,12 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 - `validate.py` is read-only. It independently checks raw-source coverage, eligibility, ICI sequences, deterministic group/fold assignment, and agreement between the interim, core, metadata, and fold artifacts.
 - Run from the repository root with `PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json`, then `PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json`.
 
+## RQ3 experiments (`src/rq3/experiments/`)
+
+- `data.py` loads and validates the prepared core, metadata, folds, identity mapping, and spatial-overlap metadata. `models.py` implements additive-smoothed unigram/n-gram models; `scoring.py` records base-2 coda and per-symbol scores; `evaluation.py` owns all shared aggregation and later transfer-loss/bootstrap helpers.
+- `runner.py` currently performs own-clan calibration: it selects one candidate model per clan using only that clan's held-out folds, then writes one cross-fitted own score per eligible coda. `report.py` generates its calibration report.
+- Run calibration from the repository root with `PYTHONPATH=src python3 -m rq3.experiments.runner --config config/rq3_experiments.json`.
+
 ## Conventions
 
 - **`io_utils.py`** for all text I/O (`read_text/write_text/read_json/read_jsonl/write_jsonl`): UTF-8 (configs contain Hebrew month aliases) and `\n` newlines, because checksums are reported output. `.gitattributes` pins LF.
@@ -64,6 +70,8 @@ Detail and verified counts: PLAN §2.
 | `data/processed/rq3/rq3_codas.csv` | Core RQ3 model-ready continuous-ICI table |
 | `data/processed/rq3/rq3_codas_metadata.csv` | RQ3 core rows plus provenance and diagnostic metadata |
 | `data/processed/rq3/rq3_folds.csv` | Deterministic, group-disjoint RQ3 fold assignments |
+| `data/results/rq3/rq3_self_scores.csv` | One cross-fitted own-clan likelihood score per eligible RQ3 coda |
+| `data/results/rq3/rq3_self_calibration.csv` | Held-out model-candidate scores and selected settings per clan |
 
 ## Known gotchas
 
