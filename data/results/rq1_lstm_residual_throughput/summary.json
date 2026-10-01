@@ -1,0 +1,131 @@
+{
+  "configuration": {
+    "manifest": "data/processed/rq1_folds/manifest.json",
+    "logistic_models": "data/results/rq1_logistic_v4/models.jsonl",
+    "output_directory": "data/results/rq1_lstm_residual_throughput",
+    "report": "reports/rq1_lstm_residual_throughput.md",
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "embedding_dim": 32,
+    "learning_rate": 0.001,
+    "weight_decay": 0.1,
+    "batch_size": 32,
+    "max_epochs": 300,
+    "patience": 20,
+    "hidden_grid": [
+      16,
+      32,
+      64
+    ],
+    "dropout_grid": [
+      0.0,
+      0.2,
+      0.4
+    ],
+    "throughput": {
+      "test_day": "2015-03-02",
+      "condition": "A_B_S",
+      "hidden": 64,
+      "dropout": 0.0,
+      "seeds": [
+        42,
+        43,
+        44
+      ],
+      "cpu_workers": 18,
+      "gpu_processes": [
+        1,
+        2,
+        4
+      ],
+      "tie_tolerance": 0.05
+    }
+  },
+  "options": [
+    {
+      "device": "cpu",
+      "workers": 18,
+      "fits": 54,
+      "wall_seconds": 37.74171742598992,
+      "fits_per_hour": 5150.798990035656,
+      "mean_epochs": 28.333333333333332,
+      "eligible": true,
+      "reason": null
+    },
+    {
+      "device": "cuda",
+      "workers": 1,
+      "fits": 3,
+      "wall_seconds": 8.587927581975237,
+      "fits_per_hour": 1257.5793050080638,
+      "mean_epochs": 28.333333333333332,
+      "eligible": true,
+      "reason": null
+    },
+    {
+      "device": "cuda",
+      "workers": 2,
+      "fits": 6,
+      "wall_seconds": 9.788462518015876,
+      "fits_per_hour": 2206.67954341601,
+      "mean_epochs": 28.333333333333332,
+      "eligible": true,
+      "reason": null
+    },
+    {
+      "device": "cuda",
+      "workers": 4,
+      "fits": 12,
+      "wall_seconds": 13.662421433953568,
+      "fits_per_hour": 3161.9577985378382,
+      "mean_epochs": 28.333333333333332,
+      "eligible": true,
+      "reason": null
+    }
+  ],
+  "determinism": [
+    {
+      "device": "cpu",
+      "seed": 42,
+      "identical": true,
+      "best_epochs": [
+        9,
+        9
+      ]
+    },
+    {
+      "device": "cuda",
+      "seed": 42,
+      "identical": true,
+      "best_epochs": [
+        9,
+        9
+      ]
+    }
+  ],
+  "choice": {
+    "device": "cpu",
+    "workers": 18,
+    "fits_per_hour": 5150.798990035656,
+    "full_study_fits": 11970,
+    "estimated_hours": 2.3239113044706756
+  },
+  "versions": {
+    "numpy": "2.2.6",
+    "torch": "2.14.0+cu130",
+    "cuda": "13.0",
+    "cudnn": 92400
+  },
+  "cublas_workspace_config": ":4096:8",
+  "input_sha256": {
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "config/rq1_lstm_residual_throughput.json": "21f7fad7161fed28f459da47b12098eea69fdcf6d521136be73310d00dae28e5",
+    "data/results/rq1_logistic_v4/models.jsonl": "51aab96c3eeda17565a704dd86c5b3f8368782a3000fbef3a9ca5912827bda5c"
+  }
+}
