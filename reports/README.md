@@ -22,5 +22,5 @@ Which report is current and which is kept only as a record. All reports here exc
 | `rq1_lstm_v2_timing.md` | LSTM v2 timing and determinism check | Superseded by DEC-21; kept as a record |
 | `rq1_lstm_residual_checks.md` | Residual LSTM checks before the full run, training and validation days only: wiring, learnability, planted signal (DEC-21, PLAN `[M4]`) | Current. All gates pass |
 | `rq1_lstm_residual_throughput.md` | Residual LSTM device and throughput measurement; chose CPU ×18 | Current |
-| `rq1_lstm_residual.md` | Residual LSTM on top of a frozen logistic v4 (DEC-21): the enlarged-family check, both lattices, residual gains, chosen candidates, Assayag context check | Current. No stop rule fires. Known bug: the positive/zero-day counts of the residual-gain column include ~1e-16 float noise on folds where v4 alone was chosen (means and CIs unaffected); fix pending |
+| `rq1_lstm_residual.md` | Residual LSTM on top of a frozen logistic v4 (DEC-21): the enlarged-family check, both lattices, residual gains, chosen candidates, Assayag context check | Current. No stop rule fires |
 | `data_dictionary.md` | Field meanings, provenance and open questions (hand-written) | Current |
