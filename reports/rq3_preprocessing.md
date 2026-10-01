@@ -26,6 +26,10 @@ The exported `ici_sequence_s` values are continuous and unpadded. No global dICI
 | pacific | SH | 5153 |
 | pacific | SI | 1209 |
 
+## Caribbean recording-date normalization
+
+Caribbean `Date` values are parsed day-first from `dd/mm/yyyy` or `dd-mm-yyyy` into canonical ISO `recording_date` values. The raw `source_date` is preserved unchanged.
+
 ## Exclusions
 
 - click_count_outside_primary_range: 823
@@ -83,5 +87,5 @@ Run configuration:
 Output SHA-256 checksums:
 
 - `rq3_codas.csv`: `c96aaa945aea78fe59ba4cd3531965a1d2ba186efb8e92bc6ad6a4ad41ca95d1`
-- `rq3_codas_metadata.csv`: `33087d690cacef2f7b56b35494698b366cd8cc0d911bfc66a77a25d585786072`
-- `rq3_codas_normalized.jsonl`: `6b7854748433048a9156f3caee093410454277f4d820ac46fb19d96c7b713148`
+- `rq3_codas_metadata.csv`: `7073d173fbac3b6d6297f62a4131f0653a9bcd7733765cc5723d7a07a2b28274`
+- `rq3_codas_normalized.jsonl`: `3fb32cc666a8a8d1c621ccf9fbad5b0a61ce05e7b02cfeeb16b3446eb1654d74`

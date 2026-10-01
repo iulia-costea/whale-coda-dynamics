@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 from whale_coda_dynamics.preprocessing.io_utils import read_json, write_jsonl, write_text
@@ -120,6 +121,7 @@ METADATA_COLUMNS = [
     "source_coda_type",
     "duration_s",
     "source_date",
+    "recording_date",
     "source_unit",
     "source_unit_number",
     "source_individual_id",
@@ -218,6 +220,22 @@ def parse_integer(value, issues, field):
     return int(parsed)
 
 
+def parse_caribbean_recording_date(value, issues):
+    """Parse a Caribbean source date day-first into a canonical ISO calendar day."""
+    text = value.strip()
+    if not text:
+        return None
+    date_format = "%d/%m/%Y" if "/" in text else "%d-%m-%Y" if "-" in text else None
+    if date_format is None:
+        issues.append({"code": "invalid_recording_date", "field": "Date", "detail": text})
+        return None
+    try:
+        return datetime.strptime(text, date_format).date().isoformat()
+    except ValueError:
+        issues.append({"code": "invalid_recording_date", "field": "Date", "detail": text})
+        return None
+
+
 def normalize_preliminary_record(record):
     """Build a typed, lossless record for one raw Caribbean or Pacific coda."""
     dataset = record["source_dataset"]
@@ -239,6 +257,11 @@ def normalize_preliminary_record(record):
         normalized[normalized_field] = parse_integer(raw[source_field], issues, source_field)
     for source_field, normalized_field in spec["number_fields"].items():
         normalized[normalized_field] = parse_number(raw[source_field], issues, source_field)
+    normalized["recording_date"] = (
+        parse_caribbean_recording_date(raw["Date"], issues)
+        if dataset == "caribbean"
+        else None
+    )
     normalized["candidate_ici_values_s"] = [
         parse_number(raw[f"ICI{index}"], issues, f"ICI{index}")
         for index in range(1, spec["ici_column_count"] + 1)
@@ -415,7 +438,9 @@ def build_report(config, checksums, all_records, eligible_records, artifact_chec
               "| Dataset | Clan | Eligible codas |", "|---|---|---:|"]
     for (dataset, clan), count in sorted(eligible_by_clan.items()):
         lines.append(f"| {dataset} | {clan} | {count} |")
-    lines += ["", "## Exclusions", ""]
+    lines += ["", "## Caribbean recording-date normalization", "",
+              "Caribbean `Date` values are parsed day-first from `dd/mm/yyyy` or `dd-mm-yyyy` into canonical ISO `recording_date` values. The raw `source_date` is preserved unchanged.",
+              "", "## Exclusions", ""]
     lines += [f"- {reason}: {count}" for reason, count in sorted(exclusions.items())] or ["- None"]
     lines += ["", "## Eligible click counts", "", "| Click count | Codas |", "|---:|---:|"]
     lines += [f"| {click_count} | {count} |" for click_count, count in sorted(click_counts.items())]

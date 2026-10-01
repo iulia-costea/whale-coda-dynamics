@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl
@@ -47,6 +48,20 @@ def source_integer(value):
     """Parse one source integer cell independently of the preparation module."""
     number = source_number(value)
     return int(number) if number is not None and number.is_integer() else None
+
+
+def source_caribbean_recording_date(value):
+    """Independently parse a Caribbean source date day-first to ISO format."""
+    text = value.strip()
+    if not text:
+        return None
+    date_format = "%d/%m/%Y" if "/" in text else "%d-%m-%Y" if "-" in text else None
+    if date_format is None:
+        return None
+    try:
+        return datetime.strptime(text, date_format).date().isoformat()
+    except ValueError:
+        return None
 
 
 def read_raw_csv(path, required_columns):
@@ -151,6 +166,9 @@ def validate_interim(config, root):
         expected_candidate = [source_number(raw[f"ICI{number}"]) for number in range(1, spec["ici_column_count"] + 1)]
         if record["candidate_ici_values_s"] != expected_candidate:
             raise ValueError(f"Candidate ICI normalization mismatch for {expected_id}")
+        expected_recording_date = source_caribbean_recording_date(raw["Date"]) if dataset == "caribbean" else None
+        if record.get("recording_date") != expected_recording_date:
+            raise ValueError(f"Recording-date normalization mismatch for {expected_id}")
         reasons, sequence = expected_eligibility(record, config)
         if record["exclusion_reasons"] != reasons or record["eligible_for_primary_transfer"] != (not reasons):
             raise ValueError(f"Eligibility mismatch for {expected_id}")

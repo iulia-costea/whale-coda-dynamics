@@ -111,7 +111,9 @@ experience of an individual coda.
 Each source clan is divided into source-train and source-validation groups
 before fitting bins or models:
 
-- Caribbean rows are grouped by `source_date`.
+- Caribbean rows are grouped by canonical `recording_date`, parsed day-first
+  from the raw Caribbean date strings. The preserved `source_date` must not be
+  used because the same calendar day appears in both slash and dash formats.
 - Pacific rows are grouped by `source_repertoire_id`.
 
 No group may appear in both source-train and source-validation. The exact split
