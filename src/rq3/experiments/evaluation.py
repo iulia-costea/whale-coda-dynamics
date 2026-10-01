@@ -48,13 +48,22 @@ def bootstrap_group_mean(loss_rows, draws, seed):
         raise ValueError("Bootstrap draws must be positive")
     by_group = {}
     for row in loss_rows:
-        by_group.setdefault(row["group_id"], []).append(row)
+        summary = by_group.setdefault(row["group_id"], {
+            "count": 0, "coda_sum": 0.0, "symbol_sum": 0.0,
+        })
+        summary["count"] += 1
+        summary["coda_sum"] += row["transfer_loss_bits_per_coda"]
+        summary["symbol_sum"] += row["transfer_loss_bits_per_symbol"]
     groups = sorted(by_group)
     if not groups:
         raise ValueError("Cannot bootstrap an empty loss set")
     generator = random.Random(seed)
     samples = []
     for _ in range(draws):
-        sampled_rows = [row for _ in groups for row in by_group[generator.choice(groups)]]
-        samples.append(aggregate_transfer_loss(sampled_rows))
+        sampled = [by_group[generator.choice(groups)] for _ in groups]
+        count = sum(row["count"] for row in sampled)
+        samples.append({
+            "mean_transfer_loss_bits_per_coda": sum(row["coda_sum"] for row in sampled) / count,
+            "mean_transfer_loss_bits_per_symbol": sum(row["symbol_sum"] for row in sampled) / count,
+        })
     return samples

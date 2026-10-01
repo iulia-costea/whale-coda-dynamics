@@ -20,6 +20,68 @@ CALIBRATION_COLUMNS = [
     "source_dataset", "clan", "candidate_index", "model_family", "context_order", "alpha",
     "validation_coda_count", "mean_bits_per_coda", "mean_bits_per_symbol", "selected",
 ]
+TRANSFER_FOLD_SCORE_COLUMNS = [
+    "source_dataset", "source_clan", "source_fold", "source_training_coda_count",
+    "target_dataset", "target_clan", "rq3_coda_id", "group_id", "target_fold",
+    "model_family", "context_order", "alpha", "token_count", "coda_log2_probability",
+    "bits_per_coda", "bits_per_symbol", "sequence_occurrences", "coverage_status",
+    "own_bits_per_coda", "own_bits_per_symbol", "transfer_loss_bits_per_coda",
+    "transfer_loss_bits_per_symbol",
+]
+TRANSFER_SCORE_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "rq3_coda_id",
+    "group_id", "target_fold", "source_model_count", "token_count", "own_bits_per_coda",
+    "own_bits_per_symbol", "transfer_bits_per_coda", "transfer_bits_per_symbol",
+    "transfer_loss_bits_per_coda", "transfer_loss_bits_per_symbol",
+]
+TRANSFER_SUMMARY_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "target_coda_count",
+    "source_model_count", "mean_own_bits_per_coda", "mean_own_bits_per_symbol",
+    "mean_transfer_bits_per_coda", "mean_transfer_bits_per_symbol",
+    "mean_transfer_loss_bits_per_coda", "mean_transfer_loss_bits_per_symbol",
+]
+COVERAGE_SUMMARY_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "coverage_status",
+    "source_fold_target_score_count", "source_fold_target_score_share",
+    "mean_own_bits_per_coda", "mean_own_bits_per_symbol", "mean_transfer_bits_per_coda",
+    "mean_transfer_bits_per_symbol", "mean_transfer_loss_bits_per_coda",
+    "mean_transfer_loss_bits_per_symbol",
+]
+BOOTSTRAP_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "draw",
+    "mean_transfer_loss_bits_per_coda", "mean_transfer_loss_bits_per_symbol",
+]
+UNCERTAINTY_SUMMARY_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "target_group_count",
+    "bootstrap_draws", "mean_transfer_loss_bits_per_coda", "ci95_lower_bits_per_coda",
+    "ci95_upper_bits_per_coda", "mean_transfer_loss_bits_per_symbol",
+    "ci95_lower_bits_per_symbol", "ci95_upper_bits_per_symbol",
+]
+IDENTITY_SCORE_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "rq3_coda_id",
+    "group_id", "target_fold", "identity_status", "token_count", "own_bits_per_coda",
+    "own_bits_per_symbol", "transfer_bits_per_coda", "transfer_bits_per_symbol",
+    "transfer_loss_bits_per_coda", "transfer_loss_bits_per_symbol",
+]
+IDENTITY_BOOTSTRAP_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "identity_status",
+    "draw", "mean_transfer_loss_bits_per_coda", "mean_transfer_loss_bits_per_symbol",
+]
+IDENTITY_SUMMARY_COLUMNS = [
+    "source_dataset", "source_clan", "target_dataset", "target_clan", "identity_status",
+    "target_coda_count", "target_group_count", "bootstrap_draws",
+    "mean_transfer_loss_bits_per_coda", "ci95_lower_bits_per_coda", "ci95_upper_bits_per_coda",
+    "mean_transfer_loss_bits_per_symbol", "ci95_lower_bits_per_symbol", "ci95_upper_bits_per_symbol",
+]
+OVERLAP_PAIR_COLUMNS = [
+    "identity_status", "clan_a", "clan_b", "mean_spatial_overlap",
+    "transfer_loss_a_to_b_bits_per_symbol", "transfer_loss_b_to_a_bits_per_symbol",
+    "mean_bidirectional_transfer_loss_bits_per_symbol",
+]
+OVERLAP_SUMMARY_COLUMNS = [
+    "identity_status", "pair_count", "association_statistic", "alternative",
+    "exact_one_sided_p_value", "exact_two_sided_p_value", "permutation_count",
+]
 
 
 def read_csv(path, expected_columns):
@@ -48,11 +110,21 @@ def validate_config(config):
         "core_input", "metadata_input", "folds_input", "self_scores_output",
         "calibration_output", "report_output", "identity_mapping_input",
         "spatial_overlap_input", "tokenizer_id", "candidates",
+        "initial_transfer_fold_scores_output", "initial_transfer_scores_output",
+        "initial_transfer_summary_output", "initial_transfer_report_output",
+        "initial_transfer_pairs",
+        "transfer_fold_scores_output", "transfer_scores_output", "transfer_summary_output",
+        "transfer_coverage_summary_output", "transfer_report_output",
+        "transfer_bootstrap_output", "transfer_uncertainty_summary_output", "bootstrap_draws",
+        "bootstrap_seed",
+        "transfer_identity_scores_output", "transfer_identity_bootstrap_output",
+        "transfer_identity_summary_output",
+        "pacific_overlap_pairs_output", "pacific_overlap_summary_output",
     }
     missing = required - set(config)
     if missing:
         raise ValueError(f"RQ3 experiment configuration is missing keys: {sorted(missing)}")
-    for key in required - {"candidates"}:
+    for key in required - {"candidates", "initial_transfer_pairs", "bootstrap_draws", "bootstrap_seed"}:
         if not isinstance(config[key], str) or not config[key]:
             raise ValueError(f"RQ3 experiment configuration {key!r} must be a non-empty string")
     if config["tokenizer_id"] != "fixed-50ms-v1":
@@ -72,6 +144,13 @@ def validate_config(config):
             raise ValueError("N-gram candidates must have positive context_order")
         if type(alpha) not in (int, float) or not math.isfinite(alpha) or alpha <= 0:
             raise ValueError(f"Invalid smoothing alpha: {candidate}")
+    pairs = config["initial_transfer_pairs"]
+    if pairs != [["EC1", "EC2"], ["EC2", "EC1"]]:
+        raise ValueError("Initial Caribbean transfer must contain exactly EC1 -> EC2 and EC2 -> EC1")
+    if type(config["bootstrap_draws"]) is not int or config["bootstrap_draws"] < 1:
+        raise ValueError("Bootstrap draws must be a positive integer")
+    if type(config["bootstrap_seed"]) is not int:
+        raise ValueError("Bootstrap seed must be an integer")
 
 
 def parse_codas(rows):

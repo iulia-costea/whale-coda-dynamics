@@ -31,4 +31,4 @@ Model settings are selected using the same clan's held-out folds only.
 | pacific | SH | 5138 |
 | pacific | SI | 1206 |
 
-The complete candidate-fold table is in `rq3_self_calibration.csv`; coda-level own scores are in `rq3_self_scores.csv`.
+The complete candidate-fold table is in `data/results/rq3/calibration/self_calibration.csv`; coda-level own scores are in `data/results/rq3/calibration/self_scores.csv`.

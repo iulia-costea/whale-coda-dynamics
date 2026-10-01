@@ -1,0 +1,3 @@
+identity_status,pair_count,association_statistic,alternative,exact_one_sided_p_value,exact_two_sided_p_value,permutation_count
+identity,21,0.3632788121828676,higher_overlap_associated_with_lower_transfer_loss,0.8948412698412699,0.23293650793650794,5040
+non_identity,21,0.62456726756715,higher_overlap_associated_with_lower_transfer_loss,0.996031746031746,0.012698412698412698,5040

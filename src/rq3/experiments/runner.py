@@ -1,4 +1,4 @@
-"""Run RQ3 self-model calibration from the prepared coda and fold artifacts."""
+"""Run selected RQ3 calibration and initial-transfer stages."""
 import argparse
 from collections import defaultdict
 from pathlib import Path
@@ -10,6 +10,11 @@ from .evaluation import mean_bits_per_coda, mean_bits_per_symbol
 from .models import SmoothedNGram
 from .report import write_self_calibration_report
 from .scoring import score_coda_bits
+from .transfer import run_full_transfer_matrix, run_initial_caribbean_transfer
+from .uncertainty import run_bootstrap
+from .identity import run_identity_breakdown
+from .overlap import run_pacific_overlap
+from .result_summaries import build_summaries
 
 
 def tokenise_codas(codas):
@@ -71,7 +76,7 @@ def calibrate_clan(codas, candidates):
     return candidate_rows, own_scores
 
 
-def run(config_path):
+def run_calibration(config_path):
     """Write calibration candidates, cross-fitted own scores, and their report."""
     config, root, codas = load_experiment_data(config_path)
     if config["tokenizer_id"] != TOKENIZER_ID:
@@ -108,12 +113,118 @@ def run(config_path):
     return {"codas": len(codas), "clans": len(by_clan), "self_scores": len(self_score_rows)}
 
 
+def run_initial_transfer(config_path):
+    """Score the approved first EC1/EC2 transfer comparison from saved calibration."""
+    config, root, codas = load_experiment_data(config_path)
+    if config["tokenizer_id"] != TOKENIZER_ID:
+        raise ValueError("Experiment configuration tokenizer does not match implementation")
+    tokenise_codas(codas)
+    for output in (
+            "initial_transfer_fold_scores_output", "initial_transfer_scores_output",
+            "initial_transfer_summary_output", "initial_transfer_report_output"):
+        (root / config[output]).parent.mkdir(parents=True, exist_ok=True)
+    fold_rows, aggregate_rows, summaries = run_initial_caribbean_transfer(root, config, codas)
+    from .report import write_initial_transfer_report
+    write_initial_transfer_report(root / config["initial_transfer_report_output"], summaries)
+    return {"fold_scores": len(fold_rows), "paired_target_scores": len(aggregate_rows), "pairs": len(summaries)}
+
+
+def run_full_matrix(config_path):
+    """Score the approved complete 9 x 9 primary RQ3 transfer matrix."""
+    config, root, codas = load_experiment_data(config_path)
+    if config["tokenizer_id"] != TOKENIZER_ID:
+        raise ValueError("Experiment configuration tokenizer does not match implementation")
+    tokenise_codas(codas)
+    for output in ("transfer_fold_scores_output", "transfer_scores_output", "transfer_summary_output", "transfer_coverage_summary_output", "transfer_report_output"):
+        (root / config[output]).parent.mkdir(parents=True, exist_ok=True)
+    fold_rows, aggregate_rows, summaries, coverage = run_full_transfer_matrix(root, config, codas)
+    from .report import write_transfer_report
+    uncertainty_rows = []
+    uncertainty_path = root / config["transfer_uncertainty_summary_output"]
+    if uncertainty_path.exists():
+        from .data import UNCERTAINTY_SUMMARY_COLUMNS, read_csv
+        uncertainty_rows = read_csv(uncertainty_path, UNCERTAINTY_SUMMARY_COLUMNS)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty_rows)
+    return {"fold_scores": len(fold_rows), "paired_target_scores": len(aggregate_rows), "cells": len(summaries), "coverage_rows": len(coverage)}
+
+
+def run_uncertainty(config_path):
+    """Bootstrap fixed cross-clan transfer scores over target recording groups."""
+    config, root, _ = load_experiment_data(config_path)
+    for output in ("transfer_bootstrap_output", "transfer_uncertainty_summary_output"):
+        (root / config[output]).parent.mkdir(parents=True, exist_ok=True)
+    draw_rows, uncertainty_rows = run_bootstrap(root, config)
+    from .data import COVERAGE_SUMMARY_COLUMNS, TRANSFER_SUMMARY_COLUMNS, read_csv
+    from .report import write_transfer_report
+    summaries = read_csv(root / config["transfer_summary_output"], TRANSFER_SUMMARY_COLUMNS)
+    coverage = read_csv(root / config["transfer_coverage_summary_output"], COVERAGE_SUMMARY_COLUMNS)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty_rows)
+    return {"draws": len(draw_rows), "cells": len(uncertainty_rows)}
+
+
+def run_identity(config_path):
+    """Add Pacific identity/non-identity strata to the fixed transfer results."""
+    config, root, _ = load_experiment_data(config_path)
+    for output in ("transfer_identity_scores_output", "transfer_identity_bootstrap_output", "transfer_identity_summary_output"):
+        (root / config[output]).parent.mkdir(parents=True, exist_ok=True)
+    score_rows, draw_rows, identity_rows = run_identity_breakdown(root, config)
+    from .data import COVERAGE_SUMMARY_COLUMNS, TRANSFER_SUMMARY_COLUMNS, UNCERTAINTY_SUMMARY_COLUMNS, read_csv
+    from .report import write_transfer_report
+    summaries = read_csv(root / config["transfer_summary_output"], TRANSFER_SUMMARY_COLUMNS)
+    coverage = read_csv(root / config["transfer_coverage_summary_output"], COVERAGE_SUMMARY_COLUMNS)
+    uncertainty = read_csv(root / config["transfer_uncertainty_summary_output"], UNCERTAINTY_SUMMARY_COLUMNS)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty, identity_rows)
+    return {"scores": len(score_rows), "draws": len(draw_rows), "strata": len(identity_rows)}
+
+
+def run_overlap(config_path):
+    """Run the exploratory exact Pacific spatial-overlap analysis."""
+    config, root, _ = load_experiment_data(config_path)
+    for output in ("pacific_overlap_pairs_output", "pacific_overlap_summary_output"):
+        (root / config[output]).parent.mkdir(parents=True, exist_ok=True)
+    pair_rows, overlap_results = run_pacific_overlap(root, config)
+    from .data import COVERAGE_SUMMARY_COLUMNS, IDENTITY_SUMMARY_COLUMNS, TRANSFER_SUMMARY_COLUMNS, UNCERTAINTY_SUMMARY_COLUMNS, read_csv
+    from .report import write_transfer_report
+    summaries = read_csv(root / config["transfer_summary_output"], TRANSFER_SUMMARY_COLUMNS)
+    coverage = read_csv(root / config["transfer_coverage_summary_output"], COVERAGE_SUMMARY_COLUMNS)
+    uncertainty = read_csv(root / config["transfer_uncertainty_summary_output"], UNCERTAINTY_SUMMARY_COLUMNS)
+    identity = read_csv(root / config["transfer_identity_summary_output"], IDENTITY_SUMMARY_COLUMNS)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty, identity, pair_rows, overlap_results)
+    return {"pairs": len(pair_rows), "strata": len(overlap_results)}
+
+
+def run_result_summaries(config_path):
+    """Generate navigable README summaries beside each RQ3 results level."""
+    config, root, _ = load_experiment_data(config_path)
+    return {"readmes": build_summaries(root, config)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="config/rq3_experiments.json")
+    parser.add_argument("--stage", choices=("calibration", "initial-transfer", "matrix", "bootstrap", "identity", "overlap", "summaries"), default="calibration")
     args = parser.parse_args()
-    summary = run(args.config)
-    print(f"RQ3 self-calibration complete: {summary['self_scores']} cross-fitted scores across {summary['clans']} clans.")
+    if args.stage == "calibration":
+        summary = run_calibration(args.config)
+        print(f"RQ3 self-calibration complete: {summary['self_scores']} cross-fitted scores across {summary['clans']} clans.")
+    elif args.stage == "initial-transfer":
+        summary = run_initial_transfer(args.config)
+        print(f"RQ3 initial Caribbean transfer complete: {summary['paired_target_scores']} paired target scores across {summary['pairs']} directions.")
+    elif args.stage == "matrix":
+        summary = run_full_matrix(args.config)
+        print(f"RQ3 transfer matrix complete: {summary['paired_target_scores']} paired target scores across {summary['cells']} cells.")
+    elif args.stage == "bootstrap":
+        summary = run_uncertainty(args.config)
+        print(f"RQ3 transfer bootstrap complete: {summary['draws']} draws across {summary['cells']} cross-clan cells.")
+    elif args.stage == "identity":
+        summary = run_identity(args.config)
+        print(f"RQ3 Pacific identity breakdown complete: {summary['scores']} coda scores, {summary['draws']} draws, and {summary['strata']} strata.")
+    elif args.stage == "overlap":
+        summary = run_overlap(args.config)
+        print(f"RQ3 Pacific overlap analysis complete: {summary['pairs']} pair rows across {summary['strata']} identity strata.")
+    else:
+        summary = run_result_summaries(args.config)
+        print(f"RQ3 result summaries complete: {summary['readmes']} README files.")
 
 
 if __name__ == "__main__":
