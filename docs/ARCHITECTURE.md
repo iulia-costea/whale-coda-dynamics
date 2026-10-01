@@ -35,8 +35,11 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 
 ## RQ3 preprocessing (`src/rq3/preprocessing/`)
 
-- `prepare.py` reads `CarribeanCodas.csv` and `PacificCodas.csv`, preserves every source row in an interim audit JSONL, and writes two 3–10-click continuous-ICI tables: the core model table and its metadata superset. It never globally discretises ICIs; binning must be fitted on a training clan only downstream.
-- `validate.py` is read-only. It independently checks raw-source coverage, eligibility, ICI sequences, and agreement between the interim, core, and metadata artifacts.
+- `prepare.py` reads `CarribeanCodas.csv` and `PacificCodas.csv`, preserves every source row in an interim audit JSONL, and writes two continuous-ICI tables for accepted 3–10-click codas whose required ICIs are in [0.005, 1.0) s. Caribbean `recording_date` is canonical ISO, while raw `source_date` remains preserved. `tokenize.py` defines the global `fixed-50ms-v1` tokenizer (20 ICI symbols plus `BOS`/`EOS`); it does not fit bin edges to data.
+- `folds.py` assigns `group_id` values (Caribbean canonical `recording_date`; Pacific `grpvar`) to deterministic, group-disjoint clan folds in `rq3_folds.csv`.
+- `config/rq3_identity_mapping.json` records Hersh et al.'s Table S2 Pacific identity-type mapping. `prepare.py` writes its derived `identity_status` to the interim audit and metadata table; it is never a model input.
+- `config/rq3_spatial_overlap.json` records Hersh et al.'s Table S4 directional Pacific repertoire-overlap matrix. It is experiment metadata for the exploratory overlap analysis, not a model input or preprocessing field.
+- `validate.py` is read-only. It independently checks raw-source coverage, eligibility, ICI sequences, deterministic group/fold assignment, and agreement between the interim, core, metadata, and fold artifacts.
 - Run from the repository root with `PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json`, then `PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json`.
 
 ## Conventions
@@ -44,7 +47,7 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 - **`io_utils.py`** for all text I/O (`read_text/write_text/read_json/read_jsonl/write_jsonl`): UTF-8 (configs contain Hebrew month aliases) and `\n` newlines, because checksums are reported output. `.gitattributes` pins LF.
 - **Reports:** `reports/rq1.md`, `reports/rq2.md`, and `reports/rq3_preprocessing.md` are generated; `reports/data_dictionary.md` is hand-written — the reference for field semantics, provenance, and questions open with source authors.
 - **Data:** `data/raw/`, `data/interim/`, `data/processed/` all committed; raw never modified.
-- **Identity:** `local_caller_id`, `identity_status: provisional_local_code`, exchange IDs like `provisional:g7:row0`. `coda_id`s are not stable across source versions.
+- **RQ1/RQ2 exchange identity:** `local_caller_id`, `identity_status: provisional_local_code`, exchange IDs like `provisional:g7:row0`. This convention does not apply to RQ3's coda-type-derived `identity` / `non_identity` / `unmapped` labels. `coda_id`s are not stable across source versions.
 - **Failing loudly:** unparseable → `None` + audit flag; ambiguous segments excluded with a reason; unestablished facts (absolute timestamps, individual identity, Bout scope) stay unresolved.
 
 ## Data files at a glance
@@ -60,6 +63,7 @@ Detail and verified counts: PLAN §2.
 | `data/interim/rq3/rq3_codas_normalized.jsonl` | All-row RQ3 normalization and audit artifact |
 | `data/processed/rq3/rq3_codas.csv` | Core RQ3 model-ready continuous-ICI table |
 | `data/processed/rq3/rq3_codas_metadata.csv` | RQ3 core rows plus provenance and diagnostic metadata |
+| `data/processed/rq3/rq3_folds.csv` | Deterministic, group-disjoint RQ3 fold assignments |
 
 ## Known gotchas
 

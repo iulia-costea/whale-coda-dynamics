@@ -78,8 +78,8 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Why:** keep stage 1 simple, and state in the write-up that 14 days give rough CIs.
 
 **DEC-14 — RQ3 hypothesis tested as an interaction.**
-- **Decision:** test (sympatric vs allopatric) × (identity vs non-identity codas), with discretisation bins fitted on the training clan only.
-- **Why:** the Caribbean vs Pacific difference is also a one-programme vs many-programmes difference. The identity contrast separates the two, assuming recording differences affect both coda kinds equally.
+- **Decision:** test (sympatric vs allopatric) × (identity vs non-identity codas), with the fixed global `fixed-50ms-v1` tokenizer: 50 ms ICI bins over [0, 1.0) s plus `BOS`/`EOS`.
+- **Why:** own-clan and transfer models must score the same target token sequence for their likelihood difference to be interpretable as transfer loss. The Caribbean vs Pacific difference is also a one-programme vs many-programmes difference; the identity contrast separates the two, assuming recording differences affect both coda kinds equally.
 
 **DEC-15 — Tempo fallback.**
 - **Decision:** if Sharma's tempo file can't be fetched, assign each coda to the nearest of the five tempo modes in Sharma et al. 2024a Fig. 3 (0.33, 0.51, 0.80, 1.02, 1.26 s), labelled "reconstructed".

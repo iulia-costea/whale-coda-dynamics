@@ -212,20 +212,45 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 ## 8. RQ3 — cross-clan transfer
 
+- **`[R3-0]` Input eligibility and grouping:** retain 3–10-click codas from the accepted clans only when every required ICI is in [0.005, 1.0) s. Preserve excluded rows and their reasons in the audit artifact.
+  - Caribbean `Date` is parsed day-first into canonical ISO `recording_date`; folds must use this field, never the raw date string. A Caribbean group is one `recording_date`; a Pacific group is one `grpvar` repertoire (stored as `source_repertoire_id`).
+  - Write this grouping explicitly as `group_id` in the processed RQ3 tables: `recording_date` for Caribbean codas and `grpvar`/`source_repertoire_id` for Pacific codas.
+  - Construct deterministic, group-disjoint folds: five folds per clan, except six folds for EC2 (one recording day per fold). Sort groups by decreasing coda count, breaking ties with SHA-256 of `42:<clan>:<group_id>`, then assign each whole group to the currently smallest fold. A group must never span folds.
+  - Save the resulting assignments and per-fold counts in `data/processed/rq3/rq3_folds.csv`.
 - **`[R3-1]`:** model structure *within* codas, as sequences of discretised inter-click intervals (following Leitão et al.). This needs no speaker IDs.
-  - Fit the discretisation bins on the training clan only.
+  - Use the fixed, global `fixed-50ms-v1` tokenizer: 20 ICI symbols for 50 ms-wide bins over [0, 1.0) s, plus `BOS` and `EOS`.
+  - Token boundaries are predefined and are never fitted on a source or target clan.
 - **`[R3-2]` Transfer tests:**
-  - first EC1 ↔ EC2 (sympatric, `[D6]`);
-  - then Caribbean → each Pacific clan (allopatric, `[D4]`).
-  - Measure held-out log-likelihood on the test clan.
+  - first implement EC1 ↔ EC2 as the initial Caribbean comparison. This is a valid sympatric pair, but it is one asymmetric, relatively low-overlap case: EC2 is only rarely recorded in the Caribbean study area and the clans are socially segregated. Do not use this pair alone to support a general geographic-overlap claim;
+  - then complete the directed 9 × 9 clan matrix: nine own-clan cells and 72 cross-clan cells, comprising EC1/EC2 ↔ Pacific and every Pacific ↔ Pacific direction.
+  - Choose model family, order, smoothing, and every other model-setting using source-clan training/validation folds only. Target-clan codas are never used to select or tune a model.
+  - Measure held-out base-2 log-likelihood on every target clan. Report both bits per coda and bits per predicted symbol (ICI symbols plus EOS); use bits per symbol as the primary cross-clan metric, since it does not mechanically give longer codas more weight.
+  - Use one shared aggregation function for bits per coda, bits per symbol, paired transfer loss, coverage strata, and bootstrap draws. Do not duplicate or redefine these calculations across experiments.
+  - For a source clan, train one otherwise-identical model per source fold, each excluding that fold. Score every target coda with every source-fold model and average those scores. This cross-validation ensemble avoids making a transfer result depend on one particular source-data subset.
+  - Score every target coda with both its averaged transfer score and an own-clan score from a model that did not train on that coda's group. Calculate transfer loss only from these paired scores on the same token sequence.
+  - Form an uncertainty interval (an error bar on the final estimate) with 1,000 bootstrap resamples of whole target groups (Caribbean recording days or Pacific repertoires), never individual codas. Recalculate the paired aggregate transfer loss for each draw. This happens after scoring: it neither retrains models nor changes the primary estimate, and can wait until the core matrix works.
+  - Save coda-level paired scores and model/fold identifiers, and generate `reports/rq3_transfer.md` with the transfer matrix, coverage breakdown, and heatmap.
 - **`[R3-3]` Hypothesis** (from Leitão et al.): transfer degrades less between sympatric clans, and only for non-identity codas.
   - Test it as the interaction (sympatric vs allopatric) × (identity vs non-identity). The Caribbean and Pacific data come from different recording programmes, and the identity contrast is what separates the clan effect from that.
+  - For Pacific codas, derive `identity_status` from the clan-specific numeric coda-type mapping in Hersh et al. (2022), Supplementary Table S2: PALI = 48, 411, 412, 73, 711, 82, 94, 95, 102; FP = 611, 614; SI = 39, 413, 69; RI = 45, 715; SH = 313; PO = 515, 68, 613, 79, 712, 89; REG = 51, 512, 62, 71, 74, 81, 92, 96, 108. A listed numeric type is `identity`; every other numeric Pacific type is `non_identity`. Missing/non-numeric source types are `unmapped` and excluded from identity-stratified analyses. Caribbean codas remain unmapped until an authoritative equivalent mapping is available.
+  - `identity_status` is an analysis label only, never a predictive input to the timing model.
+  - Train the primary own-clan and transfer models on all eligible codas, irrespective of identity status. Test the interaction by partitioning the resulting paired target-coda scores into identity and non-identity strata; do not train separate identity-only or non-identity-only primary models.
+  - Treat EC1 ↔ EC2 as an initial Caribbean comparison within this design. The broader, continuous test of whether geographical co-occurrence predicts transfer is the exploratory Pacific overlap analysis `[R3-6]`, not the EC1–EC2 result alone.
   - Assumption: recording differences affect both coda kinds equally.
-- **`[R3-4]`:** compare coda-type distributions across clans, as a diagnostic only (clan identification is solved).
+- **`[R3-4]`:** compare coda-type distributions across clans within each dataset only, as a diagnostic (clan identification is solved). Never treat Caribbean textual labels and Pacific numeric labels as a shared type vocabulary.
+- **`[R3-5]` Coverage diagnostic:** for each source-to-target score, count occurrences of the target coda's complete fixed-token sequence in that specific source model's training data.
+  - A target coda is *covered* when its sequence occurs at least five times; otherwise it is *uncovered*.
+  - Calculate coverage and paired transfer loss separately for every source-fold model, then aggregate them with the same rule used for the transfer score. Do not call a sequence covered because it appears in a source fold excluded from that particular model's training data.
+  - Report coverage share and paired transfer loss separately for covered and uncovered target codas. This distinguishes patterns absent from the source training inventory from poor transfer on patterns the source does produce.
+- **`[R3-6]` Exploratory Pacific overlap analysis:** use Hersh et al.'s Supplementary Table S4 directional spatial-overlap values recorded in `config/rq3_spatial_overlap.json`. For each of the 21 unordered Pacific clan pairs, use the mean of its two directions.
+  - For pair \(a,b\), average the two directed transfer losses \(G(a,b)\) and \(G(b,a)\), then test whether greater mean overlap is associated with lower average transfer loss.
+  - Run the association separately for identity and non-identity codas. Use a predeclared exact permutation test over all \(7! = 5,040\) Pacific-clan label permutations.
+  - Label the result exploratory: the pairs share clans and the published overlap measure has no temporal component.
+- **`[R3-7]` Model sensitivity:** retain the fixed-50ms-v1 representation for the primary analysis. If time permits, repeat the matrix with a VLMC using 20 ms bins, reporting likelihood in bits per second rather than comparing its raw scores directly with the primary representation. This checks whether the primary conclusion depends on the model family and timing resolution.
 - **Rules:**
   - No multi-whale conditions on `[D6]` or `[D4]`.
   - Day-level coda order is never "own history".
-  - Don't redo Leitão et al.'s VLMC/KL analysis.
+  - Don't redo Leitão et al.'s descriptive VLMC/KL analysis; `[R3-7]` is instead a held-out transfer-loss sensitivity analysis.
 
 ---
 
@@ -267,7 +292,7 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 - Do the tempo/ornament pickles align with `sperm-whale-dialogues.csv` by row, like `rhythms.p`?
 - How many `[D1]` exchanges fully match `[D2]` (RQ2 secondary)?
 - Is `[D6]` Leitão et al.'s dataset, and how many EC2 codas does it have?
-- Which codas are identity codas per clan (`[R3-3]`)?
+- Is an authoritative Caribbean identity-coda mapping available (`[R3-3]`)?
 - Per-clan coda counts in `[D4]` after filtering.
 - Is the switch part of `[P1]` (~270 codas) big enough to show anything? Check after the first numbers.
 - Should partner-coda content heard before the target's onset ever enter $S$? Current answer: no.
@@ -288,8 +313,8 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
    - The Assayag reproduction check on (iv), and checks `[U1]`, `[U2]`.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 primary:** swap the label column.
-6. **RQ3 sympatric:** EC1 ↔ EC2.
-7. **RQ2 secondary, then the Pacific RQ3 extension.**
+6. **RQ3 initial Caribbean comparison:** EC1 ↔ EC2.
+7. **RQ2 secondary, then the remaining RQ3 9 × 9 matrix.**
 
 ---
 

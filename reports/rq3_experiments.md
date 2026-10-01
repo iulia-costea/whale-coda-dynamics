@@ -11,13 +11,14 @@ RQ3 asks whether the fine-grained timing structure *within* sperm-whale codas
 transfers across culturally distinct clans. A coda is represented as its ordered
 sequence of inter-click intervals (ICIs), not as a turn in an exchange.
 
-The primary comparison is between:
+Begin with EC1 <-> EC2 as an initial Caribbean comparison, then complete the
+directed 9 × 9 clan matrix: all own-clan, Caribbean–Pacific, and
+Pacific–Pacific cells. EC1–EC2 is not sufficient evidence for a general
+geographic-overlap claim; the Pacific overlap analysis is the broader,
+exploratory test.
 
-- **sympatric transfer:** EC1 <-> EC2 in the Caribbean data; and
-- **allopatric, cross-dataset transfer:** Caribbean clans <-> Pacific clans.
-
-The planned identity/non-identity result is deferred until an authoritative
-mapping from clan and coda type to identity status is available.
+Pacific identity/non-identity labels are available from Hersh et al.'s Table
+S2. Caribbean codas remain unmapped.
 
 ## 2. Data
 
@@ -35,26 +36,28 @@ Use `data/processed/rq3/rq3_codas.csv` for models. Each row contains only:
 | `rq3_coda_id` | Stable join key for results and metadata. Never a model feature. |
 | `source_dataset` | `caribbean` or `pacific`; records provenance and experiment membership. Never a model feature. |
 | `clan` | Selects source and target clans. Never a model feature. |
+| `group_id` | Recording day for Caribbean or repertoire ID for Pacific; used for folds, never a model feature. |
 | `click_count` | Audit field; the ICI length is `click_count - 1`. Never a model feature. |
 | `ici_sequence_s` | JSON array of continuous, unpadded ICIs. This is the model input. |
 
 The metadata companion table, `data/processed/rq3/rq3_codas_metadata.csv`,
-contains coda type, date, unit/repertoire, location, and source provenance. It
-is used for grouping, diagnostics, and joins, not as model input.
+contains coda type, date, unit/repertoire, `identity_status`, location, and
+source provenance. It is used for grouping, diagnostics, and joins, not as
+model input.
 
-The primary 3–10-click, assigned-clan sample has 31,528 codas:
+The primary 3–10-click, assigned-clan sample has 31,479 codas:
 
 | Dataset | Clan | Codas |
 |---|---|---:|
-| Caribbean | EC1 | 7,751 |
-| Caribbean | EC2 | 948 |
-| Pacific | FP | 2,564 |
-| Pacific | PALI | 2,059 |
-| Pacific | PO | 1,986 |
-| Pacific | REG | 8,108 |
-| Pacific | RI | 1,750 |
-| Pacific | SH | 5,153 |
-| Pacific | SI | 1,209 |
+| Caribbean | EC1 | 7,742 |
+| Caribbean | EC2 | 946 |
+| Pacific | FP | 2,556 |
+| Pacific | PALI | 2,052 |
+| Pacific | PO | 1,985 |
+| Pacific | REG | 8,107 |
+| Pacific | RI | 1,747 |
+| Pacific | SH | 5,138 |
+| Pacific | SI | 1,206 |
 
 ## 3. Common experimental contract
 
@@ -65,18 +68,16 @@ timing, exchange boundaries, unit identity, geographic coordinates, or coda
 type as predictive inputs. It models only the ICI sequence inside a single
 coda.
 
-### 3.2 Training-only discretisation
+### 3.2 Fixed global tokenisation
 
-For every source-to-target direction and every training replicate:
+All models use `fixed-50ms-v1`: every eligible ICI is mapped to
+`floor(ICI / 0.05)`, producing symbols 0–19, with explicit `BOS` and `EOS`
+tokens. Eligibility restricts required ICIs to [0.005, 1.0) s, so every
+retained interval has exactly one valid symbol.
 
-1. Select the source-clan training subset.
-2. Fit dICI bin boundaries only on that subset's continuous ICI values.
-3. Transform the source training, source validation, and target-test codas with
-   those fixed boundaries.
-4. Record the exact bin edges and the treatment of values outside their range.
-
-No target-clan ICI may affect bin edges, model selection, hyperparameters, or
-early stopping.
+This representation is fixed before modelling. No source or target clan affects
+the bin boundaries. It ensures an own-clan and a transfer model score the same
+token sequence for a given target coda.
 
 ### 3.3 Autoregressive task and likelihood
 
@@ -98,40 +99,45 @@ For a target set \(T\), report both:
 and
 
 \[
-\operatorname{LL}_{\mathrm{token}}(T) =
-\frac{\sum_{c\in T}\operatorname{LL}(c)}{\sum_{c\in T}|c|}.
+\operatorname{LL}_{\mathrm{symbol}}(T) =
+\frac{1}{|T|}\sum_{c\in T}\frac{\operatorname{LL}(c)}{|c|}.
 \]
 
-The per-token value is the primary cross-clan comparability metric because
-codas have different lengths. Per-coda LL remains useful for describing the
-experience of an individual coda.
+The per-symbol value is the primary cross-clan metric: each coda first receives
+its length-normalised score, then all target codas contribute equally to the
+aggregate. Per-coda LL remains useful for describing the experience of an
+individual coda.
 
-### 3.4 Source-only validation groups
+### 3.4 Source-only, group-disjoint folds
 
-Each source clan is divided into source-train and source-validation groups
-before fitting bins or models:
+`data/processed/rq3/rq3_folds.csv` contains deterministic group-disjoint
+folds. A Caribbean group is canonical `recording_date`; a Pacific group is
+`grpvar`/`source_repertoire_id`:
 
 - Caribbean rows are grouped by canonical `recording_date`, parsed day-first
   from the raw Caribbean date strings. The preserved `source_date` must not be
   used because the same calendar day appears in both slash and dash formats.
 - Pacific rows are grouped by `source_repertoire_id`.
 
-No group may appear in both source-train and source-validation. The exact split
-algorithm, validation fraction, and deterministic seed must be selected before
-experiments run and reported with every result.
+Each clan has five folds, except EC2, which has six folds—one per available
+recording day. Groups are sorted by decreasing coda count, ties broken by
+`SHA-256("42:<clan>:<group_id>")`, and assigned whole to the currently smallest
+fold. No group spans folds.
 
-The target clan is never used for tuning. It is an untouched test set for that
-directed transfer experiment.
+Model family, order, smoothing, and all other settings are selected using only
+the source clan's folds. A target clan is never used to choose a transfer model.
 
 ### 3.5 Interpreting transfer: use a self-model baseline
 
 Raw target LL alone is not enough to call transfer high or low: some target
 clans may simply have more regular or more diverse coda timing.
 
-For every clan \(t\), fit a self-model on its source-train partition and score
-its held-out validation partition, producing \(S(t\to t)\). For a cross-clan
-model trained on source \(s\) and evaluated on target \(t\), let the target
-score be \(S(s\to t)\).
+For every target clan \(t\), cross-fit its self-model: train on all groups
+except the target coda's group and score that coda, producing \(S(t\to t)\).
+For a transfer source \(s\), train one otherwise-identical model per source
+fold, each excluding that fold; score every target coda with every source-fold
+model and average the scores, producing \(S(s\to t)\). Thus every transfer-loss
+comparison is paired on identical target codas and token sequences.
 
 Define transfer loss as:
 
@@ -149,7 +155,7 @@ Higher LL is better, so smaller transfer loss is better:
   differences before interpreting it as exceptional transfer.
 
 Self-model and cross-model comparisons must use the same predefined model family
-and capacity-control regime.
+and evaluation protocol.
 
 ### 3.6 Potential models
 
@@ -167,17 +173,17 @@ Transformer, HMM, or continuous ICI density model is not planned initially:
 the coda sequences are very short, and those alternatives add fitting choices
 without a clear advantage for the RQ3 transfer question.
 
-Before the main experiments, we must select the primary family, its
-hyperparameters (such as (k), smoothing, or VLMC tree thresholds), and the
-discretisation scheme using source validation only. The other main candidate
-becomes the limited model-sensitivity analysis; target-clan scores must never
-choose between them.
+Before the main experiments, select the primary family and its hyperparameters
+(such as \(k\), smoothing, or VLMC tree thresholds) using source folds only.
+The primary representation remains fixed-50ms-v1. The limited VLMC sensitivity
+uses 20 ms bins and reports likelihood in bits per second, rather than comparing
+its raw scores directly with the primary results.
 
 ## 4. Experiment 0 — within-clan calibration
 
-Run one self-model for every clan:
+Run cross-fitted own-clan models for every clan:
 
-| Source train/validation clan |
+| Clan |
 |---|
 | EC1 |
 | EC2 |
@@ -209,23 +215,27 @@ Run both directed transfers:
 
 For each run:
 
-1. Construct source train/validation groups.
-2. Fit source-train-only dICI bins.
-3. Train the autoregressive model using source training codas.
-4. Select any predefined hyperparameter using source validation only.
-5. Freeze bins and model.
-6. Score every target-clan coda once.
+1. Use the precomputed source folds.
+2. Tokenise all codas with the fixed global tokenizer.
+3. Select predefined model settings using source-fold validation only.
+4. Train one source model excluding each source fold.
+5. Score every target-clan coda with every source-fold model and average its
+   transfer scores.
+6. Pair that average with the coda's cross-fitted
+   own-clan score.
 7. Save a coda-level result with run ID, target coda ID, token count, coda LL,
    token LL contribution, and bin/model manifest ID.
 8. Report aggregate target LL and transfer loss against the target self-model.
 
-The average of S1 and S2 is the initial sympatric-transfer summary, but both
-directions must always be reported separately because transfer may be asymmetric.
+This is an initial Caribbean comparison, not sufficient evidence for a general
+geographic-overlap claim: EC2 is relatively rarely recorded in the study area
+and the clans are socially segregated. Both directions must be reported
+separately because transfer may be asymmetric.
 
-### Possible extension: Pacific-to-Pacific transfer
+### Required Pacific-to-Pacific matrix cells
 
-This is not required by the current plan. It may extend the sympatric-transfer
-analysis by training on one Pacific clan and testing on another.
+The 42 directed Pacific-to-Pacific runs complete the required 9 × 9 clan
+matrix. Each run trains on one Pacific clan and tests on another.
 
 Whether those runs are described as *sympatric* is conditional on the
 operational definition adopted before analysis. Under Hersh et al.'s published
@@ -240,12 +250,12 @@ If the project requires contemporaneous spatial co-occurrence, the currently
 prepared data alone cannot confirm Pacific sympatry. We would first need a
 justified temporal-overlap criterion and the necessary repertoire-level
 sampling information. In that case, this remains a Pacific-to-Pacific transfer
-extension, not a confirmed sympatric analysis.
+comparison, not a confirmed sympatric analysis.
 
 Its value is that both source and target use the Pacific recording programme,
 helping distinguish cross-dataset recording effects from cross-clan transfer.
-Consider it only after the required experiments, and only if scope permits and
-the sympatry definition is recorded in the analysis configuration.
+Run these cells after the Caribbean comparisons, with the sympatry definition
+recorded in the analysis configuration.
 
 ## 6. Experiment 2 — bidirectional Caribbean–Pacific transfer
 
@@ -270,53 +280,46 @@ bidirectional because cross-dataset transfer can be asymmetric: source sample
 size, token distribution, recording procedure, and cultural structure may affect
 one training direction differently from the other.
 
-Use the same source-only binning, source-only validation, model selection, and
-target-only evaluation rules as Experiment 1.
+Use the same fixed tokenisation, source-only validation/model selection, and
+paired target-coda evaluation rules as Experiment 1.
 
 Do not pool EC1 and EC2 for the primary analysis. A pooled Caribbean source has
 more data and a mixed cultural distribution; it is a separate, optional
-experiment that requires an explicit binning and comparison policy.
+experiment that requires an explicit mixed-source training and comparison
+policy.
 
-## 7. Experiment 3 — capacity-matched controls
-
-Every directed run in Experiments 1 and 2 has two versions:
-
-1. **Full-source version:** train on all source-training data. This measures the
-   best transfer available from that source.
-2. **Capacity-matched version:** cap each source-training set at a common number
-   of dICI tokens. This controls for the fact that source clans have substantially
-   different sample sizes and coda lengths.
-
-The capacity-control protocol is:
-
-1. Reserve source validation groups first.
-2. Choose a common token budget no larger than the smallest available
-   source-training token count across the nine clans.
-3. For each source clan, sample source training data up to that token budget,
-   respecting its group split.
-4. Repeat the sampling with a predefined number of deterministic seeds
-   (recommended: 20).
-5. Refit bins on every sampled source-training set.
-6. Train and evaluate on the unchanged target set for every replicate.
-7. Report the mean, spread, and confidence interval of LL and transfer loss.
-
-The target set is not downsampled for the primary metric. Its size determines
-uncertainty, which must be reported separately. A target-group bootstrap can be
-used for uncertainty, resampling `source_date` groups for Caribbean targets and
-`source_repertoire_id` groups for Pacific targets.
-
-## 8. Experiment 4 — representation and model sensitivity
+## 7. Experiment 3 — representation and model sensitivity
 
 Predefine one primary dICI representation and autoregressive model, then assess
 one limited alternative. Do not select either with target-test performance.
 
-The alternative can be the other candidate from Section 3.6. For example, if a
-fixed-order, smoothed n-gram is selected as primary, test a VLMC as the model
-sensitivity; if a VLMC is selected as primary, test the fixed n-gram. Also
-predefine one second dICI bin count as a representation sensitivity.
+The primary model uses fixed-50ms-v1. If time permits, repeat the matrix with a
+VLMC using 20 ms bins, reporting likelihood in bits per second rather than
+comparing raw likelihoods directly with the primary representation.
 
 All choices are selected from source validation alone. Re-run the sensitivity
-only after the primary capacity-controlled experiment is working.
+only after the primary full-source matrix is working.
+
+## 8. Experiment 4 — source-pattern coverage diagnostic
+
+For every coda-level transfer result, count occurrences of that target coda's
+complete fixed-token sequence (including `BOS` and `EOS`) in the corresponding
+source model's actual training data.
+
+- **Covered:** the sequence occurs at least five times.
+- **Uncovered:** the sequence occurs fewer than five times.
+
+Report, for every directed source-target pair:
+
+1. the proportion of target codas that are covered;
+2. paired transfer loss separately for covered and uncovered target codas; and
+3. the coda and token counts in both strata.
+
+Coverage is evaluated separately for every source model/fold; it must never use
+that model's held-out source group. If transfer loss is concentrated in the
+uncovered stratum, the source may simply lack those timing patterns. If it is
+also large for covered codas, the source produces the patterns but does not
+model their timing well on the target clan.
 
 ## 9. Experiment 5 — coda-type distribution diagnostic
 
@@ -338,13 +341,10 @@ model as an input.
 
 ## 10. Experiment 6 — identity/non-identity interaction
 
-Run this only after adding an authoritative mapping:
+Pacific `identity_status` is already derived from Hersh et al.'s Table S2 and
+stored in the RQ3 metadata table. Caribbean codas remain `unmapped`.
 
-```text
-source_dataset + clan + source_coda_type -> identity / non_identity
-```
-
-For each coda-level target result from Experiments 1 and 2:
+For each coda-level result whose target is a mapped Pacific coda:
 
 1. Join the target coda's clan/type identity label.
 2. Calculate target LL and transfer loss separately for identity and
@@ -366,40 +366,58 @@ should be larger for non-identity codas than for identity codas.
 This evaluates whether shared geography/social environment improves transfer of
 non-identity timing structure while clan-marker codas remain distinctive.
 
-## 11. Required result artifacts
+## 11. Experiment 7 — exploratory Pacific spatial-overlap analysis
 
-Every fitted run and replicate must record:
+Use the directional spatial-overlap matrix in
+`config/rq3_spatial_overlap.json`, transcribed from Hersh et al.'s
+Supplementary Table S4. For each unordered Pacific pair \(a,b\), calculate its
+mean overlap as the average of the two table directions, then calculate its
+bidirectional transfer loss as:
+
+\[
+\bar{G}(a,b) = \frac{G(a,b) + G(b,a)}{2}.
+\]
+
+There are 21 such Pacific pairs. Test whether pairs with higher mean overlap
+have lower \(\bar{G}\), separately for identity and non-identity codas. Use the
+7! = 5,040 permutations of Pacific clan labels for a predeclared exact
+permutation test.
+
+This is exploratory, not causal evidence: pair values share clans and the
+published spatial-overlap measure does not establish contemporaneous
+co-occurrence. Report the overlap matrix source, all 21 pair values, the
+association statistic, and the permutation result.
+
+## 12. Required result artifacts
+
+Every fitted run must record:
 
 ```text
 run_id
 source_dataset, source_clan, target_dataset, target_clan
-analysis_version (full_source or capacity_matched)
-replicate_seed
-source training/validation group assignment
+source-fold assignment
 source-training coda count and dICI-token count
 target coda count and dICI-token count
-dICI bin edges and out-of-range policy
+tokenizer ID and ICI eligibility range
 model family, order/context, smoothing, and hyperparameters
 source-validation LL
 target per-coda LL and per-token LL
 target self-model reference and transfer loss
+coverage occurrence count and covered/uncovered status
 artifact/configuration checksums
 ```
 
 Store coda-level predictions separately from aggregate summaries so the
 identity/non-identity analysis can be added later without retraining models.
 
-## 12. Execution order
+## 13. Execution order
 
-1. Select and document source-group split, binning, primary model, and common
-   token budget.
+1. Select and document source-group folds and the primary model.
 2. Implement Experiment 0 self-model calibration.
 3. Implement Experiment 1 EC1 <-> EC2 transfer.
-4. Add capacity-matched controls for Experiments 0 and 1.
-5. Implement all 28 Experiment 2 Caribbean/Pacific directions.
-6. Add capacity-matched controls for Experiment 2.
-7. Run the limited representation/model sensitivity.
-8. Produce coda-type diagnostics.
-9. Add the identity interaction when authoritative labels become available.
-10. Consider Pacific-to-Pacific transfer only after the required experiments are
-    complete.
+4. Implement the remaining directed cells to complete the 9 × 9 matrix.
+5. Run the limited representation/model sensitivity.
+6. Produce the source-pattern coverage diagnostic.
+7. Produce coda-type diagnostics.
+8. Produce the available Pacific identity/non-identity breakdown.
+9. Run the exploratory Pacific spatial-overlap analysis.
