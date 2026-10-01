@@ -4,9 +4,13 @@
   "interim_output": "data/interim/rq3/rq3_codas_normalized.jsonl",
   "processed_output": "data/processed/rq3/rq3_codas.csv",
   "metadata_output": "data/processed/rq3/rq3_codas_metadata.csv",
+  "folds_output": "data/processed/rq3/rq3_folds.csv",
+  "identity_mapping_input": "config/rq3_identity_mapping.json",
   "report_output": "reports/rq3_preprocessing.md",
   "primary_min_clicks": 3,
   "primary_max_clicks": 10,
+  "primary_min_ici_s": 0.005,
+  "primary_max_ici_s": 1.0,
   "accepted_caribbean_clans": [
     "EC1",
     "EC2"

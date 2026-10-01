@@ -10,6 +10,8 @@ from pathlib import Path
 
 from whale_coda_dynamics.preprocessing.io_utils import read_json, write_jsonl, write_text
 
+from .folds import FOLD_COLUMNS, build_fold_rows
+
 
 REQUIRED_CONFIG_KEYS = {
     "caribbean_input",
@@ -17,9 +19,13 @@ REQUIRED_CONFIG_KEYS = {
     "interim_output",
     "processed_output",
     "metadata_output",
+    "folds_output",
+    "identity_mapping_input",
     "report_output",
     "primary_min_clicks",
     "primary_max_clicks",
+    "primary_min_ici_s",
+    "primary_max_ici_s",
     "accepted_caribbean_clans",
     "accepted_pacific_clans",
 }
@@ -111,6 +117,7 @@ CORE_COLUMNS = [
     "rq3_coda_id",
     "source_dataset",
     "clan",
+    "group_id",
     "click_count",
     "ici_sequence_s",
 ]
@@ -122,6 +129,7 @@ METADATA_COLUMNS = [
     "duration_s",
     "source_date",
     "recording_date",
+    "identity_status",
     "source_unit",
     "source_unit_number",
     "source_individual_id",
@@ -140,12 +148,17 @@ def validate_config(config):
     missing = REQUIRED_CONFIG_KEYS - set(config)
     if missing:
         raise ValueError(f"RQ3 preprocessing configuration is missing keys: {sorted(missing)}")
-    for key in ("caribbean_input", "pacific_input", "interim_output", "processed_output", "metadata_output", "report_output"):
+    for key in ("caribbean_input", "pacific_input", "interim_output", "processed_output", "metadata_output", "folds_output", "identity_mapping_input", "report_output"):
         if not isinstance(config[key], str) or not config[key]:
             raise ValueError(f"Configuration value {key!r} must be a non-empty string")
     minimum, maximum = config["primary_min_clicks"], config["primary_max_clicks"]
     if type(minimum) is not int or type(maximum) is not int or minimum < 1 or minimum > maximum:
         raise ValueError("Primary click-count range must contain positive integer bounds")
+    minimum_ici, maximum_ici = config["primary_min_ici_s"], config["primary_max_ici_s"]
+    if (type(minimum_ici) not in (int, float) or type(maximum_ici) not in (int, float)
+            or not math.isfinite(minimum_ici) or not math.isfinite(maximum_ici)
+            or minimum_ici <= 0 or minimum_ici >= maximum_ici):
+        raise ValueError("Primary ICI range must contain finite positive bounds in ascending order")
     for key in ("accepted_caribbean_clans", "accepted_pacific_clans"):
         clans = config[key]
         if not isinstance(clans, list) or not clans or any(not isinstance(clan, str) or not clan for clan in clans):
@@ -236,6 +249,35 @@ def parse_caribbean_recording_date(value, issues):
         return None
 
 
+def load_identity_mapping(path, accepted_pacific_clans):
+    """Load and strictly validate the sourced Pacific identity-coda mapping."""
+    mapping = read_json(path)
+    if set(mapping) != {"source", "pacific_identity_coda_types"} or not isinstance(mapping["source"], str) or not mapping["source"]:
+        raise ValueError("RQ3 identity mapping must contain a non-empty source and Pacific type mapping")
+    types_by_clan = mapping["pacific_identity_coda_types"]
+    if set(types_by_clan) != set(accepted_pacific_clans):
+        raise ValueError("RQ3 identity mapping clans must exactly match accepted Pacific clans")
+    for clan, types in types_by_clan.items():
+        if (not isinstance(types, list) or not types or any(type(value) is not int or value <= 0 for value in types)
+                or len(types) != len(set(types))):
+            raise ValueError(f"RQ3 identity mapping has invalid coda types for {clan}")
+    return mapping
+
+
+def identity_status(dataset, clan, source_coda_type, mapping):
+    """Classify Pacific coda types without treating missing source types as non-identity."""
+    if dataset != "pacific":
+        return "unmapped"
+    identity_types = mapping["pacific_identity_coda_types"].get(clan)
+    if identity_types is None:
+        return "unmapped"
+    try:
+        coda_type = int(source_coda_type)
+    except (TypeError, ValueError):
+        return "unmapped"
+    return "identity" if coda_type in identity_types else "non_identity"
+
+
 def normalize_preliminary_record(record):
     """Build a typed, lossless record for one raw Caribbean or Pacific coda."""
     dataset = record["source_dataset"]
@@ -262,6 +304,11 @@ def normalize_preliminary_record(record):
         if dataset == "caribbean"
         else None
     )
+    normalized["group_id"] = (
+        normalized["recording_date"]
+        if dataset == "caribbean"
+        else normalized["source_repertoire_id"]
+    )
     normalized["candidate_ici_values_s"] = [
         parse_number(raw[f"ICI{index}"], issues, f"ICI{index}")
         for index in range(1, spec["ici_column_count"] + 1)
@@ -269,12 +316,23 @@ def normalize_preliminary_record(record):
     return normalized
 
 
-def normalize_raw_records(loaded):
+def normalize_raw_records(loaded, identity_mapping):
     """Normalize all loaded rows without applying the RQ3 eligibility policy."""
     return {
         dataset: {
             "columns": source["columns"],
-            "records": [normalize_preliminary_record(record) for record in source["records"]],
+            "records": [
+                {
+                    **(normalized_record := normalize_preliminary_record(record)),
+                    "identity_status": identity_status(
+                        normalized_record["source_dataset"],
+                        normalized_record["clan"],
+                        normalized_record["source_coda_type"],
+                        identity_mapping,
+                    ),
+                }
+                for record in source["records"]
+            ],
         }
         for dataset, source in loaded.items()
     }
@@ -307,6 +365,10 @@ def apply_primary_eligibility(record, config):
         padding = result["candidate_ici_values_s"][click_count - 1:]
         if any(value is None or value <= 0 for value in required):
             reasons.append("invalid_required_ici")
+        elif any(value < config["primary_min_ici_s"] for value in required):
+            reasons.append("ici_below_minimum")
+        elif any(value >= config["primary_max_ici_s"] for value in required):
+            reasons.append("ici_at_or_above_maximum")
         if any(value is not None and value != 0 for value in padding):
             reasons.append("nonzero_padding")
         if not reasons:
@@ -356,7 +418,9 @@ def load_raw_records(config_path):
 def prepare_records(config_path):
     """Load, normalize, and assess all raw RQ3 rows without writing artifacts."""
     config, loaded = load_raw_records(config_path)
-    normalized = normalize_raw_records(loaded)
+    root = Path(config_path).resolve().parent.parent
+    identity_mapping = load_identity_mapping(root / config["identity_mapping_input"], config["accepted_pacific_clans"])
+    normalized = normalize_raw_records(loaded, identity_mapping)
     return config, apply_primary_eligibility_to_all(normalized, config)
 
 
@@ -381,7 +445,7 @@ def add_source_checksums(loaded, checksums):
     return result
 
 
-def validate_for_writing(loaded):
+def validate_for_writing(loaded, config):
     """Check core output invariants before replacing any generated artifact."""
     records = [record for source in loaded.values() for record in source["records"]]
     identifiers = [record["rq3_coda_id"] for record in records]
@@ -395,8 +459,12 @@ def validate_for_writing(loaded):
             raise ValueError(f"Eligible coda has an invalid ICI sequence: {record['rq3_coda_id']}")
         if record["ici_count"] != record["click_count"] - 1:
             raise ValueError(f"Eligible coda has inconsistent click/ICI counts: {record['rq3_coda_id']}")
-        if any(value is None or not math.isfinite(value) or value <= 0 for value in sequence):
-            raise ValueError(f"Eligible coda has a non-positive or non-finite ICI: {record['rq3_coda_id']}")
+        if any(value is None or not math.isfinite(value)
+               or not config["primary_min_ici_s"] <= value < config["primary_max_ici_s"]
+               for value in sequence):
+            raise ValueError(f"Eligible coda has an ICI outside the configured primary range: {record['rq3_coda_id']}")
+        if not record["group_id"]:
+            raise ValueError(f"Eligible coda has no group ID: {record['rq3_coda_id']}")
 
 
 def table_row(record, columns):
@@ -411,16 +479,21 @@ def write_processed_csv(path, rows, columns):
         writer.writeheader()
         for row in rows:
             serialized = dict(row)
-            serialized["ici_sequence_s"] = json.dumps(row["ici_sequence_s"], ensure_ascii=False, allow_nan=False)
+            if "ici_sequence_s" in columns:
+                serialized["ici_sequence_s"] = json.dumps(row["ici_sequence_s"], ensure_ascii=False, allow_nan=False)
             writer.writerow(serialized)
 
 
-def build_report(config, checksums, all_records, eligible_records, artifact_checksums):
+def build_report(config, checksums, all_records, eligible_records, artifact_checksums, identity_mapping):
     """Render the human-readable RQ3 preprocessing provenance report."""
     raw_counts = Counter(record["source_dataset"] for record in all_records)
     eligible_by_clan = Counter((record["source_dataset"], record["clan"]) for record in eligible_records)
     exclusions = Counter(reason for record in all_records for reason in record["exclusion_reasons"])
     click_counts = Counter(record["click_count"] for record in eligible_records)
+    fold_rows = build_fold_rows(eligible_records)
+    folds_by_clan = {}
+    for row in fold_rows:
+        folds_by_clan.setdefault((row["source_dataset"], row["clan"]), []).append(row)
     lines = [
         "# RQ3 preprocessing",
         "",
@@ -433,18 +506,30 @@ def build_report(config, checksums, all_records, eligible_records, artifact_chec
     ]
     for dataset, spec in SOURCE_SPECS.items():
         lines.append(f"| {dataset} (`{config[spec['config_key']]}`) | {raw_counts[dataset]} | `{checksums[dataset]}` |")
-    lines += ["", "## Primary eligibility", "", "3–10 clicks; accepted clan; finite positive required ICIs; no non-zero padding.",
-              "The exported `ici_sequence_s` values are continuous and unpadded. No global dICI bins were fitted.", "",
+    lines += ["", "## Primary eligibility", "", f"3–10 clicks; accepted clan; required ICIs in [{config['primary_min_ici_s']}, {config['primary_max_ici_s']}) s; no non-zero padding.",
+              "The exported `ici_sequence_s` values are continuous and unpadded. Fixed 50 ms tokenisation occurs downstream from this table.", "",
               "| Dataset | Clan | Eligible codas |", "|---|---|---:|"]
     for (dataset, clan), count in sorted(eligible_by_clan.items()):
         lines.append(f"| {dataset} | {clan} | {count} |")
+    lines += ["", "## Grouping and folds", "", "`group_id` is Caribbean canonical `recording_date` or Pacific source `grpvar`. Each group is assigned whole to one deterministic fold.",
+              "", "| Dataset | Clan | Groups | Fold coda counts |", "|---|---|---:|---|"]
+    for (dataset, clan), rows in sorted(folds_by_clan.items()):
+        fold_counts = Counter()
+        for row in rows:
+            fold_counts[row["fold"]] += row["n_codas"]
+        counts_text = ", ".join(f"{fold}: {count}" for fold, count in sorted(fold_counts.items()))
+        lines.append(f"| {dataset} | {clan} | {len(rows)} | {counts_text} |")
     lines += ["", "## Caribbean recording-date normalization", "",
-              "Caribbean `Date` values are parsed day-first from `dd/mm/yyyy` or `dd-mm-yyyy` into canonical ISO `recording_date` values. The raw `source_date` is preserved unchanged.",
+              "Caribbean `Date` values are parsed day-first from `dd/mm/yyyy` or `dd-mm-yyyy` into canonical ISO `recording_date` values. The raw `source_date` is preserved unchanged. `group_id` is `recording_date` for Caribbean codas and the source `grpvar` repertoire ID for Pacific codas.",
               "", "## Exclusions", ""]
     lines += [f"- {reason}: {count}" for reason, count in sorted(exclusions.items())] or ["- None"]
     lines += ["", "## Eligible click counts", "", "| Click count | Codas |", "|---:|---:|"]
     lines += [f"| {click_count} | {count} |" for click_count, count in sorted(click_counts.items())]
-    lines += ["", "## Identity labels", "", "Identity labels are not included in this artifact. An authoritative clan/type mapping is required before producing the identity-versus-non-identity analysis dataset.",
+    identity_counts = Counter(record["identity_status"] or "unmapped" for record in eligible_records)
+    lines += ["", "## Identity labels", "", f"Pacific identity labels use `{config['identity_mapping_input']}` ({identity_mapping['source']}). Caribbean codas are `unmapped`; Pacific `#N/A` source types are also `unmapped` and are excluded from identity-stratified analyses.",
+              "", "| Identity status | Eligible codas |", "|---|---:|"]
+    lines += [f"| {status} | {count} |" for status, count in sorted(identity_counts.items())]
+    lines += [
               "", "## Reproducibility", "", "Run configuration:", "", "```json", json.dumps(config, indent=2, ensure_ascii=False), "```", "",
               "Output SHA-256 checksums:", ""]
     lines += [f"- `{name}`: `{checksum}`" for name, checksum in sorted(artifact_checksums.items())]
@@ -456,26 +541,30 @@ def run(config_path):
     config_path = Path(config_path).resolve()
     root = config_path.parent.parent
     config, loaded = prepare_records(config_path)
+    identity_mapping = load_identity_mapping(root / config["identity_mapping_input"], config["accepted_pacific_clans"])
     checksums = source_checksums(config, root)
     loaded = add_source_checksums(loaded, checksums)
-    validate_for_writing(loaded)
+    validate_for_writing(loaded, config)
     all_records = [record for source in loaded.values() for record in source["records"]]
     eligible_records = [record for record in all_records if record["eligible_for_primary_transfer"]]
     interim_path = root / config["interim_output"]
     processed_path = root / config["processed_output"]
     metadata_path = root / config["metadata_output"]
+    folds_path = root / config["folds_output"]
     report_path = root / config["report_output"]
-    for path in (interim_path, processed_path, metadata_path, report_path):
+    for path in (interim_path, processed_path, metadata_path, folds_path, report_path):
         path.parent.mkdir(parents=True, exist_ok=True)
     write_jsonl(interim_path, all_records)
     write_processed_csv(processed_path, [table_row(record, CORE_COLUMNS) for record in eligible_records], CORE_COLUMNS)
     write_processed_csv(metadata_path, [table_row(record, METADATA_COLUMNS) for record in eligible_records], METADATA_COLUMNS)
+    write_processed_csv(folds_path, build_fold_rows(eligible_records), FOLD_COLUMNS)
     artifact_checksums = {
         interim_path.name: hashlib.sha256(interim_path.read_bytes()).hexdigest(),
         processed_path.name: hashlib.sha256(processed_path.read_bytes()).hexdigest(),
         metadata_path.name: hashlib.sha256(metadata_path.read_bytes()).hexdigest(),
+        folds_path.name: hashlib.sha256(folds_path.read_bytes()).hexdigest(),
     }
-    write_text(report_path, build_report(config, checksums, all_records, eligible_records, artifact_checksums))
+    write_text(report_path, build_report(config, checksums, all_records, eligible_records, artifact_checksums, identity_mapping))
     return {
         "raw_codas": len(all_records),
         "eligible_codas": len(eligible_records),

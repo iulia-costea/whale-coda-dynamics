@@ -1,0 +1,12 @@
+{
+  "source": "Hersh et al. (2022), Supplementary Information, Table S2",
+  "pacific_identity_coda_types": {
+    "PALI": [48, 411, 412, 73, 711, 82, 94, 95, 102],
+    "FP": [611, 614],
+    "SI": [39, 413, 69],
+    "RI": [45, 715],
+    "SH": [313],
+    "PO": [515, 68, 613, 79, 712, 89],
+    "REG": [51, 512, 62, 71, 74, 81, 92, 96, 108]
+  }
+}
