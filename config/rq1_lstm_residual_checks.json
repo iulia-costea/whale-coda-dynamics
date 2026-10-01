@@ -21,6 +21,6 @@
     "wiring": {"hidden": 16, "dropout": 0.0, "seed": 42, "epoch0_tolerance_bits": 1e-12},
     "learnability": {"test_days": ["2015-03-02", "2015-03-26"], "conditions": ["A", "A_B_S"], "hidden": 64,
                      "dropout": 0.0, "max_epochs": 300, "seeds": [42, 43, 44, 45, 46], "minimum_gain_bits": 0.1},
-    "planted": {"test_day": "2015-03-02", "lag": 6, "fractions": [0.05, 0.1, 0.2, 0.4], "sampling_seed": 42}
+    "planted": {"test_day": "2015-03-02", "lag": 6, "fractions": [0.0, 0.05, 0.1, 0.2, 0.4], "sampling_seed": 42}
   }
 }

@@ -655,6 +655,7 @@ def check_planted(prepared_folds, logistic_config, config, max_len, runner):
         selection, per_target = select_condition(candidates, fits, config['seeds'], lr_val)
         best_a = max(candidates[1:], key=lambda c: (float(np.mean(per_target[c['name']])), -candidates.index(c)))
         idx = planted['validation']
+        planted_mean = lambda values: float(np.mean(values[idx])) if idx else None  # noqa: E731  f = 0: nothing planted
         results.append(dict(fraction=fraction, eligible_train=len(eligible['train']), eligible_validation=len(eligible['validation']),
                             planted_train=len(planted['train']), planted_validation=len(idx),
                             refit_l2=refit['l2'], refit_beta=refit['beta'],
@@ -665,9 +666,9 @@ def check_planted(prepared_folds, logistic_config, config, max_len, runner):
                             chosen_standard_error_bits=selection['chosen_standard_error_bits'],
                             best_a_candidate=best_a['name'],
                             best_a_gain_over_lr_bits=float(np.mean(per_target[best_a['name']])) - selection['lr_only_validation_log_likelihood_bits'],
-                            planted_mean_bits_offset=float(np.mean(lr_val[idx])),
-                            planted_mean_bits_chosen=float(np.mean(per_target[selection['chosen']][idx])),
-                            planted_mean_bits_best_a=float(np.mean(per_target[best_a['name']][idx])),
+                            planted_mean_bits_offset=planted_mean(lr_val),
+                            planted_mean_bits_chosen=planted_mean(per_target[selection['chosen']]),
+                            planted_mean_bits_best_a=planted_mean(per_target[best_a['name']]),
                             best_epochs_best_a=[fits[best_a['name'], s]['best_epoch'] for s in config['seeds']],
                             selection=selection))
     top = max(results, key=lambda r: r['fraction'])
@@ -901,6 +902,7 @@ def run(config_path):
                     predictions.append(dict(coda_id=row['coda_id'], fold_id=job['fold_id'], condition=job['condition'],
                                             seed=seed, probabilities=dict(zip(job['vocab'], map(float, p)))))
             del fits
+            job_futures.clear()  # release this job's fits (weights and curves) once they are recorded
             if job['condition'] == list(conditions)[-1]:
                 print(f"Finished {job['fold_id']} ({time.perf_counter() - started:.0f} s)", flush=True)
 
@@ -1113,7 +1115,11 @@ def checks_lines(checks, curves=None, level='##'):
               f"of them (nested subsets from one RandomState({ps['sampling_seed']}) permutation per split) is relabelled "
               f"as the own coda at lag {ps['lag']}; histories are unchanged. Logistic regression is refitted on the "
               "planted data with v4's procedure, and condition A's full residual selection runs on its offsets. "
-              "Mean log2-probabilities are over the planted validation targets, seed-averaged.", '',
+              "Mean log2-probabilities are over the planted validation targets, seed-averaged. f = 0 plants nothing: "
+              "it is a reference for what condition A's selection does on this fold without a planted signal, and "
+              "is not part of the gate. Whether A is selected therefore only shows detection where it differs from "
+              "f = 0; the planted targets' log-probabilities under the residual network and the offset show whether "
+              "the planted signal itself was picked up.", '',
               '| f | Planted train/validation | Refit L2 | A selected | Chosen | Chosen gain over LR (SE) | Best A candidate | Its gain over LR | Planted: offset | Planted: chosen | Planted: best A |',
               '|---:|---|---:|---|---|---|---|---:|---:|---:|---:|']
     for r in planted['results']:

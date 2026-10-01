@@ -203,7 +203,7 @@ class ResidualSmokeTests(unittest.TestCase):
                                 checks=dict(wiring=dict(hidden=4, dropout=0.0, seed=42, epoch0_tolerance_bits=1e-12),
                                             learnability=dict(test_days=['2015-03-02'], conditions=['A'], hidden=4,
                                                               dropout=0.0, max_epochs=2, seeds=[42], minimum_gain_bits=-1e9),
-                                            planted=dict(test_day='2015-03-02', lag=6, fractions=[0.4], sampling_seed=42)))
+                                            planted=dict(test_day='2015-03-02', lag=6, fractions=[0.0, 0.4], sampling_seed=42)))
             box.run('residual', checks)
             summary = json.loads((box.root / 'out/checks/summary.json').read_text(encoding='utf-8'))
             self.assertTrue(summary['gates']['wiring'])
