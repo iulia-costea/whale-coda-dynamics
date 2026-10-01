@@ -10,7 +10,8 @@ from whale_coda_dynamics.logistic import Encoder, last_label_index, probabilitie
 from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl
 from whale_coda_dynamics.residual import (
     LR_ONLY, FitRunner, ResidualModel, candidate_list, condition_data, condition_tasks, encode_split, fit_residual,
-    load_v4_models, log_likelihood_bits_per_target, model_settings, per_target_bits, planted_reading, predict_condition,
+    load_v4_models, log_likelihood_bits_per_target, model_settings, per_target_bits, planted_sensitivity_lines,
+    predict_condition,
     prepare_folds, residual_gains, select_candidate, select_condition, softmax_rows, stored_v4_probabilities, to_tensors,
     v4_logits,
 )
@@ -280,17 +281,29 @@ class GainTests(unittest.TestCase):
         self.assertEqual(gain['zero_days'], 1)
         self.assertEqual(gain['positive_days'], 1)  # only the trained day
 
-    def test_planted_reading(self):
-        def row(f, selected, offset, chosen):
-            return dict(fraction=f, a_selected=selected, planted_mean_bits_offset=offset, planted_mean_bits_chosen=chosen,
-                        planted_train=round(60 * f))
-        results = [row(0.0, True, None, None), row(0.05, True, -3.3, -3.6), row(0.2, True, -6.2, -5.1), row(0.4, True, -6.7, -6.1)]
-        sentence = planted_reading(results)
-        self.assertIn('f >= 0.2', sentence)
-        self.assertIn('about 12 planted training targets', sentence)
-        self.assertIn('reports/rq1_lstm_residual_sensitivity.md', sentence)
-        self.assertIsNone(planted_reading([row(0.0, False, None, None)] + results[1:]))  # f = 0 does not select A
-        self.assertIsNone(planted_reading(results[:1] + [row(0.05, True, -3.3, -3.0)] + results[2:]))  # improves at once
+    def test_planted_sensitivity_lines(self):
+        def row(f, offset, chosen):
+            return dict(fraction=f, planted_mean_bits_offset=offset, planted_mean_bits_chosen=chosen, planted_train=round(60 * f))
+        checks = dict(planted=dict(results=[row(0.0, None, None), row(0.05, -3.3, -3.6), row(0.2, -6.2, -5.1), row(0.4, -6.7, -6.1)]))
+
+        def sensitivity(r_ci, ratio):
+            per = {str(f): dict(fraction=f, oracle_minus_lr=dict(mean_bits_per_coda=oracle),
+                                recovery=dict(ratio=ratio, ci_ratio=r_ci, degenerate_replicates=0))
+                   for f, oracle in ((0.1, 0.03513), (0.2, 0.06903), (0.4, 0.13702))}
+            return dict(per_fraction=per, counts=[{}] * 14, configuration=dict(lag=6))
+
+        lines = planted_sensitivity_lines(checks, sensitivity([-0.3605322447773563, 0.45651374874773254], 0.041988557124751386))
+        self.assertIn('stays as it was (on this fold the residual improved the planted validation targets from f = 0.2, '
+                      'about 12 planted training targets); its reading is superseded by the 14-fold', lines[0])
+        self.assertEqual(lines[2], "Across all 14 folds, a planted lag-6 copy worth up to 0.137 bits/coda was not reliably "
+                                   "recovered (recovery ratio at f = 0.4: 0.04 [−0.36, 0.46]); the one-fold threshold "
+                                   "doesn't hold up. The residual network's null is therefore uninformative about "
+                                   "own-history structure of this form at this data size.")
+        recovered = planted_sensitivity_lines(checks, sensitivity([0.2, 0.9], 0.5))
+        self.assertNotIn('not reliably recovered', recovered[2])
+        self.assertIn('not been produced', planted_sensitivity_lines(checks, None)[2])
+        at_once = dict(planted=dict(results=[row(0.05, -3.3, -3.0), row(0.2, -6.2, -5.1)]))  # improves at the smallest f
+        self.assertNotIn('on this fold', planted_sensitivity_lines(at_once, None)[0])
 
 
 class CommittedV4Tests(unittest.TestCase):

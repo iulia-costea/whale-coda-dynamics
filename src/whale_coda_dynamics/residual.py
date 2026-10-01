@@ -62,6 +62,11 @@ MODEL_KEYS = ('seeds', 'embedding_dim', 'learning_rate', 'weight_decay', 'batch_
 # nn.LSTM's cuDNN determinism note allows :16:8 and :4096:2; the reproducibility page allows :16:8 and :4096:8.
 CUBLAS_SETTINGS = (':16:8', ':4096:2', ':4096:8')
 
+# The 14-fold planted-signal sensitivity run (residual_planted.py). The full report reads it for one closing
+# paragraph only; it is deliberately not a config entry or a recorded input of the full run's summary.json,
+# because that run records summary.json's SHA-256 as its own input, and the two would then depend on each other.
+PLANTED_SENSITIVITY_SUMMARY = Path('data/results/rq1_lstm_residual_planted/summary.json')
+
 # Assayag et al. (2026), Bioacoustics 35(4):472-500, Table 3 (p. 494), LSTM "Coda Type (Accuracy)":
 # single-whale self-prediction, columns t0..t-8 (t0 = current coda only). Random 70/15/15 split, no baseline.
 TARGET_SINGLE_WHALE_CODA_TYPE_ACCURACY = [0.800, 0.824, 0.821, 0.889, 0.859, 0.886, 0.922, 0.746, 0.845]
@@ -1084,24 +1089,50 @@ def _pct(value):
     return 'n/a' if value is None else f'{value:.3%}'
 
 
-def planted_reading(results):
-    """One sentence on what the planted-signal table shows, from its numbers; None if the pattern differs."""
-    reference = next((r for r in results if r['fraction'] == 0), None)
+def planted_threshold(results):
+    """The one-fold check's apparent threshold: the smallest f from which the residual improves the planted
+    validation targets (and does so at every larger f), with its planted training targets; None otherwise."""
     planted = sorted((r for r in results if r['fraction'] > 0), key=lambda r: r['fraction'])
     improves = [r['planted_mean_bits_chosen'] > r['planted_mean_bits_offset'] for r in planted]
-    if reference is None or not reference['a_selected'] or not any(improves) or improves[0]:
+    if not any(improves) or improves[0]:
         return None
     first = improves.index(True)
-    if not all(improves[first:]):
-        return None
-    return (f"f = 0 already selects A, and the residual only improves the planted targets at "
-            f"f >= {planted[first]['fraction']}. The plant is a deterministic copy, so what limits detection is how "
-            f"often it occurs, not how strong it is: the design only picks up the pattern once it occurs often enough, "
-            f"on this fold about {planted[first]['planted_train']} planted training targets. The 14-fold figures are in "
-            f"reports/rq1_lstm_residual_sensitivity.md.")
+    return planted[first] if all(improves[first:]) else None
 
 
-def checks_lines(checks, curves=None, level='##', reading=False):
+def _signed(value, digits):
+    return f'{value:.{digits}f}'.replace('-', '−')
+
+
+def planted_sensitivity_lines(checks, planted):
+    """Closing lines of the one-fold planted-signal section in the full report: the check stays as the pre-run
+    gate it was, and the 14-fold sensitivity run supersedes its reading."""
+    threshold = planted_threshold(checks['planted']['results'])
+    seen = (f" (on this fold the residual improved the planted validation targets from f = {threshold['fraction']}, "
+            f"about {threshold['planted_train']} planted training targets)" if threshold else '')
+    lines = [f"This one-fold check was the pre-run gate and stays as it was{seen}; its reading is superseded by the "
+             "14-fold planted-signal sensitivity run, reports/rq1_lstm_residual_sensitivity.md.", '']
+    if planted is None:
+        return lines + ['The 14-fold planted-signal sensitivity run has not been produced yet.', '']
+    per = list(planted['per_fraction'].values())
+    top = max(per, key=lambda p: p['fraction'])
+    worth = max(p['oracle_minus_lr']['mean_bits_per_coda'] for p in per)
+    r = top['recovery']
+    recovered = any(p['recovery']['degenerate_replicates'] == 0 and p['recovery']['ci_ratio'][0] > 0 for p in per)
+    head = (f"Across all {len(planted['counts'])} folds, a planted lag-{planted['configuration']['lag']} copy worth up "
+            f"to {_signed(worth, 3)} bits/coda")
+    ratio = (f"recovery ratio at f = {top['fraction']}: {_signed(r['ratio'], 2)} "
+             f"[{_signed(r['ci_ratio'][0], 2)}, {_signed(r['ci_ratio'][1], 2)}]")
+    if not recovered:
+        lines.append(f"{head} was not reliably recovered ({ratio}); the one-fold threshold doesn't hold up. The "
+                     "residual network's null is therefore uninformative about own-history structure of this form at "
+                     "this data size.")
+    else:
+        lines.append(f"{head} gives a {ratio}; the bound it implies is in the sensitivity report.")
+    return lines + ['']
+
+
+def checks_lines(checks, curves=None, level='##', with_sensitivity=False, sensitivity=None):
     lines = []
     wiring = checks['wiring']
     lines += [f'{level} a. Wiring (PLAN [M4] checks 1 and 2), all folds and conditions', '',
@@ -1179,9 +1210,8 @@ def checks_lines(checks, curves=None, level='##', reading=False):
                      f"{_f(r['best_a_gain_over_lr_bits'])} | {_f(r['planted_mean_bits_offset'], 3)} | "
                      f"{_f(r['planted_mean_bits_chosen'], 3)} | {_f(r['planted_mean_bits_best_a'], 3)} |")
     lines += ['', f"Gate (A's residual selected at the largest fraction): {'passed' if planted['passed'] else 'FAILED'}.", '']
-    sentence = planted_reading(planted['results']) if reading else None
-    if sentence:
-        lines += [sentence, '']
+    if with_sensitivity:
+        lines += planted_sensitivity_lines(checks, sensitivity)
     return lines
 
 
@@ -1316,7 +1346,10 @@ def write_report(root, config, summary, v4_summary, selections, checks, learnabi
               'v4 on a condition (which now signals selection overfitting to validation days, DEC-21).', '']
     lines += [f"- {r}" for r in summary['stop_reasons']] or ['None fires.']
 
-    lines += ['', '## Checks before the full run (step 6)', ''] + checks_lines(checks, learnability_curves, level='###', reading=True)
+    sensitivity_path = root / PLANTED_SENSITIVITY_SUMMARY
+    sensitivity = read_json(sensitivity_path) if sensitivity_path.is_file() else None
+    lines += ['', '## Checks before the full run (step 6)', ''] + checks_lines(
+        checks, learnability_curves, level='###', with_sensitivity=True, sensitivity=sensitivity)
     lines += ['### d. Device and throughput', ''] + throughput_lines(throughput)
 
     ctx = summary['assayag_context']
