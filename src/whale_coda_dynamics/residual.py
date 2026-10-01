@@ -1095,7 +1095,10 @@ def planted_reading(results):
     if not all(improves[first:]):
         return None
     return (f"f = 0 already selects A, and the residual only improves the planted targets at "
-            f"f >= {planted[first]['fraction']}, so the design detects strong patterns only.")
+            f"f >= {planted[first]['fraction']}. The plant is a deterministic copy, so what limits detection is how "
+            f"often it occurs, not how strong it is: the design only picks up the pattern once it occurs often enough, "
+            f"on this fold about {planted[first]['planted_train']} planted training targets. The 14-fold figures are in "
+            f"reports/rq1_lstm_residual_sensitivity.md.")
 
 
 def checks_lines(checks, curves=None, level='##', reading=False):
@@ -1250,6 +1253,8 @@ def write_report(root, config, summary, v4_summary, selections, checks, learnabi
         ll = _f(m.get('mean_log_likelihood_bits'))
         lines.append(f"| {name} | {ll} | {ll} | {_pct(m['accuracy'])} | {_pct(m['accuracy'])} | {m['macro_f1']:.4f} | "
                      f"{m['macro_f1']:.4f} | | | | | |")
+    lines += ['', 'How large a pattern of one known form condition A\'s residual would have detected: planted-signal '
+              'sensitivity run over all 14 folds, synthetic labels only, in reports/rq1_lstm_residual_sensitivity.md.']
     lines += ['', f"Repetition: {summary['raw_repeats']} of {summary['comparison_targets']} comparison targets "
               f"({summary['raw_repeats'] / summary['comparison_targets']:.1%}) repeat the whale's own previous coda "
               f"({summary['mapped_repeats']} after UNK mapping).", '']

@@ -230,6 +230,20 @@ class ResidualSmokeTests(unittest.TestCase):
             before = {rel: (box.root / rel).read_bytes() for rel in regenerated}
             box.run('residual', full, '--report-only')
             self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
+            # Planted-signal sensitivity run for condition A on every fold (synthetic labels), against the run above.
+            box.config('logistic_tiny.json', history_order=3, l2_grid=[0.01], max_iterations=2000, gradient_tolerance=1e-6)
+            planted = box.config('planted.json', manifest=PRIMARY, logistic_config='config/logistic_tiny.json',
+                                 real_run_summary='out/residual/evaluation/summary.json',
+                                 real_run_scored='out/residual/evaluation/scored_predictions.jsonl',
+                                 throughput_summary='out/throughput/summary.json', output_directory='out/planted',
+                                 report='out/planted.md', fractions=[0.1, 0.4], lag=6, sampling_seed=42,
+                                 bootstrap_replicates=50, bootstrap_seed=42, confidence=0.95, ratio_handful=5,
+                                 **TINY_RESIDUAL)
+            box.run('residual_planted', planted)
+            summary = json.loads((box.root / 'out/planted/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(set(summary['per_fraction']), {'0.1', '0.4'})
+            self.assertEqual(len(summary['counts']), 14)
+            self.assertTrue((box.root / 'out/planted.md').read_text(encoding='utf-8').strip())
 
 
 if __name__ == '__main__':

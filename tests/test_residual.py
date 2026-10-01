@@ -282,9 +282,13 @@ class GainTests(unittest.TestCase):
 
     def test_planted_reading(self):
         def row(f, selected, offset, chosen):
-            return dict(fraction=f, a_selected=selected, planted_mean_bits_offset=offset, planted_mean_bits_chosen=chosen)
+            return dict(fraction=f, a_selected=selected, planted_mean_bits_offset=offset, planted_mean_bits_chosen=chosen,
+                        planted_train=round(60 * f))
         results = [row(0.0, True, None, None), row(0.05, True, -3.3, -3.6), row(0.2, True, -6.2, -5.1), row(0.4, True, -6.7, -6.1)]
-        self.assertIn('f >= 0.2', planted_reading(results))
+        sentence = planted_reading(results)
+        self.assertIn('f >= 0.2', sentence)
+        self.assertIn('about 12 planted training targets', sentence)
+        self.assertIn('reports/rq1_lstm_residual_sensitivity.md', sentence)
         self.assertIsNone(planted_reading([row(0.0, False, None, None)] + results[1:]))  # f = 0 does not select A
         self.assertIsNone(planted_reading(results[:1] + [row(0.05, True, -3.3, -3.0)] + results[2:]))  # improves at once
 
