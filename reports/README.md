@@ -17,4 +17,10 @@ Which report is current and which is kept only as a record. All reports here exc
 | `rq1_retrospective_sensitivity_v4.md` | Old-delay sensitivity run, on the v4 model | Current |
 | `rq1_lstm.md` | LSTM v1: fixed WhaleLM settings, no copy weights | Superseded by DEC-17; kept as a record of why |
 | `rq1_lstm_reproduction.md` | Assayag partner-only reproduction, v1 | Superseded: reframed as a context check in DEC-17 |
+| `rq1_lstm_v2_pilot.md` | LSTM v2 pilot (DEC-17, DEC-20): conditions A and A_B_S on four test days | Superseded by the residual LSTM (DEC-21); kept as a record |
+| `rq1_lstm_v2_suppression.md` | LSTM v2 S-suppression diagnostic (DEC-20) | Superseded by DEC-21; kept as a record |
+| `rq1_lstm_v2_timing.md` | LSTM v2 timing and determinism check | Superseded by DEC-21; kept as a record |
+| `rq1_lstm_residual_checks.md` | Residual LSTM checks before the full run, training and validation days only: wiring, learnability, planted signal (DEC-21, PLAN `[M4]`) | Current. All gates pass |
+| `rq1_lstm_residual_throughput.md` | Residual LSTM device and throughput measurement; chose CPU ×18 | Current |
+| `rq1_lstm_residual.md` | Residual LSTM on top of a frozen logistic v4 (DEC-21): the enlarged-family check, both lattices, residual gains, chosen candidates, Assayag context check | Current. No stop rule fires. Known bug: the positive/zero-day counts of the residual-gain column include ~1e-16 float noise on folds where v4 alone was chosen (means and CIs unaffected); fix pending |
 | `data_dictionary.md` | Field meanings, provenance and open questions (hand-written) | Current |
