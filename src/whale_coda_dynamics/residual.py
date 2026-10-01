@@ -819,13 +819,12 @@ def run_throughput(config_path):
 # ---------------------------------------------------------------- full run
 
 def run(config_path):
+    """Fit every fold, condition, candidate and seed, write the fitted outputs, then finalize()."""
     path, root, config, manifest, manifest_path, source = _load(config_path)
     evaluation_config = read_json(root / config['evaluation_config'])
     if evaluation_config['seeds'] != config['seeds']:
         raise ValueError('Evaluation seed configuration mismatch')
-    checks_path = root / config['checks_summary']
-    curves_path = checks_path.parent / 'learnability_curves.jsonl'
-    checks, learnability_curves = read_json(checks_path), read_jsonl(curves_path)
+    checks = read_json(root / config['checks_summary'])
     throughput = read_json(root / config['throughput_summary'])
     check_model_settings(config, checks['configuration'], 'The checks')
     check_model_settings(config, throughput['configuration'], 'The throughput measurement')
@@ -906,6 +905,39 @@ def run(config_path):
             if job['condition'] == list(conditions)[-1]:
                 print(f"Finished {job['fold_id']} ({time.perf_counter() - started:.0f} s)", flush=True)
 
+    output = root / config['output_directory']
+    output.mkdir(parents=True, exist_ok=True)
+    write_jsonl(output / 'predictions.jsonl', predictions)
+    write_jsonl(output / 'baseline_predictions.jsonl', baselines)
+    write_jsonl(output / 'selection.jsonl', selections)
+    write_jsonl(output / 'fits.jsonl', fits_out)
+    write_jsonl(output / 'validation_scores.jsonl', scores)
+    write_jsonl(output / 'training_curves.jsonl', curves)
+    return finalize(path, root, config, manifest, manifest_path, source, rows, predictions, baselines, selections)
+
+
+def report_only(config_path):
+    """Regenerate the evaluation, summary and report from the committed outputs of a full run (test
+    predictions, baselines, selection records) and logistic v4's stored probabilities, without refitting."""
+    path, root, config, manifest, manifest_path, source = _load(config_path)
+    output = root / config['output_directory']
+    return finalize(path, root, config, manifest, manifest_path, source, read_jsonl(source),
+                    read_jsonl(output / 'predictions.jsonl'), read_jsonl(output / 'baseline_predictions.jsonl'),
+                    read_jsonl(output / 'selection.jsonl'))
+
+
+def finalize(path, root, config, manifest, manifest_path, source, rows, predictions, baselines, selections):
+    """Everything after fitting: shared evaluation, baselines, residual gains, stop rules, summary and
+    report. run() calls it on what it just fitted and wrote; report_only() on the committed files, so
+    both produce the same bytes."""
+    evaluation_config = read_json(root / config['evaluation_config'])
+    if evaluation_config['seeds'] != config['seeds']:
+        raise ValueError('Evaluation seed configuration mismatch')
+    checks_path, throughput_path = root / config['checks_summary'], root / config['throughput_summary']
+    curves_path = checks_path.parent / 'learnability_curves.jsonl'
+    checks, learnability_curves, throughput = read_json(checks_path), read_jsonl(curves_path), read_json(throughput_path)
+    stored = stored_v4_probabilities(root / config['logistic_predictions'])
+    conditions, seeds = manifest['input_conditions'], config['seeds']
     summary, scored, paired = evaluate(predictions, manifest, rows, seeds, evaluation_config['bootstrap_replicates'],
                                        evaluation_config['bootstrap_seed'], evaluation_config['confidence'])
     baseline_metrics = {'majority': classification_metrics([r['target'] for r in baselines], [r['majority'] for r in baselines]),
@@ -922,7 +954,7 @@ def run(config_path):
         baseline_checks[condition] = day_bootstrap_bits(days, evaluation_config['bootstrap_replicates'],
                                                         evaluation_config['bootstrap_seed'], evaluation_config['confidence'])
     v4_scored_path = root / config['logistic_scored']
-    gains = residual_gains(seed_mean, {r['coda_id']: r['target'] for r in scored}, stored, conditions, evaluation_config)
+    gains = residual_gains(scored, stored, conditions, evaluation_config)
     stop_reasons = check_stop_conditions(summary, baseline_metrics, baseline_checks)
     stop_reasons += [f"{c}: residual gain over logistic v4 reliably below zero (CI {format_ci(g['ci_bits_per_coda'])})"
                      for c, g in gains.items() if g['ci_bits_per_coda'][1] < 0]
@@ -932,23 +964,18 @@ def run(config_path):
                               manifest['preparation_configuration']['history_limit'])
 
     output = root / config['output_directory']
-    output.mkdir(parents=True, exist_ok=True)
-    write_jsonl(output / 'predictions.jsonl', predictions)
-    write_jsonl(output / 'baseline_predictions.jsonl', baselines)
-    write_jsonl(output / 'selection.jsonl', selections)
-    write_jsonl(output / 'fits.jsonl', fits_out)
-    write_jsonl(output / 'validation_scores.jsonl', scores)
-    write_jsonl(output / 'training_curves.jsonl', curves)
     eval_output = output / 'evaluation'
-    eval_output.mkdir(exist_ok=True)
+    eval_output.mkdir(parents=True, exist_ok=True)
     write_jsonl(eval_output / 'scored_predictions.jsonl', scored)
     write_jsonl(eval_output / 'paired_contrasts.jsonl', paired)
-    inputs = [source, manifest_path, path, root / config['evaluation_config'], checks_path, curves_path,
-              root / config['throughput_summary'], root / config['logistic_models'], root / config['logistic_predictions'],
-              v4_scored_path, v4_summary_path]
-    summary.update(configuration=config, device=dict(device=device, workers=workers), baseline_metrics=baseline_metrics,
-                   repeat_baseline_checks=baseline_checks, residual_gain=gains, stop_reasons=stop_reasons,
-                   chosen_candidates=chosen_distribution(selections, conditions), assayag_context=context,
+    inputs = [source, manifest_path, path, root / config['evaluation_config'], checks_path, curves_path, throughput_path,
+              root / config['logistic_models'], root / config['logistic_predictions'], v4_scored_path, v4_summary_path,
+              output / 'predictions.jsonl', output / 'baseline_predictions.jsonl', output / 'selection.jsonl']
+    summary.update(configuration=config,
+                   device=dict(device=throughput['choice']['device'], workers=throughput['choice']['workers']),
+                   baseline_metrics=baseline_metrics, repeat_baseline_checks=baseline_checks, residual_gain=gains,
+                   stop_reasons=stop_reasons, chosen_candidates=chosen_distribution(selections, conditions),
+                   assayag_context=context,
                    versions={'numpy': np.__version__, 'scipy': scipy.__version__, 'torch': torch.__version__},
                    input_sha256=_hashes(root, inputs))
     write_text(eval_output / 'summary.json', json.dumps(summary, indent=2, allow_nan=False) + '\n')
@@ -965,19 +992,25 @@ def seed_averaged_scores(scored):
             for key, rs in grouped.items()}
 
 
-def residual_gains(seed_mean, targets, stored, conditions, evaluation_config):
+def residual_gains(scored, stored, conditions, evaluation_config):
     """[U1] in DEC-21's form: residual network minus logistic v4, paired per coda, day bootstrap.
 
-    v4's per-coda log-likelihood is recomputed here from its stored probabilities with the shared
-    evaluation module, rather than read from its scored file: that file was written on another
-    machine, whose log2 can differ in the last bit, which would turn folds where v4 itself was
-    chosen (gain exactly zero) into noise-level positive or negative days."""
+    Each coda's gain is the mean over seeds of (that seed's log-likelihood - v4's), not the seed-averaged
+    log-likelihood minus v4's: the two are equal in exact arithmetic, but averaging five identical
+    floats does not always return the same float, which turned folds where v4 alone was chosen (gain
+    exactly zero) into ~1e-16 positive or negative days. v4's log-likelihood is recomputed from its
+    stored probabilities with the shared evaluation module rather than read from its scored file, which
+    was written on another machine whose log2 can differ in the last bit."""
+    per_coda = defaultdict(list)
+    for r in scored:
+        v4 = log_likelihood_bits(stored[r['coda_id'], r['condition']][r['target']])
+        per_coda[r['condition'], r['coda_id'], r['recording_date']].append(r['log_likelihood_bits'] - v4)
     gains = {}
     for condition in conditions:
         days = defaultdict(list)
-        for (c, coda_id), (ll, day) in seed_mean.items():
+        for (c, coda_id, day), differences in per_coda.items():
             if c == condition:
-                days[day].append(ll - log_likelihood_bits(stored[coda_id, condition][targets[coda_id]]))
+                days[day].append(math.fsum(differences) / len(differences))
         stats = day_bootstrap_bits(days, evaluation_config['bootstrap_replicates'], evaluation_config['bootstrap_seed'],
                                    evaluation_config['confidence'])
         stats['zero_days'] = sum(all(v == 0 for v in values) for values in days.values())
@@ -1051,7 +1084,21 @@ def _pct(value):
     return 'n/a' if value is None else f'{value:.3%}'
 
 
-def checks_lines(checks, curves=None, level='##'):
+def planted_reading(results):
+    """One sentence on what the planted-signal table shows, from its numbers; None if the pattern differs."""
+    reference = next((r for r in results if r['fraction'] == 0), None)
+    planted = sorted((r for r in results if r['fraction'] > 0), key=lambda r: r['fraction'])
+    improves = [r['planted_mean_bits_chosen'] > r['planted_mean_bits_offset'] for r in planted]
+    if reference is None or not reference['a_selected'] or not any(improves) or improves[0]:
+        return None
+    first = improves.index(True)
+    if not all(improves[first:]):
+        return None
+    return (f"f = 0 already selects A, and the residual only improves the planted targets at "
+            f"f >= {planted[first]['fraction']}, so the design detects strong patterns only.")
+
+
+def checks_lines(checks, curves=None, level='##', reading=False):
     lines = []
     wiring = checks['wiring']
     lines += [f'{level} a. Wiring (PLAN [M4] checks 1 and 2), all folds and conditions', '',
@@ -1129,6 +1176,9 @@ def checks_lines(checks, curves=None, level='##'):
                      f"{_f(r['best_a_gain_over_lr_bits'])} | {_f(r['planted_mean_bits_offset'], 3)} | "
                      f"{_f(r['planted_mean_bits_chosen'], 3)} | {_f(r['planted_mean_bits_best_a'], 3)} |")
     lines += ['', f"Gate (A's residual selected at the largest fraction): {'passed' if planted['passed'] else 'FAILED'}.", '']
+    sentence = planted_reading(planted['results']) if reading else None
+    if sentence:
+        lines += [sentence, '']
     return lines
 
 
@@ -1261,7 +1311,7 @@ def write_report(root, config, summary, v4_summary, selections, checks, learnabi
               'v4 on a condition (which now signals selection overfitting to validation days, DEC-21).', '']
     lines += [f"- {r}" for r in summary['stop_reasons']] or ['None fires.']
 
-    lines += ['', '## Checks before the full run (step 6)', ''] + checks_lines(checks, learnability_curves, level='###')
+    lines += ['', '## Checks before the full run (step 6)', ''] + checks_lines(checks, learnability_curves, level='###', reading=True)
     lines += ['### d. Device and throughput', ''] + throughput_lines(throughput)
 
     ctx = summary['assayag_context']
@@ -1333,9 +1383,18 @@ def write_report(root, config, summary, v4_summary, selections, checks, learnabi
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default='config/rq1_lstm_residual.json')
+    parser.add_argument('--report-only', action='store_true',
+                        help='full-run config only: regenerate evaluation, summary and report from the committed '
+                             'predictions without refitting')
     args = parser.parse_args()
     config = read_json(Path(args.config).resolve())
-    if 'throughput' in config:
+    if args.report_only:
+        if 'throughput' in config or 'checks' in config:
+            raise ValueError('--report-only applies to the full-run config')
+        _, stop_reasons = report_only(args.config)
+        if stop_reasons:
+            print(f'STOP: {len(stop_reasons)} stop rule(s) fired. See the report.')
+    elif 'throughput' in config:
         choice = run_throughput(args.config)['choice']
         print(f"Chosen device: {choice['device']} x{choice['workers']}; estimated {choice['estimated_hours']:.1f} h "
               f"for {choice['full_study_fits']} fits")

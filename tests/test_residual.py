@@ -10,9 +10,11 @@ from whale_coda_dynamics.logistic import Encoder, last_label_index, probabilitie
 from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl
 from whale_coda_dynamics.residual import (
     LR_ONLY, FitRunner, ResidualModel, candidate_list, condition_data, condition_tasks, encode_split, fit_residual,
-    load_v4_models, log_likelihood_bits_per_target, model_settings, per_target_bits, predict_condition,
-    prepare_folds, select_candidate, select_condition, softmax_rows, stored_v4_probabilities, to_tensors, v4_logits,
+    load_v4_models, log_likelihood_bits_per_target, model_settings, per_target_bits, planted_reading, predict_condition,
+    prepare_folds, residual_gains, select_candidate, select_condition, softmax_rows, stored_v4_probabilities, to_tensors,
+    v4_logits,
 )
+from whale_coda_dynamics.evaluation import log_likelihood_bits
 
 ROOT = Path(__file__).resolve().parents[1]
 VOCAB = ['a', 'b', 'c', 'UNK']
@@ -252,6 +254,39 @@ class SelectionTests(unittest.TestCase):
             pooled = runner.run(tasks)
         self.assertEqual([k for k, _ in serial], [k for k, _ in pooled])
         self.assertEqual([f['curve'] for _, f in serial], [f['curve'] for _, f in pooled])
+
+
+class GainTests(unittest.TestCase):
+    def test_fold_with_v4_chosen_gives_exactly_zero_gain(self):
+        """Every seed equal to v4 must give a gain of exactly 0 for the day, not float noise: pick a
+        probability whose log-likelihood, averaged over five identical copies, is not returned exactly."""
+        seeds = [42, 43, 44, 45, 46]
+        rng = np.random.RandomState(0)
+        for _ in range(100000):
+            p = float(rng.uniform(0.01, 0.99))
+            if math.fsum([log_likelihood_bits(p)] * len(seeds)) / len(seeds) != log_likelihood_bits(p):
+                break
+        else:
+            self.fail('no probability found whose five-copy average is inexact')
+        stored = {('v4-day', 'A'): {'a': p, 'b': 1 - p}, ('trained-day', 'A'): {'a': 0.5, 'b': 0.5}}
+        scored = []
+        for seed in seeds:  # v4 alone chosen on one day; a trained network, different per seed, on the other
+            scored.append(dict(coda_id='v4-day', condition='A', seed=seed, recording_date='2020-01-01', target='a',
+                               log_likelihood_bits=log_likelihood_bits(p)))
+            scored.append(dict(coda_id='trained-day', condition='A', seed=seed, recording_date='2020-01-02', target='a',
+                               log_likelihood_bits=log_likelihood_bits(0.5 + 0.01 * (seed - 41))))
+        gain = residual_gains(scored, stored, ['A'], dict(bootstrap_replicates=50, bootstrap_seed=42, confidence=0.95))['A']
+        self.assertEqual(gain['day_means_bits']['2020-01-01'], 0.0)
+        self.assertEqual(gain['zero_days'], 1)
+        self.assertEqual(gain['positive_days'], 1)  # only the trained day
+
+    def test_planted_reading(self):
+        def row(f, selected, offset, chosen):
+            return dict(fraction=f, a_selected=selected, planted_mean_bits_offset=offset, planted_mean_bits_chosen=chosen)
+        results = [row(0.0, True, None, None), row(0.05, True, -3.3, -3.6), row(0.2, True, -6.2, -5.1), row(0.4, True, -6.7, -6.1)]
+        self.assertIn('f >= 0.2', planted_reading(results))
+        self.assertIsNone(planted_reading([row(0.0, False, None, None)] + results[1:]))  # f = 0 does not select A
+        self.assertIsNone(planted_reading(results[:1] + [row(0.05, True, -3.3, -3.0)] + results[2:]))  # improves at once
 
 
 class CommittedV4Tests(unittest.TestCase):

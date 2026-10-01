@@ -54,9 +54,9 @@ class Sandbox:
         return self.config(name, manifest=manifest, predictions='unused', output_directory='unused',
                            seeds=seeds, bootstrap_replicates=50, bootstrap_seed=42, confidence=0.95)
 
-    def run(self, module, config):
+    def run(self, module, config, *args):
         env = dict(os.environ, PYTHONPATH=str(ROOT / 'src'))
-        result = subprocess.run([sys.executable, '-m', f'whale_coda_dynamics.{module}', '--config', str(config)],
+        result = subprocess.run([sys.executable, '-m', f'whale_coda_dynamics.{module}', '--config', str(config), *args],
                                 cwd=self.root, env=env, capture_output=True, text=True)
         if result.returncode != 0:
             raise AssertionError(f'{module} failed:\n{result.stdout[-2000:]}\n{result.stderr[-4000:]}')
@@ -224,6 +224,12 @@ class ResidualSmokeTests(unittest.TestCase):
             # Condition none is logistic v4's prior on every fold: its gain must be exactly zero, not float noise.
             none = summary['residual_gain']['none']
             self.assertEqual((none['zero_days'], none['positive_days'], none['mean_bits_per_coda']), (14, 0, 0.0))
+            # Regenerating from the committed outputs, without refitting, reproduces the full run byte for byte.
+            regenerated = ('out/residual.md', 'out/residual/evaluation/summary.json',
+                           'out/residual/evaluation/scored_predictions.jsonl', 'out/residual/evaluation/paired_contrasts.jsonl')
+            before = {rel: (box.root / rel).read_bytes() for rel in regenerated}
+            box.run('residual', full, '--report-only')
+            self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
 
 
 if __name__ == '__main__':
