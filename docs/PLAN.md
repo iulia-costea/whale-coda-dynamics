@@ -4,13 +4,14 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Why** each choice was made, and how this differs from the proposal: `docs/DECISIONS.md`.
 - **Deferred** ideas: `docs/LATER.md`.
 
-**Status (2026-09-29):**
+**Status (2026-10-01):**
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
 - **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
 - **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
 - **Done:** logistic-regression reference v4 with copy weights and separate validation-chosen penalties for the history and $S$ blocks (DEC-16, DEC-20): `reports/rq1_logistic_v4.md`, `reports/rq1_retrospective_sensitivity_v4.md`. Gate 1 fully holds: all 4,914 fits converged, no DEC-16 stop rule fires in either the primary or old-delay run, and no condition sits at a grid edge in a majority of folds for its real feature blocks. The `add_input:A_B_S-A_B` failure that persisted through v2 and v3 is resolved: the timing contrast now spans zero (`-0.020`, CI `[-0.046, 0.001]`) instead of being reliably negative, confirming DEC-20's diagnosis.
 - **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
-- **In progress:** LSTM v2 (DEC-17, DEC-20), pilot first.
+- **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
+- **In progress:** the residual LSTM on top of logistic v4 (DEC-21): checks, then the full run.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -129,14 +130,14 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 - **Folds:** leave-one-day-out, 14 folds. In each fold, one training day is held aside for validation and early stopping.
 - **Paired contrasts:** all conditions score the same test codas.
   - A contrast is the mean over test codas of the per-coda difference in $\log_2$ probability.
-  - Neural models average over 3 seeds per coda.
+  - Neural models average over their seeds per coda (5 for the residual LSTM, DEC-21).
 - **Uncertainty:**
   - day-level bootstrap CI (resample the 14 days, never individual codas; 10,000 replicates);
   - the number of days, out of 14, with a positive contrast;
   - the unweighted mean of the 14 day-level contrasts, next to the token-weighted mean. The token-weighted mean is the primary estimand; three days hold 58% of the targets, so the unweighted mean shows whether a result rests on a few days.
   - Note in the write-up that 14 days give rough CIs.
 
-**`[M4]` Models** (DEC-12, DEC-16, DEC-17, DEC-20)
+**`[M4]` Models** (DEC-12, DEC-16, DEC-17, DEC-20, DEC-21)
 - **Shared copy weights, in every model that uses $A$ or $B$.** For each candidate coda type $c$:
   $$\text{score}(c) = \text{usual per-type terms} + \beta\,\mathbb{1}[c = \text{own last coda}] + \gamma\,\mathbb{1}[c = \text{partner's last coda}]$$
   - $\beta$ exists only in conditions with $A$, $\gamma$ only in conditions with $B$. Each is one number shared across all coda types.
@@ -145,12 +146,19 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 - **Reference model: multinomial logistic regression**, run first; it is the `[U1]` reference.
   - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, the two timing values (standardised, plus `log1p`), and the copy weights.
   - L2 for the history blocks and, where $S$ is present, a separate L2 for $S$, both chosen per fold and condition on the validation day from {0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0}, by validation log-likelihood; ties go to the larger value on each axis. The model trained on training days only is scored on the test day.
-- **Main model: LSTM**, reported for all eight conditions with 3 seeds.
-  - One 1-layer LSTM encoder per coda-history input ($A$, $B$) and a small feed-forward encoder for $S$, concatenated into a shared output layer, plus the copy weights. An absent input means its encoder and its copy weight are removed.
-  - Optimiser: Adam, learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch.
-  - Chosen per fold and condition on the validation day, with one grid and one rule for all conditions: dropout {0, 0.2, 0.4} × hidden size {32, 64} × weight decay for the history encoders {1e-5, 1e-4, 1e-3} and, where $S$ is present, a separate weight decay for the $S$ encoder {1e-5, 1e-3, 1.0} (wide enough to verify $S$ can be switched off in practice). Criterion: validation log-likelihood averaged over the 3 seeds; ties go to the smaller, more regularised setting on each axis. The chosen setting's 3 seeds are the reported runs.
-  - **Pilot first:** conditions A and A+B+S on the three largest test days plus one small one (one seed and a reduced grid are fine), logging training and validation log-likelihood per epoch, compared with logistic regression on the same folds. Run the full study only if the pilot is at or above repeat-own-last and not reliably below logistic regression.
-- **Stop rules (log-likelihood only).** Stop and investigate before writing conclusions if any of these has a day-bootstrap CI entirely below zero: an $A$-condition against repeat-own-last; an add-one-input contrast; (LSTM) the paired difference to logistic regression on a condition. Accuracy and macro-F1 are reported but not used to stop. The LSTM *matching* logistic regression is acceptable.
+- **Neural model: residual LSTM on top of logistic v4 (DEC-21)**, all eight conditions, 5 seeds (42–46). It is the enlarged-family check; logistic v4 gives the headline lattice.
+  - Per fold and condition $c$: $z(x) = z^{\mathrm{LR}}_c(x) + \sum_{s\in c} U_s\,h_s(x)$. Logistic v4's logits are a fixed offset, precomputed from its committed fits. One 1-layer LSTM encoder per coda history (up to 10 codas) and a small feed-forward encoder for $S$; bias-free output projections $U_s$ initialised at 0; no separate output bias or copy weights (both are in the offset).
+  - Each block on or absent (absent = not built); with every block absent the model is logistic v4 exactly.
+  - AdamW (decoupled weight decay 0.1), learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch; epoch 0 (= logistic v4) is a candidate.
+  - Candidates: hidden size {16, 32, 64} × dropout {0, 0.2, 0.4} × each block on or absent, plus logistic v4. Selection: per-target validation log-likelihood averaged over the seeds; take the simplest candidate within one standard error of the best (SE of the per-target paired differences, target level); simplicity order: fewer blocks on, smaller hidden size, more dropout.
+  - **Checks before the full run** (training and validation days only):
+    1. epoch 0 reproduces logistic v4's validation log-likelihood to float precision, and the precomputed offsets reproduce v4's stored test probabilities;
+    2. every block absent reproduces v4 exactly (unit test);
+    3. learnability: with blocks on and no early stopping, training loss falls well below logistic regression's;
+    4. planted signal on one fold: relabel some targets (labels only, histories unchanged) as the own coda at lag 6, only where it differs from lags 1–3 and the target has at least 6 own codas; on training and validation days; refit logistic regression on the planted data; the $A$ residual should switch on and recover the signal. Several fractions give a rough detectable effect size.
+    Time a pilot before the full run.
+- **LSTM v2 (DEC-17, DEC-20) — superseded by DEC-21**, kept as a record: reliably below logistic v4 on 5 of 7 conditions; likely causes in DEC-21.
+- **Stop rules (log-likelihood only).** Stop and investigate before writing conclusions if any of these has a day-bootstrap CI entirely below zero: an $A$-condition against repeat-own-last; an add-one-input contrast; (residual LSTM) its residual gain over logistic v4 on a condition, which now signals selection overfitting to validation days rather than a training failure (DEC-21). Accuracy and macro-F1 are reported but not used to stop. A residual gain of zero is acceptable.
 - **Context check against Assayag et al.** Their split is random, ours holds out whole days, so their accuracies are optimistic next to ours. Compare like with like, without retraining: condition (iv) on switch/overlap targets only against the majority class on that subset, and condition (iii) against their single-whale results.
 - **Later:** a small Transformer with the same per-input structure; Kneser-Ney/VLMC models (`docs/LATER.md`).
 
@@ -175,9 +183,9 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 | `[V1]` | Can turn category be predicted from coda types alone? Report $H(S \mid C)/H(S)$ | If yes, conditioning on $S$ is nearly meaningless |
 | `[V2]` | Does timing help predict the next coda given the previous one? | This is where persistence and composition diverge |
 | `[V3]` | Are the information estimates stable across bout thresholds? (secondary) | Assayag et al. only checked correlations |
-| `[U1]` | The LSTM must not do worse than logistic regression on the same condition (paired CI entirely below zero) | Otherwise it is undertrained |
+| `[U1]` | The residual LSTM must not do worse than logistic v4 on the same condition (paired CI entirely below zero) | It can't on validation days by construction (DEC-21); below on test days means selection overfitting to the validation days |
 | `[U2]` | For the 12 "add one input" pairs, the larger model should score at least as well; count violations | Violations signal fitting problems |
-| `[U3]` | Hidden size is selected from 32/64 per fold (`[M4]`); optionally check 128 afterwards. Contrasts should plateau | Capacity limits |
+| `[U3]` | Hidden size is selected from 16/32/64 per fold (`[M4]`); optionally check 128 afterwards. Contrasts should plateau | Capacity limits |
 | `[U4]` | Retrain on 25–100% of training days; contrasts should stabilise | Data limits |
 | `[U5]` | Variance across seeds | |
 | `[U6]` | Train–test gap per condition | |
@@ -267,6 +275,14 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 
 **Caution about nulls:** limited data and capacity push contrasts toward zero. A positive contrast is robust; a null might just mean too little data. Say so whenever reporting a null.
 
+**The residual LSTM (DEC-21)**
+- Headline numbers come from logistic v4. The residual network's lattice and each condition's residual gain are reported next to them as the enlarged-family check.
+- A near-zero residual reads "no further structure detectable in the enlarged family at this data size", not "none exists".
+- A positive residual means structure in that block that logistic regression can't express: for $A$ and $B$, lags 4–10 or non-additive patterns within lags 1–3; for $S$, nonlinear timing effects. We don't separate these; don't call it "long-range".
+- A contrast is v4's contrast plus the difference between the two conditions' residual gains; don't call the contrasts monotone.
+- On validation days the residual network and logistic regression agree by construction, so their agreement isn't evidence against an optimisation failure; that evidence is the learnability checks in `[M4]`.
+- Course framing: "Logistic regression is a softmax network without hidden layers; the residual LSTM's family contains v4 exactly, as the member whose residual is switched off."
+
 **How to read the outcomes**
 
 | Result | Reading |
@@ -308,9 +324,10 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - flag long codas — **done**, 153 Sharma source codas flagged without filtering.
 2. **Phase 2 — evaluation and folds: done.** The shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
-   - Logistic regression v1 (fixed L2) — done, superseded. v2 with copy weights and validation-chosen L2 (DEC-16) — done. Rerun with the extended L2 grid — to do.
+   - Logistic regression v1 (fixed L2), v2 (copy weights, validation-chosen L2, DEC-16) and v3 (extended grid) — done, superseded. v4 with separate history and $S$ penalties (DEC-20) — done; the reference.
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
-   - LSTM v2 (DEC-17): pilot, then all eight conditions with 3 seeds; checks `[U1]`, `[U2]`; the Assayag context check.
+   - LSTM v2 (DEC-17) — done, superseded (DEC-21).
+   - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 primary:** swap the label column.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.

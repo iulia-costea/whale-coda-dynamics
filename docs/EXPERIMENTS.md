@@ -52,9 +52,19 @@ first since it changes DEC-2's fold design.
 architecture (e.g. how the copy weights interact with the B encoder), not
 validation design. Next step is Ardjano's call.
 
+**Update (2026-10-01): addressed by DEC-21.** Likely causes (by reasoning, not
+ablation): the copy weights barely trained (beta 0.06-0.46 vs logistic v4's
+2.3-3.5), there was no "learn nothing" candidate, and one stopping epoch,
+dropout rate and history decay served all blocks. The LSTM is now a residual
+on top of a frozen logistic v4.
+
 *For contrast: logistic regression had a comparable "one mechanism doing two
 jobs" problem (a single L2 penalty couldn't let the model ignore a weak $S$
 while still fitting history well) and DEC-20's split history/S penalty fixed
 it cleanly (`reports/rq1_logistic_v4.md`). That it didn't fix the LSTM's gap
 here is more evidence the LSTM's problem isn't the same kind as logistic's
 was.*
+
+*Correction (2026-10-01): DEC-20 split only history from $S$. In the LSTM, $A$
+and $B$ still shared one weight decay and one stopping epoch, so it is the same
+kind of problem one level down (DEC-21).*

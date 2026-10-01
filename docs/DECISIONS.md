@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -144,6 +144,36 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Decision:** each model that includes $S$ splits its penalty in two: one for the history blocks ($A$/$B$'s features and their copy weights $\beta$/$\gamma$), one for $S$ (turn category and timing). Both are chosen jointly per fold and condition on the validation day from the same grid; ties go to the larger values. Conditions without $S$ keep a single penalty, unchanged. Logistic v4 replaces v3 as the reference for stages 2 and 3.
 - **Why:** conditional 𝒱-information (Xu et al. 2020) assumes a model can choose to ignore an input that adds nothing. A single shared penalty can't separately suit a small, possibly-uninformative block ($S$) and a large, informative one (history): in v2/v3, adding $S$ lowered validation-day log-likelihood on 10 of 14 folds even at the best available L2, so the model was structurally unable to turn $S$ off while still fitting history well. Same class of problem as v1's (DEC-16), different dimension: there it was too few coefficients for repetition; here it's one penalty doing two jobs.
 - **Extends to LSTM v2 (stage 2):** weight decay splits the same way (history encoders and their output weights vs the $S$ encoder and its output weights), chosen jointly with dropout and hidden size on the validation day. The $S$ grid includes a value strong enough to verify $S$ can be switched off in practice.
+
+## After LSTM v2's stage 3 (2026-09-30)
+
+**DEC-21 — The LSTM becomes a residual network on top of a frozen logistic v4; logistic v4 gives the headline lattice.**
+- **Decision:**
+  - Model, per fold and condition $c$: $z(x) = z^{\mathrm{LR}}_c(x) + \sum_{s \in c} U_s\,h_s(x)$.
+    - $z^{\mathrm{LR}}_c$ are logistic v4's logits for that fold and condition, precomputed from its committed fits (`data/results/rq1_logistic_v4/models.jsonl`) and added as a fixed offset. They never train.
+    - $h_s$ is block $s$'s encoder (DEC-11 template: a 1-layer LSTM per coda history, up to 10 codas; a small feed-forward encoder for $S$). $U_s$ is its bias-free output projection, initialised at 0. No output bias and no copy weights outside the offset: both are in $z^{\mathrm{LR}}_c$.
+  - Each block is either on or absent. Absent means the block isn't built (structurally $U_s = 0$). With every block absent the model is exactly logistic v4.
+  - Training: AdamW with decoupled weight decay 0.1, learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch. Epoch 0, the untrained model (= logistic v4), is a candidate.
+  - Candidates per fold and condition: hidden size {16, 32, 64} × dropout {0, 0.2, 0.4} × each block on or absent (at least one on), plus logistic v4 itself. Seeds 42–46.
+  - Selection on the validation day:
+    1. per-target validation log-likelihood, averaged over the 5 seeds;
+    2. find the best candidate;
+    3. choose the simplest candidate whose mean paired difference to the best is within one standard error, where the SE is the standard deviation of the per-target paired differences divided by $\sqrt n$. Simplicity order: fewer blocks on, then smaller hidden size, then more dropout.
+    - This is a selection rule, not a reported CI; reported CIs stay day-clustered. The SE is target-level on every fold because 9 of the 14 validation days hold fewer than 10 exchanges (two hold only 2), too few to resample by exchange.
+  - Reporting: logistic v4's lattice is the headline. The residual network is the enlarged-family check: its lattice next to v4's, plus each condition's residual gain (residual network minus v4, paired, day-bootstrap CI), which is `[U1]`'s new form.
+- **Why:**
+  - A contrast is only fair if every condition uses the same model family and selection rule and gets its own optimum within it (best held-out log-likelihood, approximated on the validation day). Logistic v1–v3 (one L2 penalty) and LSTM v2 (one early-stopping point and other knobs shared across blocks) both broke the "own optimum" part in a way that favoured smaller conditions and pushed add-input contrasts down.
+  - LSTM v2's full run (2026-09-30) was reliably below logistic v4 on 5 of 7 conditions (A, B, A_B, A_S, A_B_S) and lower in point estimate on all 7; adding $B$ made it worse (`A_B − A`, `A_B_S − A_S` CIs below zero). Likely causes, from reasoning about training dynamics rather than an ablation:
+    - the copy weights barely trained ($\beta$ 0.06–0.46 vs logistic v4's 2.3–3.5): Adam moves one scalar slowly while the encoders learn per-type repetition faster, and early stopping ended training first;
+    - there was no "learn nothing" candidate;
+    - one stopping epoch, one dropout rate and one history decay served all blocks.
+    Pooled validation days and 3-seed selection did not help (`docs/EXPERIMENTS.md`).
+  - A plain LSTM can't compute logistic v4 exactly (the 3-lag window and additivity need saturated gates), so the logistic path is added explicitly. It stays frozen: training it would move it off its validated penalty, and the residual would mix logistic regression refitting itself with what the network adds.
+  - Optional ignorance (Xu et al. 2020) now holds for the training procedure, not only for the family: the off state exists (absent), training can return to it (epoch 0), and validation can select it.
+  - The extra compute goes to seeds (3 → 5) and one smaller hidden size, not a wider grid: more candidates make a lucky validation winner more likely, and the number of candidates grows with condition size (1 for none, 64 for A_B_S), which biases against richer conditions.
+- **What it doesn't guarantee:** a contrast is v4's contrast plus the difference between the two conditions' residual gains, which can be negative, so contrasts aren't monotone by construction. On test days the residual network can fall below v4 where validation and test days disagree; a `[U1]` CI entirely below zero now means selection overfitting to validation days, not a training failure.
+- **Not done:** cross-fitted logistic offsets for training targets (the three March 2015 days hold 58% of targets, so leaving one out weakens exactly the offsets that dominate training); a weight-decay grid; any "beyond 3 lags" claim.
+- **Supersedes:** DEC-17's LSTM architecture, optimiser and grid, and DEC-12's "main model is an LSTM". Logistic regression gives the headline lattice; the residual LSTM is the enlarged-family check. LSTM v2 results are kept as a record.
 
 ## Differences from the submitted proposal
 
