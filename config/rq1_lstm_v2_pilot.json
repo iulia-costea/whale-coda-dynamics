@@ -1,0 +1,20 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "evaluation_config": "config/rq1_evaluation_lstm_v2_pilot.json",
+  "output_directory": "data/results/rq1_lstm_v2_pilot",
+  "report": "reports/rq1_lstm_v2_pilot.md",
+  "compare_against_logistic": "data/results/rq1_logistic_v4/evaluation/summary.json",
+  "test_days": ["2015-03-02", "2015-03-31", "2015-03-26", "2016-04-24"],
+  "conditions": ["A", "A_B_S"],
+  "seeds": [42],
+  "device": "cpu",
+  "embedding_dim": 32,
+  "learning_rate": 0.001,
+  "batch_size": 32,
+  "max_epochs": 300,
+  "patience": 20,
+  "dropout_grid": [0.0, 0.2, 0.4],
+  "hidden_grid": [32, 64],
+  "weight_decay_history_grid": [0.00001, 0.0001, 0.001],
+  "weight_decay_s_grid": [0.00001, 0.001, 1.0]
+}

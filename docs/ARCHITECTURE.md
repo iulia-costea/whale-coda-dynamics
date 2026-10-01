@@ -49,7 +49,7 @@ Detail and verified counts: PLAN §2.
 |---|---|
 | `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | Assayag et al. 2026; RQ1 + both RQ2 labellings |
 | `data/raw/sperm-whale-dialogues.csv`, `rhythms.p` | Sharma et al. 2024; secondary RQ2 labels, standalone pipeline. `tempos-dict.p`, `ornaments.p` still to fetch |
-| `data/raw/DominicaCodas.csv` | EC1 + EC2; RQ3 sympatric test (unwired) |
+| `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3 sympatric test (unwired) |
 | Hersh et al. 2022 (not in repo) | RQ3 allopatric extension |
 
 ## Known gotchas

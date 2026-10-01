@@ -1,6 +1,6 @@
 # NLP Whales — sperm whale coda sequence modelling
 
-UvA MSc AI Multilingual NLP group project (5 people). Spec: `docs/PLAN.md` (authoritative; IDs like `[M3]`). Why each choice was made: `docs/DECISIONS.md` (`DEC-n`). Code structure and pipeline internals: `docs/ARCHITECTURE.md` — read it before touching `src/` or `config/`. Which reports are current: `reports/README.md`.
+UvA MSc AI Multilingual NLP group project (5 people). Spec: `docs/PLAN.md` (authoritative; IDs like `[M3]`). Why each choice was made: `docs/DECISIONS.md` (`DEC-n`). Code structure and pipeline internals: `docs/ARCHITECTURE.md` — read it before touching `src/` or `config/`. Which reports are current: `reports/README.md`. Things tried and ruled out: `docs/EXPERIMENTS.md`.
 
 ## Question and method
 
@@ -17,7 +17,7 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 - 82.5% of targets repeat the whale's own last coda: models using $A$ or $B$ include the shared copy weights (PLAN `[M4]`). $A$-conditions below the repeat-own-last baseline in log-likelihood = fitting failure; matching it is a finding (nothing beyond repetition).
 - One shared unseen-label (`UNK`) policy for all labelling schemes.
 - Never use `pair_category` as a feature. Caller codes (`Whale`, `local_caller_id`) are segment-local, not identified animals.
-- Pacific and `DominicaCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
+- Pacific and `CarribeanCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
 - Claims are about dyadic exchanges only. "Not persistence" ≠ grammar — no grammar/syntax conclusions.
 - Don't redo Assayag et al.'s bout-threshold correlation sweep or Leitão et al.'s VLMC/KL comparison as results; cite them. Their bins and VLMC may be used as tools (DEC-19).
 

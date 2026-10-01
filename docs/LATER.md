@@ -9,7 +9,7 @@ Deferred to keep stage 1 simple. Nothing here is required before the first logis
 - **Leave-one-day-out jackknife:** the range of the estimate with each day dropped.
 
 ## Model selection (now done per DEC-16/17; options for later)
-- **Validation data:** one held-out training day per fold, or two pooled? Some validation days have only 16–30 targets, so selection can be noisy there. Pooling two days leaves 11 of 14 days for fitting. Decide from the spread of selected settings.
+- **Validation data:** one held-out training day per fold, or two pooled? Some validation days have only 16–30 targets, so selection can be noisy there. Pooling two days leaves 11 of 14 days for fitting. Decide from the spread of selected settings. *Tried (pooled 3 days, LSTM v2): no improvement, see `docs/EXPERIMENTS.md`.*
 - **Tied output embeddings** as an alternative copy mechanism for the LSTM (output layer shares weights with the input embeddings); a sensitivity check next to the copy weights.
 
 ## Count-based models

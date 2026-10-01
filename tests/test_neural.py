@@ -4,6 +4,7 @@ import torch
 
 from whale_coda_dynamics.neural import (
     encode_history, ConditionModel, HistoryEncoder, build_batch, fit_condition, predict, check_against_logistic,
+    ConditionModelV2, fit_condition_v2, predict_v2, select_lstm_grid_and_fit, check_s_suppression,
 )
 
 
@@ -101,6 +102,114 @@ class NeuralTests(unittest.TestCase):
             reasons = check_against_logistic(lstm_scored, logistic_summary, root, evaluation_config)
         self.assertEqual(len(reasons), 1)
         self.assertIn('A', reasons[0])
+
+
+class LstmV2Tests(unittest.TestCase):
+    def test_absent_a_b_has_no_copy_weights(self):
+        vocab = ['a', 'b', 'UNK']
+        config = dict(hidden_dim=8, embedding_dim=4, dropout_rate=0.0)
+        model = ConditionModelV2(len(vocab), ['turn_category', 'gap_s', 'overlap_elapsed_s'], config,
+                                 pad_idx=len(vocab), timing_dim=5)
+        self.assertFalse(hasattr(model, 'beta'))
+        self.assertFalse(hasattr(model, 'gamma'))
+        self.assertFalse(hasattr(model, 'a_encoder'))
+        self.assertTrue(hasattr(model, 's_encoder'))
+
+    def test_gradient_reaches_beta_gamma(self):
+        vocab = ['a', 'b', 'c', 'UNK']
+        rows = make_rows(6, 10, vocab)
+        config = dict(hidden_dim=8, embedding_dim=4, dropout_rate=0.0)
+        model = ConditionModelV2(len(vocab), ['A_history', 'B_history'], config, pad_idx=len(vocab), timing_dim=None)
+        batch = build_batch(rows, vocab, ['A_history', 'B_history'], 10, None, include_copy_targets=True)
+        y = torch.tensor([vocab.index(r['Ct']) for r in rows], dtype=torch.long)
+        loss = torch.nn.functional.cross_entropy(model(batch), y)
+        loss.backward()
+        self.assertIsNotNone(model.beta.grad)
+        self.assertIsNotNone(model.gamma.grad)
+        self.assertNotEqual(model.beta.grad.item(), 0.0)
+        self.assertNotEqual(model.gamma.grad.item(), 0.0)
+
+    def test_zeroed_network_large_beta_reproduces_repeat_argmax(self):
+        vocab = ['a', 'b', 'c']
+        rows = make_rows(6, 11, vocab)
+        config = dict(hidden_dim=4, embedding_dim=4, dropout_rate=0.0)
+        model = ConditionModelV2(len(vocab), ['A_history'], config, pad_idx=len(vocab), timing_dim=None)
+        with torch.no_grad():
+            for p in model.a_encoder.parameters():
+                p.zero_()
+            model.a_output.weight.zero_()
+            model.output_bias.zero_()
+            model.beta.fill_(50.0)
+        batch = build_batch(rows, vocab, ['A_history'], 10, None, include_copy_targets=True)
+        probs = torch.nn.functional.softmax(model(batch), dim=1)
+        own_idx = batch['own_idx']
+        self.assertTrue((own_idx >= 0).all())
+        np.testing.assert_array_equal(probs.argmax(dim=1).numpy(), own_idx.numpy())
+
+    def test_grid_splits_weight_decay_only_when_s_present(self):
+        vocab = ['a', 'b', 'UNK']
+        rows = make_rows(8, 12, vocab)
+        config = dict(hidden_dim=4, embedding_dim=4, learning_rate=1e-2, batch_size=4, max_epochs=2, patience=2,
+                      dropout_grid=[0.0], hidden_grid=[4], weight_decay_history_grid=[1e-4, 1e-3],
+                      weight_decay_s_grid=[1e-4, 1e-3])
+        curve = []
+        chosen_a, fits_a, grid_a = select_lstm_grid_and_fit(rows, rows, vocab, ['A_history'], config, [42], 10, curve)
+        self.assertIsNone(chosen_a['weight_decay_s'])
+        self.assertEqual(len(grid_a), 2)
+        curve_s = []
+        fields_s = ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s']
+        chosen_s, fits_s, grid_s = select_lstm_grid_and_fit(rows, rows, vocab, fields_s, config, [42], 10, curve_s)
+        self.assertIsNotNone(chosen_s['weight_decay_s'])
+        self.assertEqual(len(grid_s), 4)
+        self.assertTrue(curve_s)
+
+    def test_selection_uses_validation_only(self):
+        vocab = ['a', 'b', 'UNK']
+        def rows(n, seed, split):
+            rng = np.random.RandomState(seed)
+            return [dict(coda_id=f'{split}-{seed}-{i}', Ct=vocab[(i + 1) % 2], A_history=[vocab[i % 2]],
+                        turn_category='switch', gap_s=float(rng.rand()), overlap_elapsed_s=0.0,
+                        split=split, recording_date='2020-01-01') for i in range(n)]
+        train, validation = rows(20, 1, 'train'), rows(6, 2, 'validation')
+        config = dict(hidden_dim=4, embedding_dim=4, learning_rate=1e-2, batch_size=8, max_epochs=3, patience=3,
+                      dropout_grid=[0.0], hidden_grid=[4], weight_decay_history_grid=[1e-4], weight_decay_s_grid=[1e-4])
+        chosen1, _, _ = select_lstm_grid_and_fit(train, validation, vocab, ['A_history'], config, [42], 10, [])
+        # `test` rows are never passed to select_lstm_grid_and_fit at all; mutating them
+        # (as if that mattered) and re-running proves the selection cannot see them.
+        test = rows(5, 3, 'test')
+        for r in test:
+            r['Ct'] = 'UNK'
+        chosen2, _, _ = select_lstm_grid_and_fit(train, validation, vocab, ['A_history'], config, [42], 10, [])
+        self.assertEqual(chosen1['validation_log_likelihood_bits'], chosen2['validation_log_likelihood_bits'])
+
+    def test_parallel_grid_search_matches_sequential(self):
+        vocab = ['a', 'b', 'c', 'UNK']
+        rows = make_rows(10, 20, vocab)
+        fields = ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s']
+        config = dict(hidden_dim=4, embedding_dim=4, learning_rate=1e-2, batch_size=5, max_epochs=2, patience=2,
+                      dropout_grid=[0.0, 0.2], hidden_grid=[4], weight_decay_history_grid=[1e-4],
+                      weight_decay_s_grid=[1e-4, 1e-3])
+        curve_seq, curve_par = [], []
+        chosen_seq, _, grid_seq = select_lstm_grid_and_fit(rows, rows, vocab, fields, config, [42], 10, curve_seq, workers=1)
+        chosen_par, _, grid_par = select_lstm_grid_and_fit(rows, rows, vocab, fields, config, [42], 10, curve_par, workers=2)
+        self.assertEqual(chosen_seq['validation_log_likelihood_bits'], chosen_par['validation_log_likelihood_bits'])
+        self.assertEqual(sorted(g['validation_log_likelihood_bits'] for g in grid_seq),
+                         sorted(g['validation_log_likelihood_bits'] for g in grid_par))
+        self.assertEqual(len(curve_seq), len(curve_par))
+
+    def test_s_suppression_diagnostic_shape(self):
+        vocab = ['a', 'b', 'c', 'UNK']
+        rows = make_rows(8, 21, vocab)
+        config = dict(hidden_dim=4, embedding_dim=4, dropout_rate=0.0, weight_decay_history=1e-4,
+                      learning_rate=1e-2, batch_size=4, max_epochs=2, patience=2)
+        result = check_s_suppression(rows, rows, vocab, ['A_history'],
+                                     ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s'],
+                                     config, weight_decay_s=1.0, seed=42, max_len=10)
+        self.assertEqual(set(result), {'weight_decay_s', 'seed', 'without_s_validation_log_likelihood_bits',
+                                       'with_s_validation_log_likelihood_bits', 'difference_bits'})
+        self.assertTrue(np.isfinite(result['difference_bits']))
+        self.assertAlmostEqual(result['difference_bits'],
+                              result['with_s_validation_log_likelihood_bits'] - result['without_s_validation_log_likelihood_bits'])
 
 
 if __name__ == '__main__':
