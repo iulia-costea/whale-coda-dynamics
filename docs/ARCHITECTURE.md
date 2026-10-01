@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status: RQ1/RQ2 preparation and RQ3 preprocessing plus own-clan calibration are implemented; RQ3 transfer experiments remain to be implemented.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status: RQ1/RQ2 preparation plus RQ3 preprocessing and all primary RQ3 transfer analyses are implemented; coda-type diagnostics and optional VLMC sensitivity remain.
 
 ## RQ1/RQ2 stages
 
@@ -45,8 +45,9 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 ## RQ3 experiments (`src/rq3/experiments/`)
 
 - `data.py` loads and validates the prepared core, metadata, folds, identity mapping, and spatial-overlap metadata. `models.py` implements additive-smoothed unigram/n-gram models; `scoring.py` records base-2 coda and per-symbol scores; `evaluation.py` owns all shared aggregation and later transfer-loss/bootstrap helpers.
-- `runner.py` currently performs own-clan calibration: it selects one candidate model per clan using only that clan's held-out folds, then writes one cross-fitted own score per eligible coda. `report.py` generates its calibration report.
-- Run calibration from the repository root with `PYTHONPATH=src python3 -m rq3.experiments.runner --config config/rq3_experiments.json`.
+- `runner.py --stage calibration` selects one candidate model per clan using only that clan's held-out folds, then writes one cross-fitted own score per eligible coda. `runner.py --stage initial-transfer` runs only EC1 <-> EC2. `runner.py --stage matrix` fits each selected source clan's fold models, scores every other clan, pairs every averaged transfer score with its existing own-clan score, and counts each target token sequence in each source fold's actual training data for the coverage diagnostic. `runner.py --stage bootstrap` resamples whole target groups 1,000 times without retraining. `runner.py --stage identity` adds the Pacific Table S2 identity/non-identity labels to existing paired scores and reruns that bootstrap by stratum. `runner.py --stage overlap` runs the exploratory Table S4 Pacific association with all 5,040 clan-label permutations. `transfer.py`, `uncertainty.py`, `identity.py`, and `overlap.py` hold this logic; `report.py` generates the reports.
+- `runner.py --stage summaries` generates `README.md` files at the RQ3 results root and every analysis subfolder. Each is a navigable, data-derived description of its direct artifacts and child analyses.
+- Run calibration from the repository root with `PYTHONPATH=src python3 -m rq3.experiments.runner --config config/rq3_experiments.json`. Run the initial comparison with `PYTHONPATH=src python3 -m rq3.experiments.runner --stage initial-transfer --config config/rq3_experiments.json`, the full matrix with `PYTHONPATH=src python3 -m rq3.experiments.runner --stage matrix --config config/rq3_experiments.json`, or uncertainty intervals with `PYTHONPATH=src python3 -m rq3.experiments.runner --stage bootstrap --config config/rq3_experiments.json`.
 
 ## Conventions
 
@@ -70,8 +71,16 @@ Detail and verified counts: PLAN §2.
 | `data/processed/rq3/rq3_codas.csv` | Core RQ3 model-ready continuous-ICI table |
 | `data/processed/rq3/rq3_codas_metadata.csv` | RQ3 core rows plus provenance and diagnostic metadata |
 | `data/processed/rq3/rq3_folds.csv` | Deterministic, group-disjoint RQ3 fold assignments |
-| `data/results/rq3/rq3_self_scores.csv` | One cross-fitted own-clan likelihood score per eligible RQ3 coda |
-| `data/results/rq3/rq3_self_calibration.csv` | Held-out model-candidate scores and selected settings per clan |
+| `data/results/rq3/calibration/self_scores.csv` | One cross-fitted own-clan likelihood score per eligible RQ3 coda |
+| `data/results/rq3/calibration/self_calibration.csv` | Held-out model-candidate scores and selected settings per clan |
+| `data/results/rq3/initial_caribbean/` | Per-source-fold, paired-score, and summary outputs for EC1 <-> EC2 |
+| `data/results/rq3/transfer_matrix/fold_scores.csv` | Per-source-fold scores for all 72 cross-clan transfer cells |
+| `data/results/rq3/transfer_matrix/scores.csv` | Paired own/transfer scores for all 81 matrix cells |
+| `data/results/rq3/transfer_matrix/summary.csv` | Aggregate primary 9 x 9 transfer matrix |
+| `data/results/rq3/transfer_matrix/coverage/summary.csv` | Covered/uncovered fold-specific transfer-loss strata |
+| `data/results/rq3/transfer_matrix/uncertainty/` | All bootstrap draws and 95% interval summary |
+| `data/results/rq3/transfer_matrix/identity/` | Pacific-target identity/non-identity scores, draws, and summary |
+| `data/results/rq3/transfer_matrix/pacific_overlap/` | Table S4 pair values and exact permutation results |
 
 ## Known gotchas
 
