@@ -1253,8 +1253,8 @@ def write_report(root, config, summary, v4_summary, selections, checks, learnabi
         ll = _f(m.get('mean_log_likelihood_bits'))
         lines.append(f"| {name} | {ll} | {ll} | {_pct(m['accuracy'])} | {_pct(m['accuracy'])} | {m['macro_f1']:.4f} | "
                      f"{m['macro_f1']:.4f} | | | | | |")
-    lines += ['', 'How large a pattern of one known form condition A\'s residual would have detected: planted-signal '
-              'sensitivity run over all 14 folds, synthetic labels only, in reports/rq1_lstm_residual_sensitivity.md.']
+    lines += ['', 'Planted-signal sensitivity run for condition A over all 14 folds (synthetic labels only; whether, and '
+              'from what size, a lag-6 copy pattern is recovered): reports/rq1_lstm_residual_sensitivity.md.']
     lines += ['', f"Repetition: {summary['raw_repeats']} of {summary['comparison_targets']} comparison targets "
               f"({summary['raw_repeats'] / summary['comparison_targets']:.1%}) repeat the whale's own previous coda "
               f"({summary['mapped_repeats']} after UNK mapping).", '']
