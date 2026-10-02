@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `neural.py` (LSTM); their design is PLAN `[M4]`. This file covers preprocessing and repo conventions.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `neural.py` (LSTM v1/v2, superseded), `residual.py` (residual LSTM on a frozen logistic v4, DEC-21: model, checks, device measurement and full run); their design is PLAN `[M4]`. This file covers preprocessing and repo conventions.
 
 ## Stages
 

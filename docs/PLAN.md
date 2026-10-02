@@ -11,7 +11,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Done:** logistic-regression reference v4 with copy weights and separate validation-chosen penalties for the history and $S$ blocks (DEC-16, DEC-20): `reports/rq1_logistic_v4.md`, `reports/rq1_retrospective_sensitivity_v4.md`. Gate 1 fully holds: all 4,914 fits converged, no DEC-16 stop rule fires in either the primary or old-delay run, and no condition sits at a grid edge in a majority of folds for its real feature blocks. The `add_input:A_B_S-A_B` failure that persisted through v2 and v3 is resolved: the timing contrast now spans zero (`-0.020`, CI `[-0.046, 0.001]`) instead of being reliably negative, confirming DEC-20's diagnosis.
 - **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
 - **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
-- **In progress:** the residual LSTM on top of logistic v4 (DEC-21): checks, then the full run.
+- **Done:** the residual LSTM on top of logistic v4 (DEC-21): `reports/rq1_lstm_residual.md`, with its checks (`reports/rq1_lstm_residual_checks.md`: wiring, learnability and planted-signal gates pass) and device choice (`reports/rq1_lstm_residual_throughput.md`: CPU ×18). No `[M4]` stop rule fires. The residual gain over logistic v4 is below zero in point estimate on all seven fitted conditions (−0.010 to −0.122 bits/coda), with every day-bootstrap CI spanning zero; logistic v4 alone is chosen on 1–6 of 14 folds per condition.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -327,7 +327,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - Logistic regression v1 (fixed L2), v2 (copy weights, validation-chosen L2, DEC-16) and v3 (extended grid) — done, superseded. v4 with separate history and $S$ penalties (DEC-20) — done; the reference.
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
-   - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check.
+   - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 primary:** swap the label column.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
