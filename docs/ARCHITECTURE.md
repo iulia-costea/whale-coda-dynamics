@@ -29,7 +29,7 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 ## Sharma pipeline (`prepare_rq2.py`, `audit_rq2.py`)
 
 - Reuses `group_exchanges`, `build_features`, `assign_splits`/`validate`/`write_table` **unchanged**; RQ1 outputs must be unaffected by work here. `run_exchanges_rq2()` exists because `exchanges.py` hardcodes `from .audit import run` — deliberate glue, don't refactor away.
-- Role since DEC-3: whole-preprocessing-chain robustness only. Tokenisation tests (primary `guy_coda_type` vs `decision_tree_coda_type`; secondary Sharma rhythm × tempo on matched exchanges) run inside the RQ1 pipeline as label-column swaps.
+- Role since DEC-3: whole-preprocessing-chain robustness only. RQ2's token inventories (DEC-22) are computed from `[D1]`'s own intervals and run inside the RQ1 pipeline; see "RQ2 token inventories" below.
 - Explicit differences from the Assayag release (also in `reports/rq2.md`): no Tag/Bout/Date/Focal → `tag_id = recording_id`, REC is the only hard boundary, `strict_focal_subset` always False; `recording_date` holds the deployment prefix `^sw\d+` (schema parity, no chronological meaning); `rhythms.p` joined by row index; rare/unseen types → `UNK` via shared `vocabulary.py` (preserves `Ct_raw`), per DEC-7/10.
 - One `Duration=0` row excludes all of `sw061b003` (731 rows) — expected conservative behaviour, not a bug.
 
@@ -48,9 +48,20 @@ Detail and verified counts: PLAN §2.
 | File | Role |
 |---|---|
 | `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | Assayag et al. 2026; RQ1 + both RQ2 labellings |
-| `data/raw/sperm-whale-dialogues.csv`, `rhythms.p` | Sharma et al. 2024; secondary RQ2 labels, standalone pipeline. `tempos-dict.p`, `ornaments.p` still to fetch |
-| `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3 sympatric test (unwired) |
+| `data/raw/sperm-whale-dialogues.csv`, `rhythms.p` | Sharma et al. 2024a; standalone pipeline; `rhythms.p` checks the RQ2 rhythm rule |
+| `data/raw/mean_codas.p`, `tempos-dict.p` | Sharma et al. 2024a, copied unchanged from `github.com/pratyushasharma/sw-combinatoriality` (commit `7228c8e`): the 18 rhythm templates and the tempo classes (RQ2, PLAN `[R2-1]`, `[R2-2]`). `ornaments.p` not used |
+| `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3; its EC1 durations fix the RQ2 tempo cuts |
 | Hersh et al. 2022 (not in repo) | RQ3 allopatric extension |
+
+## RQ2 token inventories (DEC-22; planned, to be implemented)
+
+Interfaces fixed so that PLAN, the prompt and the code agree; the implementing PR fills in the rest of this section.
+
+- **`sharma_inventory.py`** (needs NumPy to unpickle; not under `preprocessing/`): reads `data/raw/mean_codas.p` and `data/raw/tempos-dict.p`, writes `data/interim/sharma_inventory.json` (the 18 templates as plain lists, the `tempos-dict.p` class extremes and cuts, SHA-256 of both inputs). Run once; its output is committed so that preprocessing stays standard-library only.
+- **`preprocessing/inventories.py`** (standard library), config `config/rq2_inventories.json`: recomputes the KDE tempo cuts from `CarribeanCodas.csv` and checks them; checks the rhythm rule against `rhythms.p` on all `[D2]` rows; labels every row of `data/processed/rq1_targets.jsonl` and writes one targets file per inventory, `data/processed/rq2_<name>_targets.jsonl`, identical to `rq1_targets.jsonl` except `Ct`, `Ct_raw`, `A_history`, `B_history` (and an `inventory` field); writes `reports/rq2_inventories.md`. Names: `b_dtree`, `c_rhythm`, `d_rhythm_tempo`, `e_type_tempo`, `d_rhythm_tempo_tdict`, `e_type_tempo_tdict`.
+- **Per inventory, unchanged code:** `preprocessing.folds` with `config/rq2_<name>_folds.json` (preparation config `config/rq1.json`), then `logistic` with `config/rq2_<name>_logistic_v4.json` and `config/rq2_<name>_evaluation_v4.json`, writing `data/results/rq2_<name>_logistic_v4/` and `reports/rq2_<name>_logistic_v4.md`. Inventory A is RQ1's existing `rq1_logistic_v4` run.
+- **`rq2_compare.py`**, config `config/rq2_compare.json`: reads every inventory's evaluation outputs and stored probabilities; writes `data/results/rq2_compare/summary.json` (with `input_sha256`) and `reports/rq2_inventories_v4.md` (PLAN `[R2-3]`–`[R2-6]`).
+- The inventories stage and each inventory's folds run join `PREPROCESSING` in `tests/test_committed_artifacts.py`.
 
 ## Known gotchas
 

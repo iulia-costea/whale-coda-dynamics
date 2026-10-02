@@ -19,9 +19,7 @@ Deferred to keep stage 1 simple. Nothing here is required before the first logis
 
 ## Already in PLAN but only relevant later
 - **RQ3 (PLAN §8):** the old difference-in-differences and clan-fitted bins were superseded by DEC-19; see "RQ3, deferred by DEC-19" below.
-- **RQ2 (PLAN `[R2-6]`, `DEC-15`):**
-  - UNK rates are reported per labelling.
-  - A tempo fallback from `Duration` applies only if the tempo pickle can't be fetched.
+- **RQ2:** see "RQ2, deferred by DEC-22" below.
 
 ## RQ3, deferred by DEC-19
 - **Pooled training across clans (the backup).**
@@ -31,3 +29,11 @@ Deferred to keep stage 1 simple. Nothing here is required before the first logis
 - **Size-matched reruns.** Cap every source clan's training data at the smallest clan's size and redraw it several times, to check whether large source clans transfer better only because they are large.
 - **Within-type transfer** (Leitão et al. SI §2.4.2): train and score one coda type at a time across clans, which removes usage and coverage. Feasible for 1–17 shared types per Pacific pair.
 - **The Caribbean ↔ Pacific difference-in-differences** (old DEC-14), as a secondary reading of the matrix, if EC1/EC2 identity codas get a source.
+
+## RQ2, deferred by DEC-22
+- **Segmentation proper.** A coda as two tokens (rhythm, then tempo), the subword analogue of DEC-22's combined labels; or interval symbols as tokens, as in RQ3's tokeniser `[R3-1]`. Needs a sequence model over sub-coda tokens with a per-coda score, so it is a different question from DEC-22's.
+- **Ornaments** as a third dimension (`ornaments.p`, 151 of 3,840 `[D2]` codas). Sharma et al. find them at the start and end of call sequences and before changes in the partner's chorusing: a turn-taking question rather than a next-coda one.
+- **Rubato:** the previous codas' durations as continuous inputs to logistic v4. Separates a gradual tempo trend from the tempo class, and is the first check if a model beats logistic v4 on inventory D or E.
+- **The residual LSTM (DEC-21) on inventories D and E.**
+- **Tempo classes fitted on other clans** (EC2, the Pacific): Sharma et al.'s cuts come from EC1 only, like a tokeniser trained on one language. Links RQ2 to RQ3.
+- **Renaming `reports/rq2.md`** (the Sharma-pipeline preprocessing report) so it isn't read as RQ2 results; needs a change in `prepare_rq2.py`, which generates it.

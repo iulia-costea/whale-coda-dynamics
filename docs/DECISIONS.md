@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -20,7 +20,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Decision:** 14 folds, one validation day per fold, paired per-coda contrasts.
 - **Why:** the single 10/2/2-day split (186 test codas) couldn't produce the confidence intervals the proposal promised.
 
-**DEC-3 — RQ2 compares two labellings of the same codas.**
+**DEC-3 — RQ2 compares two labellings of the same codas.** *Tests superseded by DEC-22.*
 - **Decision:**
   - The primary test is `guy_coda_type` vs `decision_tree_coda_type`.
   - The secondary test is Sharma's rhythm × tempo on matched exchanges.
@@ -83,7 +83,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Why:** the Caribbean vs Pacific difference is also a one-programme vs many-programmes difference. The identity contrast separates the two, assuming recording differences affect both coda kinds equally.
 - *Superseded by DEC-19.*
 
-**DEC-15 — Tempo fallback.**
+**DEC-15 — Tempo fallback.** *Superseded by DEC-22.*
 - **Decision:** if Sharma's tempo file can't be fetched, assign each coda to the nearest of the five tempo modes in Sharma et al. 2024a Fig. 3 (0.33, 0.51, 0.80, 1.02, 1.26 s), labelled "reconstructed".
 - **Why:** it is closer to their scheme than rhythm alone. It approximates their clustering; it doesn't reproduce it.
 
@@ -175,6 +175,32 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - **Not done:** cross-fitted logistic offsets for training targets (the three March 2015 days hold 58% of targets, so leaving one out weakens exactly the offsets that dominate training); a weight-decay grid; any "beyond 3 lags" claim.
 - **Supersedes:** DEC-17's LSTM architecture, optimiser and grid, and DEC-12's "main model is an LSTM". Logistic regression gives the headline lattice; the residual LSTM is the enlarged-family check. LSTM v2 results are kept as a record.
 
+## After reviewing RQ2 as a token-inventory question (2026-10-03)
+
+**DEC-22 — RQ2 varies the token inventory on fixed data: scheme (named types vs Sharma's rhythms) × resolution (with or without Sharma's tempo classes), on logistic v4.**
+- **Decision:** PLAN §7, `[R2-0]`–`[R2-7]`:
+  - Only the labels change. Targets, exchanges, history IDs, $S$, the 14 folds, the UNK policy, logistic v4 and its selection rule are RQ1's. Each inventory labels every retained `[D1]` coda from that coda's own intervals and duration.
+  - Inventories: A `guy_coda_type` (RQ1's existing run); B `decision_tree_coda_type`; C Sharma rhythm; D rhythm × tempo; E `guy_coda_type` × tempo. D′ and E′ swap in the tempo classes of Sharma's `tempos-dict.p` as a sensitivity.
+  - Rhythm: Sharma's rule, recovered and verified (`[R2-1]`): click positions over total length, nearest of the 18 templates in `mean_codas.p` with the same click count; fewer than 3 or more than 10 clicks → rhythm 17. It reproduces `rhythms.p` on all 3,840 `[D2]` rows.
+  - Tempo (`[R2-2]`): duration cut at the minima of a Gaussian KDE (bandwidth 0.035 s) of `[D6]`'s EC1 durations, as in Sharma et al.'s `2-tempo.ipynb`: 0.45, 0.61, 0.93, 1.08 s. Recomputed from the committed `CarribeanCodas.csv`, it gives the notebook's minima and the five modes of their Fig. 2A and 3.
+  - Reporting (`[R2-3]`–`[R2-6]`): per inventory the RQ1 contrasts as shares of total predictability, share differences against A with a paired day bootstrap, the pattern of signs, UNK shares; for the nested pairs A → E and C → D an exploratory split into a type (rhythm) term and a tempo term.
+  - Model: logistic v4 only.
+- **Why:**
+  - Whale data come without given units, so turning a coda into a token is a discretisation the analyst chooses (Andreas et al. 2022). The closest NLP practice is discrete-unit spoken language modelling, which crosses unit encoders with codebook sizes and keeps the rest fixed (Lakhotia et al. 2021). Scheme × resolution is that design on our data, and it makes RQ2 the project's tokenisation question.
+  - DEC-3's primary test is too weak to show much: 75 of 1,547 targets change label and 17 flip between repeat and switch. It stays, as inventory B and one sentence.
+  - DEC-3's secondary test needed exchanges whose codas all match `[D2]` (121 of 157). Applying Sharma's rules to `[D1]`'s own intervals keeps every target and fold.
+  - D changes the task most (42 labels among the targets, top label 40% instead of 57%, 1,142 repeats instead of 1,277) and comes from an independent publication. E isolates the tempo dimension within our types; C isolates the scheme.
+  - Raw log-likelihood can't be compared across inventories: they keep different information about the same codas, so the text-NLP fix (score the same string per character) doesn't apply. Lakhotia et al. (2021, p. 1337) make the same point for discrete speech units. Shares and patterns can be compared, and within a nested pair the chain rule splits the likelihood exactly.
+  - KDE minima as the primary tempo rule: it is the method the paper describes (KDE modes, Fig. 2A) and is reproducible from committed data. The classes in `tempos-dict.p` (boundaries 0.392, 0.594, 0.907, 1.091 s) come from a step the notebook doesn't document; they agree with the KDE classes on 1,511 of 1,547 targets, so they serve as the boundary sensitivity.
+  - Logistic v4 only: it gives the headline lattice, the residual LSTM found nothing beyond it (DEC-21), and results freeze on 4 October.
+- **Rejected:**
+  - Type × rhythm × tempo: rhythm mostly restates type (1+1+3 is rhythm 2 in 882 of 885 targets); the extra splits fall mostly where the two classifications disagree, and 30 of its 55 labels would have fewer than 5 targets.
+  - Ornaments (`ornaments.p`): 151 of 3,840 `[D2]` codas, 43 matched RQ1 targets, and many already have their own named type (41 of the ornamented codas matched to `[D1]` are `6i`). Sharma et al.'s ornament findings concern turn-taking, not the next coda's type.
+  - Rhythm only as *the* alternative scheme: it is one cell of the grid. It isn't simply coarser than the named types, as DEC-3 said: it merges some types and splits others (1,215 repeats, fewer than A's 1,277).
+  - Nearest-mode tempo (DEC-15): its cuts fall halfway between the modes, not at the density minima.
+  - Segmentation proper (a coda as two tokens; clicks as tokens): a different question, in `docs/LATER.md`.
+- **Supersedes:** DEC-3's two tests (the standalone Sharma pipeline keeps its role as a whole-chain check); DEC-15.
+
 ## Differences from the submitted proposal
 
 **Content changes**
@@ -182,7 +208,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
 - The type inventory is 23/25 types (21 in the comparison set), not 27.
 - Caller identities are segment-local, not identified whales.
 - The response delay is redefined (DEC-1).
-- RQ2's primary test is the two Assayag labellings; Sharma's scheme is secondary (DEC-3).
+- RQ2 compares token inventories of the same codas: named types vs Sharma's rhythms, each with and without Sharma's tempo classes (DEC-22).
 - RQ3 is a descriptive transfer matrix over nine clans with one exploratory overlap test, not a sympatry test (DEC-19).
 - The claim is scoped to two-whale exchanges (DEC-5).
 
