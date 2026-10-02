@@ -100,7 +100,7 @@ def run(config_path):
     output.parent.mkdir(parents=True, exist_ok=True)
     report.parent.mkdir(parents=True, exist_ok=True)
     write_text(output, json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
-    lines = ["# RQ1 leave-one-day-out folds", "",
+    lines = [f"# {config.get('title', 'RQ1 leave-one-day-out folds')}", "",
              f"{len(folds)} folds; {len(expected)} comparison targets, each assigned to test exactly once. No predictions or models yet.",
              "Each fold has one test day, one validation day, and all remaining days for training. Validation is the next day in a seeded hash-ordered ring; each day is validation once. This rule does not inspect labels or outcomes.",
              "Original labels are recovered from Ct_raw and history IDs. Vocabulary counts all retained training codas once, including context-only codas. Priors use training comparison targets only. No numerical transformations are fitted at this stage.",

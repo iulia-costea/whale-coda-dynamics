@@ -1,0 +1,9 @@
+{
+  "input": "data/processed/rq2_b_dtree_targets.jsonl",
+  "preparation_config": "config/rq1.json",
+  "expected_days": 14,
+  "validation_seed": 42,
+  "output": "data/processed/rq2_b_dtree_folds/manifest.json",
+  "report": "reports/rq2_b_dtree_folds.md",
+  "title": "RQ2 inventory B, decision_tree_coda_type: leave-one-day-out folds"
+}

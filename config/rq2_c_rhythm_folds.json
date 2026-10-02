@@ -1,0 +1,9 @@
+{
+  "input": "data/processed/rq2_c_rhythm_targets.jsonl",
+  "preparation_config": "config/rq1.json",
+  "expected_days": 14,
+  "validation_seed": 42,
+  "output": "data/processed/rq2_c_rhythm_folds/manifest.json",
+  "report": "reports/rq2_c_rhythm_folds.md",
+  "title": "RQ2 inventory C, Sharma rhythm: leave-one-day-out folds"
+}
