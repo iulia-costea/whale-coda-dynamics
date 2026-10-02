@@ -4,7 +4,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Why** each choice was made, and how this differs from the proposal: `docs/DECISIONS.md`.
 - **Deferred** ideas: `docs/LATER.md`.
 
-**Status (2026-10-01):**
+**Status (2026-10-03):**
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
 - **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
 - **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
@@ -12,6 +12,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
 - **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
 - **Done:** the residual LSTM on top of logistic v4 (DEC-21): `reports/rq1_lstm_residual.md`, with its checks (`reports/rq1_lstm_residual_checks.md`: wiring, learnability and planted-signal gates pass) and device choice (`reports/rq1_lstm_residual_throughput.md`: CPU ×18). No `[M4]` stop rule fires. The residual gain over logistic v4 is below zero in point estimate on all seven fitted conditions (−0.010 to −0.122 bits/coda), with every day-bootstrap CI spanning zero; logistic v4 alone is chosen on 1–6 of 14 folds per condition.
+- **RQ2:** redesigned as a token-inventory study (§7, DEC-22): five inventories of the same codas on logistic v4. Rhythm and tempo rules verified against Sharma et al.'s files; nothing run yet.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -24,7 +25,7 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 
 - **RQ1.** Does a whale's own coda history still predict its next coda once the partner's codas and the interaction timing are known?
   - **Primary contrast:** LL(viii) − LL(vii).
-- **RQ2.** Does the answer hold under a different coda labelling?
+- **RQ2.** Does the answer hold under a different token inventory, i.e. a different way of turning codas into discrete labels? (§7, DEC-22)
 - **RQ3.** How well does a model of within-coda timing trained on one clan predict another clan's codas, and how much of the shortfall comes from patterns the source clan never produces? Descriptive, with one exploratory test (§8, DEC-19).
 
 **Method.** We train one model per combination of inputs. The difference in held-out log-likelihood between models estimates how much usable information an input adds: predictive 𝒱-information (Xu et al., 2020; O'Connor & Andreas, 2021). It is relative to model class and data size, and defined on the real data distribution, so training data is never filtered or reweighted.
@@ -39,13 +40,13 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 
 | ID | Source | Size | Used for |
 |---|---|---|---|
-| `[D1]` | Assayag et al. 2026, `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | 3,933 codas, EC1 except one day (below), 14 days (2014-04-16 to 2016-05-13) | RQ1; both RQ2 labellings |
-| `[D2]` | Sharma et al. 2024a, `data/raw/sperm-whale-dialogues.csv` + `rhythms.p` | 3,840 codas, 219 recordings | secondary RQ2 labels; standalone "whole-pipeline" robustness check |
-| `[D6]` | Sharma et al. 2024a "Dataset 1" (DSWP), `data/raw/CarribeanCodas.csv` (sic); same counts as the Dominica sets of Bermant et al. 2019 and Leitão et al. 2024 | 8,719 codas: EC1 7,770, EC2 949; 97 recording days | RQ3 |
+| `[D1]` | Assayag et al. 2026, `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | 3,933 codas, EC1 except one day (below), 14 days (2014-04-16 to 2016-05-13) | RQ1; RQ2 (every inventory is computed from its intervals and durations) |
+| `[D2]` | Sharma et al. 2024a, `data/raw/sperm-whale-dialogues.csv` + `rhythms.p`; also `mean_codas.p` and `tempos-dict.p`, copied unchanged from `github.com/pratyushasharma/sw-combinatoriality` (commit `7228c8e`) | 3,840 codas, 219 recordings | RQ2 rhythm templates `[R2-1]` and tempo-class sensitivity `[R2-2]`; standalone "whole-pipeline" robustness check |
+| `[D6]` | Sharma et al. 2024a "Dataset 1" (DSWP), `data/raw/CarribeanCodas.csv` (sic); same counts as the Dominica sets of Bermant et al. 2019 and Leitão et al. 2024 | 8,719 codas: EC1 7,770, EC2 949; 97 recording days | RQ3; RQ2 tempo boundaries `[R2-2]` |
 | `[D4]` | Hersh et al. 2022, `data/raw/PacificCodas.csv` (OSF `ae6pd`); identity coda types and clan overlap from their SI Tables S2 and S4 | 24,237 rows; 23,429 codas with 3–10 clicks, 22,829 of them with a clan; 7 clans, 191 repertoires | RQ3 |
 
 **Facts that matter**
-- **Coda types `[D1]`:** two labellings exist. `guy_coda_type` has 23 types and `decision_tree_coda_type` has 25, and they disagree on 265 codas. 21 types appear in the RQ1 comparison set. Never write "27 types"; that figure is from Gubnitsky et al.
+- **Coda types `[D1]`:** two labellings exist (RQ2 adds three computed ones, §7). `guy_coda_type` has 23 types and `decision_tree_coda_type` has 25, and they disagree on 265 codas. 21 types appear in the RQ1 comparison set. Never write "27 types"; that figure is from Gubnitsky et al.
 - **No global whale ID.**
   - `Whale` is a segment-local caller code in both files.
   - `IDN` in `[D1]` is 0 (unresolved) on 2,510 rows.
@@ -55,12 +56,12 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 - **`[D1]` and `[D2]` overlap heavily.** 214/219 recordings are shared, and 2,769 codas match on (`REC`, `TsTo`, `Duration`). They are not independent corpora.
 - **`[D2]` quirks:**
   - It keeps 153 codas with more than 10 clicks, which Sharma et al. excluded. Flag them, and report results with and without them.
-  - `tempos-dict.p` and `ornaments.p` are not in the repo; fetch them from Sharma's GitHub.
+  - `rhythms.p` holds one rhythm label per CSV row (joined by position). `mean_codas.p` holds the 18 rhythm templates. `tempos-dict.p` is not per coda: it lists the durations in each of 5 tempo classes, which fixes only the class boundaries. `ornaments.p` (one flag per row, 151 ornamented) is not used (DEC-22).
   - One `Duration=0` row drops the whole 731-row recording `sw061b003` in the Sharma pipeline.
 - **One `[D1]` day is not EC1.** Test day 2016-04-12 (52 comparison targets) is an unidentified unit (`ZZZ`) that `[D6]` labels EC2 (same `codaNUM2018`). Report RQ1 with and without that day; without it the logistic v2 contrasts barely change (own history +1.363 vs +1.361 bits/coda).
 - **`[D6]` encoding:** the file starts with a UTF-8 BOM, so read it with `utf-8-sig`.
 - **`[D6]` dates** come in two formats (`dd/mm/yyyy` and `dd-mm-yyyy`, both day first); four days appear in both, so group by the parsed date.
-- **`[D6]` types:** 25 named types plus 10 `N-NOISE` classes (codas the type clustering left unassigned; Gero et al. 2016). Unit `ZZZ` (134 codas, one day) is an unidentified unit labelled EC2.
+- **`[D6]` types:** 25 named types plus 10 `N-NOISE` classes (codas the type clustering left unassigned; Gero et al. 2016a). Unit `ZZZ` (134 codas, one day) is an unidentified unit labelled EC2.
 - **`[D4]` types** are numeric codes, one for every 3–10-click coda. The two datasets' type systems differ, so type comparisons stay within a dataset.
 
 **`[D7]` Sample.**
@@ -214,17 +215,60 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 ---
 
-## 7. RQ2 — labelling robustness
+## 7. RQ2 — robustness to the token inventory (DEC-22)
 
-- **`[R2-1]` Primary:** run the full lattice with `guy_coda_type` and with `decision_tree_coda_type`, on identical codas and folds. Only the labels differ. This is a small perturbation (265 disagreements), so say so.
-- **`[R2-1b]` Secondary:** relabel the `[D1]` codas that match `[D2]` with Sharma's rhythm × tempo types.
-  - Only use exchanges where every coda matched, and compare against the `[D1]` labels on the same subset.
-  - If the tempo file can't be fetched, reconstruct tempo from duration; see `DECISIONS.md` DEC-15.
-  - Rhythm alone is too coarse to count as a second scheme.
-- **`[R2-3]`:** report each contrast as a share of total predictability, [LL(viii) − LL(rest)] / [LL(viii) − LL(i)]. Never compare raw bits or perplexity across labellings.
-- **`[R2-4]`:** compare the *pattern* (sign and relative size of contrasts) across labellings.
-- **`[R2-5]` / `[R2-6]`:** the same unknown-type policy for both labellings, with `UNK` rates reported per labelling.
-- **Sharma pipeline:** the standalone Sharma pipeline differs in too many ways (targets, segmentation, splits) to test labelling. It only checks robustness to the whole preprocessing chain.
+A coda becomes a token by discretising its click intervals, and which discretisation to use is the analyst's choice: whale data come with no given units. RQ2 asks whether RQ1's conclusions depend on that choice. The design follows discrete-unit spoken language modelling, which crosses unit encoders with codebook sizes and keeps the rest of the system fixed (Lakhotia et al. 2021). Claims stay within interval-based discretisations; RQ2 says nothing about whether codas are the right units (Andreas et al. 2022).
+
+**Only the labels change.** Targets (1,547), exchanges, history IDs, $S$, the 14 folds, the UNK policy (`[M6]`, *k* = 2 per fold), logistic v4 and its selection rule are RQ1's. Each inventory labels every retained `[D1]` coda from that coda's own intervals and duration.
+
+**`[R2-0]` Inventories.** Counts on the 1,547 comparison targets, computed before any fit: labels in use, the most common label's share, targets equal to the whale's own last label, and test targets mapped to UNK over the 14 folds. The fold harness reports the exact UNK counts.
+
+| ID | Inventory | Labels | Top label | Repeats | UNK |
+|---|---|---:|---:|---:|---:|
+| A | `guy_coda_type` (RQ1; existing run) | 21 | 57.2% | 1,277 | 31 |
+| B | `decision_tree_coda_type` | 25 | 56.9% | 1,280 | 57 |
+| C | Sharma rhythm `[R2-1]` | 16 | 61.9% | 1,215 | 25 |
+| D | Sharma rhythm × tempo `[R2-1]`, `[R2-2]` | 42 | 39.9% | 1,142 | 73 |
+| E | `guy_coda_type` × tempo `[R2-2]` | 39 | 39.9% | 1,204 | 67 |
+| D′ | D with `tempos-dict.p` tempo classes | 47 | 39.5% | 1,147 | 74 |
+| E′ | E with `tempos-dict.p` tempo classes | 41 | 39.4% | 1,210 | 66 |
+
+- **Grid:** scheme (named types: A, E; Sharma rhythm: C, D) × resolution (without tempo: A, C; with tempo: E, D).
+- **D is the main test:** an independently published scheme, and the one that changes the task most.
+- **B is a sanity check:** 75 targets change label and 17 flip between repeat and switch; one sentence in the report.
+
+**`[R2-1]` Rhythm** (Sharma et al. 2024a; their 18 rhythm types come from Gero et al. 2016b):
+- click positions = the cumulative sums of `ICI1`…`ICI(n−1)` divided by their total, with *n* = `nClicks`;
+- label = the template in `data/raw/mean_codas.p` with the same number of clicks that is nearest by mean squared difference; *n* < 3 or *n* > 10 → rhythm 17;
+- verified: this rule reproduces `rhythms.p` on all 3,840 `[D2]` rows. On `[D1]`'s own intervals it agrees with `rhythms.p` on 2,743 of the 2,769 codas matched between `[D1]` and `[D2]` on (`REC`, `TsTo`, `Duration`); the rest differ in their intervals between the two releases.
+
+**`[R2-2]` Tempo:**
+- label = `Duration` cut at 0.45, 0.61, 0.93 and 1.08 s, giving 5 classes;
+- the cuts are the minima of a Gaussian kernel density estimate (bandwidth 0.035 s, evaluated from 0.10 to 1.75 s in 0.01 s steps) of the EC1 durations between 0.1 and 1.75 s in `[D6]`, as in Sharma et al.'s notebook `code/2-tempo.ipynb`. The pipeline recomputes them from `data/raw/CarribeanCodas.csv` and must reproduce these cuts and the five modes (0.33, 0.51, 0.80, 1.02, 1.26 s; their Fig. 2A and 3);
+- sensitivity (D′, E′): the classes in Sharma et al.'s `tempos-dict.p`, cut midway between adjacent classes' extreme durations (0.392, 0.594, 0.907, 1.091 s). The notebook doesn't document how these classes were made; they agree with the KDE classes on 1,511 of the 1,547 targets;
+- label format: rhythm `r<k>`, tempo `t<j>`, combined with `|` (`r2|t4`, `1+1+3|t4`).
+
+**`[R2-3]` Comparing inventories**
+- Never compare raw log-likelihood or perplexity across inventories. They keep different information about the same codas, so there is no common string to score per character as text NLP does; Lakhotia et al. (2021, p. 1337) make the same point for discrete speech units.
+- Per inventory: the lattice, the three `[M2]` contrasts (token-weighted and unweighted means, CI, positive days), the repeat-own-last baseline, and the total predictability $T = \mathrm{LL(viii)} - \mathrm{LL(i)}$.
+- **Shares:** each contrast divided by $T$, with a day-bootstrap CI (ratio of token-weighted means within each replicate).
+- **Share differences against A:** paired day bootstrap, with the same resampled days for both inventories.
+- **Pattern:** for each contrast and inventory, the sign and whether the CI excludes zero.
+
+**`[R2-4]` Tempo decomposition** (exploratory; nested pairs A → E and C → D only):
+$$\log_2 p(\text{type}, \text{tempo}) = \log_2 p(\text{type}) + \log_2 p(\text{tempo} \mid \text{type})$$
+- Computed from E's (D's) stored probability vectors: $p(\text{type})$ sums E's in-vocabulary labels with that type (D: that rhythm).
+- The type term is compared with A's (C's) log-likelihood on the same targets, paired: does the finer model still predict the type as well?
+- The tempo term gets the three `[M2]` contrasts: do own history, the partner or timing predict a coda's tempo once its type is known?
+- Targets whose E (D) label maps to UNK are left out and counted. UNK mass is left out of the type marginal, so the type term is a lower bound.
+
+**`[R2-5]` UNK:** the same policy for every inventory. Report, per inventory and fold, the share of comparison targets mapped to UNK: a closed vocabulary can look easier by predicting UNK (Mielke et al. 2019).
+
+**`[R2-6]` Sensitivities:** D′ and E′ (tempo boundaries); every inventory without day 2016-04-12 (`[D1]` facts).
+
+**`[R2-7]` Stop rules:** DEC-16's rules apply to every inventory's run. If one fires, report it and draw no conclusion from that inventory. No setting changes before the freeze.
+
+**Not in RQ2** (`docs/LATER.md`): segmentation proper (a coda as two tokens, rhythm then tempo; clicks as tokens), ornaments, rubato as a continuous input, the residual LSTM on the new inventories. The standalone Sharma pipeline stays a whole-chain check; `reports/rq2.md` is its preprocessing report, not RQ2 results.
 
 ---
 
@@ -307,8 +351,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 
 ## 11. Open questions
 
-- Do the tempo/ornament pickles align with `sperm-whale-dialogues.csv` by row, like `rhythms.p`?
-- How many `[D1]` exchanges fully match `[D2]` (RQ2 secondary)?
+- How were the tempo classes in Sharma et al.'s `tempos-dict.p` made? They don't match the KDE minima in their notebook; only the authors can say. RQ2 uses the KDE minima and keeps `tempos-dict.p` as a sensitivity (`[R2-2]`).
 - Why is the `[D6]` unit `ZZZ` labelled EC2? Only the DSWP can say.
 - Is the switch part of `[P1]` (~270 codas) big enough to show anything? Check after the first numbers.
 - Should partner-coda content heard before the target's onset ever enter $S$? Current answer: no.
@@ -329,12 +372,11 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
-5. **RQ2 primary:** swap the label column.
+5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]`.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
-7. **RQ2 secondary.**
 
 ---
 
 ## References
 
-Assayag et al. 2026, *Bioacoustics* 35(4) · Aycock et al. 2025, *ICLR* · Bermant et al. 2019, *Sci. Rep.* · Gero et al. 2016, *R. Soc. Open Sci.* · Gubnitsky et al. 2025, *Sci. Rep.* · Hersh et al. 2022, *PNAS* · Leitão et al. 2024, *eLife* · O'Connor & Andreas 2021, *ACL* · Schulz et al. 2008, *Anim. Behav.* · Sharma et al. 2024a, *Nat. Commun.* · Sharma et al. 2024b, *bioRxiv* (WhaleLM) · Sinha & Chavan 2026, *arXiv:2606.16084* · Terwilliger et al. 2025, *NeurIPS workshop* · Xu et al. 2020, *ICLR*
+Andreas et al. 2022, *iScience* 25 · Assayag et al. 2026, *Bioacoustics* 35(4) · Aycock et al. 2025, *ICLR* · Bermant et al. 2019, *Sci. Rep.* · Gero et al. 2016a, *R. Soc. Open Sci.* · Gero, Whitehead & Rendell 2016b, *R. Soc. Open Sci.* · Gubnitsky et al. 2025, *Sci. Rep.* · Hersh et al. 2022, *PNAS* · Lakhotia et al. 2021, *TACL* 9 · Leitão et al. 2024, *eLife* · Mielke et al. 2019, *ACL* · O'Connor & Andreas 2021, *ACL* · Schulz et al. 2008, *Anim. Behav.* · Sharma et al. 2024a, *Nat. Commun.* · Sharma et al. 2024b, *bioRxiv* (WhaleLM) · Sinha & Chavan 2026, *arXiv:2606.16084* · Terwilliger et al. 2025, *NeurIPS workshop* · Xu et al. 2020, *ICLR*
