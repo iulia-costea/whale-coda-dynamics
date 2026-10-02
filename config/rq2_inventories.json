@@ -1,0 +1,37 @@
+{
+  "targets": "data/processed/rq1_targets.jsonl",
+  "preparation_config": "config/rq1.json",
+  "normalized_codas": "data/interim/codas_normalized.jsonl",
+  "sharma_inventory": "data/interim/sharma_inventory.json",
+  "tempo_source": "data/raw/CarribeanCodas.csv",
+  "rhythm_source": "data/raw/sperm-whale-dialogues.csv",
+  "rhythm_labels": "data/raw/rhythms.p",
+  "output_directory": "data/processed",
+  "report": "reports/rq2_inventories.md",
+  "kde": {
+    "clan": "EC1",
+    "duration_above_s": 0.1,
+    "duration_below_s": 1.75,
+    "bandwidth_s": 0.035,
+    "grid_start_s": 0.1,
+    "grid_step_s": 0.01,
+    "grid_points": 166,
+    "grid_decimals": 2,
+    "expected_minima_s": [0.45, 0.61, 0.93, 1.08],
+    "expected_maxima_s": [0.33, 0.51, 0.8, 1.02, 1.26]
+  },
+  "rhythm": {
+    "min_clicks": 3,
+    "max_clicks": 10,
+    "out_of_range_label": 17
+  },
+  "match_decimals": 3,
+  "inventories": {
+    "b_dtree": {"id": "B", "description": "decision_tree_coda_type", "scheme": "decision_tree_coda_type", "tempo": null},
+    "c_rhythm": {"id": "C", "description": "Sharma rhythm", "scheme": "rhythm", "tempo": null},
+    "d_rhythm_tempo": {"id": "D", "description": "Sharma rhythm × tempo (KDE cuts)", "scheme": "rhythm", "tempo": "kde"},
+    "e_type_tempo": {"id": "E", "description": "guy_coda_type × tempo (KDE cuts)", "scheme": "guy_coda_type", "tempo": "kde"},
+    "d_rhythm_tempo_tdict": {"id": "D′", "description": "Sharma rhythm × tempo (tempos-dict.p cuts)", "scheme": "rhythm", "tempo": "tempos_dict"},
+    "e_type_tempo_tdict": {"id": "E′", "description": "guy_coda_type × tempo (tempos-dict.p cuts)", "scheme": "guy_coda_type", "tempo": "tempos_dict"}
+  }
+}

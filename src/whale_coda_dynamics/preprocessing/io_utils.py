@@ -21,6 +21,7 @@ Every text read/write in this package should go through these helpers
 rather than calling `read_text`/`write_text`/`open` directly, so this stays
 fixed in one place.
 """
+import csv
 import json
 from pathlib import Path
 
@@ -46,3 +47,15 @@ def write_jsonl(path, rows):
     with Path(path).open("w", encoding="utf-8", newline="\n") as handle:
         for row in rows:
             handle.write(json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n")
+
+
+def read_csv_rows(path, encoding="utf-8"):
+    """Header and rows (dicts of strings) of a CSV file. Pass encoding="utf-8-sig" for files
+    that start with a byte-order mark. Rows with more or fewer fields than the header raise."""
+    with Path(path).open(encoding=encoding, newline="") as handle:
+        reader = csv.DictReader(handle)
+        rows = list(reader)
+        columns = reader.fieldnames
+    if any(None in row or any(v is None for v in row.values()) for row in rows):
+        raise ValueError(f"Malformed CSV rows in {path}")
+    return columns, rows
