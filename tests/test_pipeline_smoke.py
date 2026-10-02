@@ -54,8 +54,8 @@ class Sandbox:
         return self.config(name, manifest=manifest, predictions='unused', output_directory='unused',
                            seeds=seeds, bootstrap_replicates=50, bootstrap_seed=42, confidence=0.95)
 
-    def run(self, module, config, *args):
-        env = dict(os.environ, PYTHONPATH=str(ROOT / 'src'))
+    def run(self, module, config, *args, env=None):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / 'src'), **(env or {}))
         result = subprocess.run([sys.executable, '-m', f'whale_coda_dynamics.{module}', '--config', str(config), *args],
                                 cwd=self.root, env=env, capture_output=True, text=True)
         if result.returncode != 0:
@@ -103,6 +103,55 @@ class LogisticSmokeTests(unittest.TestCase):
                                sensitivity='retrospective_delay', **LOGISTIC_V2)
             box.run('logistic', retro)
             box.check_outputs(self, 'out/v2_retro', 'out/v2_retro.md')
+
+
+RQ2_D = 'data/processed/rq2_d_rhythm_tempo_folds/manifest.json'
+# The RQ2 runs use one BLAS thread: OpenBLAS's default thread count is far slower on these small matrices.
+ONE_BLAS_THREAD = {'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
+
+
+@unittest.skipUnless(HAS_SCIPY, 'needs numpy and scipy (pip install ".[modeling]")')
+class Rq2SmokeTests(unittest.TestCase):
+    def test_inventory_logistic_runner(self):
+        """DEC-22: logistic v4 on an inventory's manifest, with the RQ2 report settings and no comparison run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy('data/processed/rq2_d_rhythm_tempo_targets.jsonl', RQ2_D)
+            box.evaluation('eval.json', RQ2_D, [42])
+            config = box.config('rq2.json', manifest=RQ2_D, evaluation_config='config/eval.json',
+                                output_directory='out/rq2', report='out/rq2.md', version_label='v4, inventory D',
+                                report_title='RQ2 logistic-regression reference results', report_note='Smoke note.',
+                                skip_nonconverged_candidates=True, **LOGISTIC_V2)
+            box.run('logistic', config, env=ONE_BLAS_THREAD)
+            box.check_outputs(self, 'out/rq2', 'out/rq2.md')
+            text = (box.root / 'out/rq2.md').read_text(encoding='utf-8')
+            self.assertTrue(text.startswith('# RQ2 logistic-regression reference results, v4, inventory D\n'))
+            self.assertIn('Smoke note.', text)
+            self.assertIn('| Condition | LL bits/coda | Accuracy | Macro-F1 |', text)  # no comparison columns
+            self.assertNotIn('Same fourteen leave-one-day-out folds as', text)
+            self.assertIn('rests on about 405 non-repeat codas', text)  # 1,547 targets - 1,142 repeats (PLAN [R2-0])
+            self.assertIn('reports/rq2_d_rhythm_tempo_folds.md reports UNK rates per fold', text)
+            self.assertIn('No candidate failed the convergence check', text)
+
+    def test_compare_runner(self):
+        """rq2_compare on the committed config, every inventory standing in as RQ1's logistic v4 run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(V4 + 'evaluation/summary.json', V4 + 'evaluation/scored_predictions.jsonl',
+                     V4 + 'l2_selection.jsonl', V4 + 'predictions.jsonl')
+            values = json.loads((ROOT / 'config' / 'rq2_compare.json').read_text(encoding='utf-8'))
+            for inventory in values['inventories']:
+                inventory.update(manifest=PRIMARY, results_directory=V4.rstrip('/'))
+            values.update(output_directory='out/compare', report='out/compare.md')
+            box.run('rq2_compare', box.config('compare.json', **values), env=ONE_BLAS_THREAD)
+            summary = json.loads((box.root / 'out/compare/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(len(summary['inventories']), 7)
+            for ident, inventory in summary['inventories'].items():
+                if ident != summary['reference']:
+                    for difference in inventory['share_differences_vs_reference'].values():
+                        self.assertEqual(difference['estimate'], 0.0)
+            self.assertEqual([p['excluded_targets']['both'] for p in summary['tempo_decomposition']], [31, 31])
+            self.assertIn('exploratory', (box.root / 'out/compare.md').read_text(encoding='utf-8'))
 
 
 @unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
