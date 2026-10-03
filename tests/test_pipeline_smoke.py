@@ -267,8 +267,8 @@ class HistoryLengthSmokeTests(unittest.TestCase):
                                 output_directory='out/sweep', report='out/sweep.md', field='A_history', orders=[1, 3, 4],
                                 reference_order=3, conditions=['A', 'A_B_S'], primary=dict(condition='A_B_S', order=4),
                                 secondary_order=1,
-                                gate=dict(enforce=False, results_directory=V4.rstrip('/'), probability_tolerance=1e-5,
-                                          maximum_penalty_differences=1),
+                                gate=dict(enforce=False, results_directory=V4.rstrip('/'), maximum_penalty_differences=1,
+                                          log_likelihood_tolerance_bits=1e-5, probability_listing_threshold=1e-5),
                                 calibration=dict(condition='A', order=4, residual_planted_scores=PLANTED_SCORES))
             box.run('history_length', config, '--workers', '2', env=ONE_BLAS_THREAD)
             summary = json.loads((box.root / 'out/sweep/summary.json').read_text(encoding='utf-8'))

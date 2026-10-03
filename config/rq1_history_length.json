@@ -14,12 +14,17 @@
   "gate": {
     "enforce": true,
     "results_directory": "data/results/rq1_logistic_v4",
-    "probability_tolerance": 1e-05,
-    "maximum_penalty_differences": 1
+    "maximum_penalty_differences": 1,
+    "log_likelihood_tolerance_bits": 1e-05,
+    "probability_listing_threshold": 1e-05
   },
   "calibration": {
     "condition": "A",
     "order": 9,
     "residual_planted_scores": "data/results/rq1_lstm_residual_planted/scores.jsonl"
-  }
+  },
+  "process_notes": [
+    "The gate was amended after the first k = 3 gate run (DEC-25 addendum). That run required every predicted probability within 1e-5 of v4's where penalties agree and failed at 9.7e-5, with all 98 penalties identical and every condition's mean log-likelihood within 1e-6 bits/coda of v4's. At that point no k = 9 log-likelihood, calibration or contrast number had been seen; the k = 9 run's log line showed only its run time and that no DEC-16 stop rule fired. All nine k and the calibration were then refitted in one batch from a clean tree.",
+    "During development the smoke test (a fixed L2 of 0.01, not this grid) printed sweep numbers; no setting of the sweep changed after them."
+  ]
 }

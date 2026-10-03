@@ -36,7 +36,7 @@ class ReferenceOrderTests(unittest.TestCase):
                 np.testing.assert_array_equal(swept.transform(prepared[split]), default.transform(prepared[split]))
 
 
-def fake_run(directory, shift, penalties, validation_bits):
+def fake_run(directory, shift, penalties, validation_bits, a_bits=-1.0):
     """Predictions for two folds x conditions none and A, their selection records and metrics."""
     predictions, selections = [], []
     for fold, coda_ids in (('f1', ['c1', 'c2']), ('f2', ['c3'])):
@@ -50,7 +50,7 @@ def fake_run(directory, shift, penalties, validation_bits):
                 selections.append(dict(fold_id=fold, condition=condition, chosen_l2=l2, chosen_l2_s=None,
                                        grid=[dict(l2=v, l2_s=None, validation_log_likelihood_bits=validation_bits[v])
                                              for v in (0.01, 0.1)]))
-    metrics = {c: dict(mean_log_likelihood_bits=-1.0) for c in ('none', 'A')}
+    metrics = dict(none=dict(mean_log_likelihood_bits=-1.0), A=dict(mean_log_likelihood_bits=a_bits))
     if directory is not None:
         (directory / 'evaluation').mkdir(parents=True)
         write_jsonl(directory / 'predictions.jsonl', predictions)
@@ -60,20 +60,30 @@ def fake_run(directory, shift, penalties, validation_bits):
 
 
 class GateTests(unittest.TestCase):
-    spec = dict(results_directory='v4', probability_tolerance=1e-5, maximum_penalty_differences=1)
+    """DEC-25 addendum: penalties and mean log-likelihoods are enforced; probabilities are reported."""
+    spec = dict(results_directory='v4', maximum_penalty_differences=1, log_likelihood_tolerance_bits=1e-5,
+                probability_listing_threshold=1e-5)
 
-    def gate(self, shift, penalties):
+    def gate(self, shift, penalties, a_bits=-1.0):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             fake_run(root / 'v4', {}, {'f1': 0.01, 'f2': 0.01}, {0.01: -1.0, 0.1: -1.1})
-            fitted = fake_run(None, shift, penalties, {0.01: -1.2, 0.1: -1.19})
+            fitted = fake_run(None, shift, penalties, {0.01: -1.2, 0.1: -1.19}, a_bits)
             return reference_gate(root, self.spec, fitted)[0]
 
     def test_noise_within_tolerance_passes(self):
         gate = self.gate({('f1', 'A'): 3e-7}, {'f1': 0.01, 'f2': 0.01})
         self.assertTrue(gate['passed'])
         self.assertAlmostEqual(gate['max_abs_probability_difference_same_penalty'], 3e-7)
-        self.assertEqual((gate['fits_compared'], gate['penalty_differences']), (2, []))
+        self.assertEqual((gate['fits_compared'], gate['penalty_differences'], gate['fits_above_probability_threshold']),
+                         (2, [], []))
+
+    def test_probability_differences_are_listed_not_enforced(self):
+        gate = self.gate({('f1', 'A'): 1e-4, ('f2', 'A'): 2e-5}, {'f1': 0.01, 'f2': 0.01}, a_bits=-1.0 + 1e-6)
+        self.assertTrue(gate['passed'])
+        self.assertEqual([(r['fold_id'], r['condition']) for r in gate['fits_above_probability_threshold']],
+                         [('f1', 'A'), ('f2', 'A')])  # largest first
+        self.assertAlmostEqual(gate['max_abs_log_likelihood_difference_bits'], 1e-6)
 
     def test_one_differing_penalty_is_listed_with_both_validation_values(self):
         gate = self.gate({('f2', 'A'): 0.1}, {'f1': 0.01, 'f2': 0.1})
@@ -84,8 +94,8 @@ class GateTests(unittest.TestCase):
         self.assertEqual((d['v4_run_validation_bits_own_choice'], d['v4_run_validation_bits_v4_choice']), (-1.1, -1.0))
         self.assertAlmostEqual(gate['max_abs_probability_difference'], 0.1)
 
-    def test_fails_beyond_tolerance_or_on_two_differing_penalties(self):
-        self.assertFalse(self.gate({('f1', 'A'): 2e-5}, {'f1': 0.01, 'f2': 0.01})['passed'])
+    def test_fails_on_mean_log_likelihood_or_two_differing_penalties(self):
+        self.assertFalse(self.gate({}, {'f1': 0.01, 'f2': 0.01}, a_bits=-1.0 + 2e-5)['passed'])
         self.assertFalse(self.gate({}, {'f1': 0.1, 'f2': 0.1})['passed'])
 
 

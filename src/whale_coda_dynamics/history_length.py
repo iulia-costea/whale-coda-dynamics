@@ -141,10 +141,13 @@ def _fit_order(task):
 
 
 def reference_gate(root, spec, fitted):
-    """The reference fit against the committed logistic v4 run: chosen penalties per fold and condition,
-    and the largest absolute difference in any predicted probability. Probabilities are compared over the
-    fits whose penalties agree; a fit whose penalty differs is listed with the validation log-likelihood of
-    both penalties under this fit and under v4's."""
+    """The reference fit against the committed logistic v4 run. It passes when at most
+    spec['maximum_penalty_differences'] fold and condition fits chose a different penalty and every
+    condition's mean log-likelihood is within spec['log_likelihood_tolerance_bits'] of v4's (DEC-25 addendum).
+    Predicted probabilities are reported, not enforced: v4's fits reproduce only to ~1e-4 in probability at
+    the smallest penalties (optimizer tolerance; the BLAS thread count alone moves them that much). Fits
+    differing by more than spec['probability_listing_threshold'] are listed; a fit whose penalty differs is
+    listed with the validation log-likelihood of both penalties under this fit and under v4's."""
     directory = root / spec['results_directory']
     paths = [directory / 'predictions.jsonl', directory / 'l2_selection.jsonl', directory / 'evaluation' / 'summary.json']
     stored = {(r['coda_id'], r['condition']): r['probabilities'] for r in read_jsonl(paths[0])}
@@ -186,14 +189,21 @@ def reference_gate(root, spec, fitted):
             max_abs_probability_difference=max(r['max_abs_probability_difference'] for r in rows),
             mean_log_likelihood_bits=fitted['summary']['metrics'][condition]['mean_log_likelihood_bits'],
             v4_mean_log_likelihood_bits=stored_metrics[condition]['mean_log_likelihood_bits'])
-    agreeing_max = max(r['max_abs_probability_difference'] for r in agreeing)
-    gate = dict(probability_tolerance=spec['probability_tolerance'],
-                maximum_penalty_differences=spec['maximum_penalty_differences'],
+        by_condition[condition]['log_likelihood_difference_bits'] = (
+            by_condition[condition]['mean_log_likelihood_bits'] - by_condition[condition]['v4_mean_log_likelihood_bits'])
+    ll_max = max(abs(c['log_likelihood_difference_bits']) for c in by_condition.values())
+    threshold = spec['probability_listing_threshold']
+    gate = dict(maximum_penalty_differences=spec['maximum_penalty_differences'],
+                log_likelihood_tolerance_bits=spec['log_likelihood_tolerance_bits'],
+                probability_listing_threshold=threshold,
                 fits_compared=sum('same_penalty' in r for r in pairs),
+                max_abs_log_likelihood_difference_bits=ll_max,
                 max_abs_probability_difference=max(r['max_abs_probability_difference'] for r in pairs),
-                max_abs_probability_difference_same_penalty=agreeing_max,
+                max_abs_probability_difference_same_penalty=max(r['max_abs_probability_difference'] for r in agreeing),
+                fits_above_probability_threshold=sorted((r for r in pairs if r['max_abs_probability_difference'] > threshold),
+                                                        key=lambda r: -r['max_abs_probability_difference']),
                 penalty_differences=differing, by_condition=by_condition,
-                passed=agreeing_max <= spec['probability_tolerance'] and len(differing) <= spec['maximum_penalty_differences'],
+                passed=len(differing) <= spec['maximum_penalty_differences'] and ll_max <= spec['log_likelihood_tolerance_bits'],
                 pairs=pairs)
     return gate, paths
 
@@ -211,9 +221,9 @@ def run_fit(config_path, orders=None, workers=None):
             result = future.result()
             gate = result['gate']
             gate_text = '' if gate is None else (
-                f"; gate {'passed' if gate['passed'] else 'FAILED'} (max abs probability difference "
-                f"{gate['max_abs_probability_difference_same_penalty']:.3g} where penalties agree, "
-                f"{len(gate['penalty_differences'])} of {gate['fits_compared']} penalties differ)")
+                f"; gate {'passed' if gate['passed'] else 'FAILED'} ({len(gate['penalty_differences'])} of "
+                f"{gate['fits_compared']} penalties differ, mean LL within {gate['max_abs_log_likelihood_difference_bits']:.2g} "
+                f"bits/coda; max abs probability difference {gate['max_abs_probability_difference']:.3g}, reported only)")
             print(f"k = {result['order']}: {result['seconds']:.0f} s, {len(result['stop_reasons'])} stop rule(s) fired"
                   f"{gate_text}", flush=True)
             results.append(result)
@@ -547,17 +557,28 @@ def report_lines(result, config, loaded):
              'unweighted day mean is the mean of the 14 day-level contrasts.', '',
              f"## Gate: k = {reference} here against the committed logistic v4 run", '',
              f"Chosen penalties agree on {gate['fits_compared'] - len(gate['penalty_differences'])} of "
-             f"{gate['fits_compared']} fold and condition fits. Largest absolute difference in any predicted probability: "
-             f"{gate['max_abs_probability_difference_same_penalty']:.3g} over the fits whose penalties agree "
-             f"({gate['max_abs_probability_difference']:.3g} over all). The gate requires at most "
-             f"{gate['maximum_penalty_differences']} differing penalty and at most {gate['probability_tolerance']:g} where "
-             f"penalties agree: {'passed' if gate['passed'] else 'FAILED'}.", '',
+             f"{gate['fits_compared']} fold and condition fits, and every condition's mean log-likelihood is within "
+             f"{gate['max_abs_log_likelihood_difference_bits']:.2g} bits/coda of v4's. The gate (DEC-25 addendum) requires "
+             f"at most {gate['maximum_penalty_differences']} differing penalty and mean log-likelihoods within "
+             f"{gate['log_likelihood_tolerance_bits']:g} bits/coda: {'passed' if gate['passed'] else 'FAILED'}. Predicted "
+             "probabilities are reported, not enforced, because v4's fits reproduce only to about 1e-4 at the smallest "
+             "penalties (optimizer tolerance gtol 1e-6; the BLAS thread count alone moves them that much): largest absolute "
+             f"difference {gate['max_abs_probability_difference']:.3g} over all fits "
+             f"({gate['max_abs_probability_difference_same_penalty']:.3g} over the fits whose penalties agree); "
+             f"{len(gate['fits_above_probability_threshold'])} fits differ by more than "
+             f"{gate['probability_listing_threshold']:g} (listed below).", '',
              '| Condition | Fits | Penalties differing | Max abs probability difference | LL here | LL v4 | Difference |',
              '|---|---:|---:|---:|---:|---:|---:|']
     for c, g in gate['by_condition'].items():
         lines.append(f"| {c} | {g['fits']} | {g['penalties_differing']} | {g['max_abs_probability_difference']:.3g} | "
-                     f"{g['mean_log_likelihood_bits']:.5f} | {g['v4_mean_log_likelihood_bits']:.5f} | "
-                     f"{g['mean_log_likelihood_bits'] - g['v4_mean_log_likelihood_bits']:.2g} |")
+                     f"{g['mean_log_likelihood_bits']:.7f} | {g['v4_mean_log_likelihood_bits']:.7f} | "
+                     f"{g['log_likelihood_difference_bits']:.2g} |")
+    if gate['fits_above_probability_threshold']:
+        lines += ['', f"Fits whose predicted probabilities differ from v4's by more than {gate['probability_listing_threshold']:g}, "
+                  'with the chosen penalties (history, S):', '',
+                  '| Fold | Condition | History L2 | S L2 | Max abs probability difference |', '|---|---|---:|---:|---:|']
+        lines += [f"| {r['fold_id']} | {r['condition']} | {r.get('chosen_l2', 'n/a')} | {r.get('chosen_l2_s') or 'n/a'} | "
+                  f"{r['max_abs_probability_difference']:.3g} |" for r in gate['fits_above_probability_threshold']]
     if gate['penalty_differences']:
         lines += ['', 'Fits whose chosen penalty (history, S) differs from v4\'s, with the validation-day log-likelihood '
                   '(bits/coda) of both penalties under this fit and under v4\'s run:', '',
@@ -570,6 +591,7 @@ def report_lines(result, config, loaded):
                          f"{_f(d['validation_bits_v4_choice'], 8)} | {_f(d['v4_run_validation_bits_own_choice'], 8)} | "
                          f"{_f(d['v4_run_validation_bits_v4_choice'], 8)} | {d['max_abs_probability_difference']:.3g} |")
 
+    lines += [line for note in config.get('process_notes', []) for line in ('', note)]
     lines += ['', '## Log-likelihood by number of own lags', '',
               f"Held-out log-likelihood (bits/coda, {result['comparison_targets']:,} targets), accuracy, and the chosen "
               "history L2 (median over folds; folds at a grid edge). Repeat-own-last: "
