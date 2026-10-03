@@ -194,7 +194,6 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     the original single-penalty 1D search, unchanged. With `skip_nonconverged_candidates` set (off by
     default; on only in the RQ2 inventory runs, DEC-22), a candidate whose fit fails the convergence check
     is recorded and left out of the selection; if every candidate fails, NonConvergenceError is raised."""
-    skip_nonconverged = config.get('skip_nonconverged_candidates', False)
     encoder = Encoder(train, vocab, fields, config['history_order'])
     x_train, x_val = encoder.transform(train), encoder.transform(validation)
     y_train = np.array([vocab.index(r['Ct']) for r in train])
@@ -204,6 +203,18 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     own_val = last_label_index(validation, 'A_history', vocab) if 'A_history' in fields else None
     partner_val = last_label_index(validation, 'B_history', vocab) if 'B_history' in fields else None
     timing_mask = np.array([is_timing_feature(name) for name in encoder.names] + [False])  # intercept -> history
+    chosen, grid = grid_search_l2(x_train, y_train, x_val, y_val, len(vocab), timing_mask, config,
+                                  own_train, partner_train, own_val, partner_val)
+    return encoder, chosen, grid
+
+
+def grid_search_l2(x_train, y_train, x_val, y_val, classes, timing_mask, config,
+                   own_train=None, partner_train=None, own_val=None, partner_val=None):
+    """select_l2_and_fit's validation-day penalty search on encoded matrices, shared with other model
+    families that keep v4's rule (DEC-24). `timing_mask` marks the S columns (the intercept is history):
+    with any S column, history and S penalties are searched jointly over the grid (DEC-20), otherwise one
+    penalty. Ties go to the larger value on each axis. Returns the chosen candidate and the whole grid."""
+    skip_nonconverged = config.get('skip_nonconverged_candidates', False)
     has_timing = bool(timing_mask.any())
     s_axis = config['l2_grid'] if has_timing else [None]
     grid = []
@@ -211,7 +222,7 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
         for l2_s in s_axis:
             l2_vector = np.where(timing_mask, l2_s, l2_history) if has_timing else None
             try:
-                w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2_history),
+                w, beta, gamma, convergence = fit(x_train, y_train, classes, dict(config, l2=l2_history),
                                                   own_train, partner_train, l2_vector=l2_vector)
             except NonConvergenceError as error:
                 if not skip_nonconverged:
@@ -219,14 +230,14 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
                 grid.append(dict(l2=l2_history, l2_s=l2_s, nonconverged=str(error)))
                 continue
             p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
-            val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
+            val_ll = float(np.mean(np.log2(p_val[np.arange(len(y_val)), y_val])))
             grid.append(dict(l2=l2_history, l2_s=l2_s, validation_log_likelihood_bits=val_ll,
                             w=w, beta=beta, gamma=gamma, convergence=convergence))
     converged = [g for g in grid if 'nonconverged' not in g]
     if not converged:
         raise NonConvergenceError(f'All {len(grid)} L2 candidates failed the convergence check')
     chosen = max(converged, key=lambda g: (g['validation_log_likelihood_bits'], g['l2'], g['l2_s'] or 0))
-    return encoder, chosen, grid
+    return chosen, grid
 
 
 def repeat_distribution(last, rate, prior):
