@@ -1,0 +1,17 @@
+{
+  "caribbean_input": "data/raw/CarribeanCodas.csv",
+  "pacific_input": "data/raw/PacificCodas.csv",
+  "interim_output": "data/interim/rq3/sensitivity_zzz/rq3_codas_normalized.jsonl",
+  "processed_output": "data/processed/rq3/sensitivity_zzz/rq3_codas.csv",
+  "metadata_output": "data/processed/rq3/sensitivity_zzz/rq3_codas_metadata.csv",
+  "folds_output": "data/processed/rq3/sensitivity_zzz/rq3_folds.csv",
+  "identity_mapping_input": "config/rq3_identity_mapping.json",
+  "report_output": "reports/rq3_sensitivity_zzz_preprocessing.md",
+  "primary_min_clicks": 3,
+  "primary_max_clicks": 10,
+  "primary_min_ici_s": 0.005,
+  "primary_max_ici_s": 1.0,
+  "accepted_caribbean_clans": ["EC1", "EC2"],
+  "accepted_pacific_clans": ["FP", "PALI", "PO", "REG", "RI", "SH", "SI"],
+  "exclude_source_units": ["ZZZ"]
+}

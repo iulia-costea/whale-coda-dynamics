@@ -26,8 +26,8 @@ import json
 from pathlib import Path
 
 
-def read_text(path):
-    return Path(path).read_text(encoding="utf-8")
+def read_text(path, encoding="utf-8"):
+    return Path(path).read_text(encoding=encoding)
 
 
 def write_text(path, content):

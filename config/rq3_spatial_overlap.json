@@ -1,0 +1,15 @@
+{
+  "source": "Hersh et al. (2022), Supplementary Information, Table S4",
+  "definition": "Directed value row_to_column is the share of the row clan's repertoires within 1,000 km of a repertoire from the column clan.",
+  "pair_rule": "For an unordered pair, use the arithmetic mean of its two directed values.",
+  "clans": ["FP", "RI", "PALI", "PO", "REG", "SH", "SI"],
+  "directed_overlap": {
+    "FP":   {"FP": 1.000, "RI": 0.500, "PALI": 0.385, "PO": 0.308, "REG": 0.885, "SH": 0.962, "SI": 0.308},
+    "RI":   {"FP": 0.368, "RI": 1.000, "PALI": 0.263, "PO": 0.316, "REG": 0.316, "SH": 0.842, "SI": 0.316},
+    "PALI": {"FP": 0.800, "RI": 0.733, "PALI": 1.000, "PO": 0.733, "REG": 0.733, "SH": 0.800, "SI": 0.800},
+    "PO":   {"FP": 1.000, "RI": 1.000, "PALI": 1.000, "PO": 1.000, "REG": 1.000, "SH": 1.000, "SI": 1.000},
+    "REG":  {"FP": 1.000, "RI": 0.840, "PALI": 0.820, "PO": 0.820, "REG": 1.000, "SH": 1.000, "SI": 0.820},
+    "SH":   {"FP": 0.580, "RI": 0.580, "PALI": 0.400, "PO": 0.400, "REG": 0.520, "SH": 1.000, "SI": 0.420},
+    "SI":   {"FP": 0.938, "RI": 0.938, "PALI": 0.938, "PO": 0.938, "REG": 0.938, "SH": 1.000, "SI": 1.000}
+  }
+}

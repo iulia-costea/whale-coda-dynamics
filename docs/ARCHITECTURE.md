@@ -176,6 +176,10 @@ Run `PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.folds` with `co
 
 `data/processed/rq1_folds/manifest.json` records all fold assignments, comparison IDs shared by all conditions, training counts, vocabularies, priors, UNK statistics and input/config hashes. `reports/rq1_folds.md` summarizes sizes. Exactly-once coverage currently concerns test assignments; prediction coverage will be checked by the future evaluator. Shared evaluation is implemented; model code remains unimplemented.
 
+## RQ3 pipeline
+
+The RQ3 preprocessing pipeline in `src/whale_coda_dynamics/rq3/preprocessing/` normalizes the Caribbean and Pacific coda sources, applies the fixed eligibility rules and tokenizer, and writes the processed tables and deterministic group-disjoint folds. Its read-only validator independently checks source coverage, derived coda fields, and fold assignments. RQ3 experiment stages in `src/whale_coda_dynamics/rq3/experiments/` perform source-clan calibration, cross-clan transfer scoring, bootstrap uncertainty, identity strata, and exploratory overlap analysis.
+
 ## Shared evaluation in bits
 
 `evaluation.py` exposes `evaluate(predictions, manifest, targets, seeds, ...)`, `log_likelihood_bits`, `repeat_switch_bits`, and `day_bootstrap_bits`. It fits no models. Run `PYTHONPATH=src python3 -m whale_coda_dynamics.evaluation --config config/rq1_evaluation.json` once actual predictions exist; the default prediction file is not generated yet.
