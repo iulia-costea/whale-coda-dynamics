@@ -15,6 +15,21 @@ from .preprocessing.folds import prepare_fold
 from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 
 
+def feature_names(fields, vocabulary, categories, order):
+    """Encoder's column names, in column order (the intercept, appended by transform, is unnamed)."""
+    names = []
+    for f in fields:
+        if f.endswith('_history'):
+            names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, order+1) for label in vocabulary)
+        elif f == 'turn_category':
+            names.extend('turn:'+c for c in categories)
+        elif f == 'retrospective_delay_s':
+            names.append(f)
+        else:
+            names.extend([f, 'log1p:'+f])
+    return names
+
+
 class Encoder:
     """Lag one-hot vectors; raw and log1p timing, each standardized on train."""
     def __init__(self, train, vocabulary, fields, order=3):
@@ -23,22 +38,29 @@ class Encoder:
         if type(order) is not int or order < 1:
             raise ValueError('Invalid history order')
         self.vocabulary, self.fields, self.order = vocabulary, fields, order
-        self.names = []
         self.categories = sorted({r['turn_category'] for r in train}) if 'turn_category' in fields else []
-        for f in fields:
-            if f.endswith('_history'):
-                self.names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, order+1) for label in vocabulary)
-            elif f == 'turn_category':
-                self.names.extend('turn:'+c for c in self.categories)
-            elif f == 'retrospective_delay_s':
-                self.names.append(f)
-            else:
-                self.names.extend([f, 'log1p:'+f])
+        self.names = feature_names(fields, vocabulary, self.categories, order)
         x = self.raw(train)
         self.mean, self.scale = np.zeros(x.shape[1]), np.ones(x.shape[1])
         for j, name in enumerate(self.names):
             if name in ('gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s'):
                 self.mean[j], self.scale[j] = x[:, j].mean(), x[:, j].std() or 1.0
+
+    @classmethod
+    def from_record(cls, record):
+        """The encoder of a stored fit (a models.jsonl row of v2-v4), from its stored vocabulary, fields,
+        order, turn categories and standardisation; nothing is refitted. The stored feature names must be
+        exactly the names those settings produce."""
+        encoder = cls.__new__(cls)
+        encoder.vocabulary, encoder.fields, encoder.order = record['vocabulary'], record['fields'], record['order']
+        encoder.categories = record['categories']
+        encoder.names = feature_names(encoder.fields, encoder.vocabulary, encoder.categories, encoder.order)
+        encoder.mean = np.asarray(record['mean'], dtype=float)
+        encoder.scale = np.asarray(record['scale'], dtype=float)
+        if (encoder.names + ['intercept'] != record['feature_names'] or encoder.mean.shape != (len(encoder.names),)
+                or encoder.scale.shape != (len(encoder.names),)):
+            raise ValueError(f"Stored encoder is inconsistent ({record.get('fold_id')}, {record.get('condition')})")
+        return encoder
 
     def raw(self, rows):
         result = []

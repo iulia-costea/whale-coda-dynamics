@@ -10,6 +10,13 @@ probability of the same coarse label (the exploratory tempo decomposition, [R2-4
 Uncertainty: one set of day draws per replicate, shared by every inventory, so differences
 against A are paired. The draws are made exactly as evaluation.day_bootstrap_bits makes them, and
 the run checks that it reproduces each inventory's recorded contrast CIs. No model is fitted.
+
+With `"model": "v5"` in the config (DEC-23) every inventory is read from its logistic v5 run
+(logistic_v5.py): its evaluation, its stop rules (DEC-23's sign-flip rule with Holm's correction,
+which sets the stop marks, and DEC-16's old rule, both for v5 and v4), and, for [R2-4], v5
+predictions rebuilt from its selection.jsonl and v4's predictions.jsonl. The [M2] contrasts and the
+tempo-term contrasts then also get an exact two-sided sign-flip p. Without the key the v4
+comparison is produced exactly as before.
 """
 import argparse
 from collections import defaultdict
@@ -19,8 +26,9 @@ import math
 from pathlib import Path
 import random
 
-from .evaluation import log_likelihood_bits
+from .evaluation import log_likelihood_bits, sign_flip_p
 from .logistic import check_stop_conditions
+from .logistic_v5 import rebuild_predictions
 from .preprocessing.io_utils import read_json, read_jsonl, write_text
 
 CONTRASTS = {'own_history': ('A_B_S', 'B_S'), 'partner_content': ('A_B_S', 'A_S'), 'timing': ('A_B_S', 'A_B')}
@@ -82,14 +90,21 @@ def replicate_ratios(numerator, denominator, draws):
     return result
 
 
-def describe_values(values, dates, draws, confidence):
-    """Token-weighted and unweighted day means, CI from the shared draws, positive days."""
+def describe_values(values, dates, draws, confidence, sign_flip=False):
+    """Token-weighted and unweighted day means, CI from the shared draws, positive days; with
+    `sign_flip`, also the exact two-sided sign-flip p on the day sums (DEC-23) and the number of days
+    whose sum is exactly zero (under v5 both conditions of a contrast often share a sub-condition)."""
     totals = day_totals(values, dates)
     means = {d: s / n for d, (s, n) in totals.items()}
-    return {'mean_bits_per_coda': math.fsum(s for s, _ in totals.values()) / sum(n for _, n in totals.values()),
-            'unweighted_mean_bits_per_coda': math.fsum(means.values()) / len(means),
-            'ci_bits_per_coda': percentile_interval(replicate_means(totals, draws), confidence),
-            'positive_days': sum(s > 0 for s, _ in totals.values()), 'days': len(totals), 'codas': len(values)}
+    result = {'mean_bits_per_coda': math.fsum(s for s, _ in totals.values()) / sum(n for _, n in totals.values()),
+              'unweighted_mean_bits_per_coda': math.fsum(means.values()) / len(means),
+              'ci_bits_per_coda': percentile_interval(replicate_means(totals, draws), confidence),
+              'positive_days': sum(s > 0 for s, _ in totals.values()), 'days': len(totals), 'codas': len(values)}
+    if sign_flip:
+        result['sign_flip_p_two_sided'] = sign_flip_p({d: s for d, (s, _) in totals.items()},
+                                                      {d: n for d, (_, n) in totals.items()}, 'two-sided')
+        result['zero_days'] = sum(s == 0 for s, _ in totals.values())
+    return result
 
 
 def type_and_tempo_bits(probabilities, target, unk_token):
@@ -117,13 +132,16 @@ def sha256(path):
 
 
 class Inventory:
-    """One inventory's committed logistic v4 outputs, checked against its manifest."""
-    def __init__(self, root, spec):
-        self.id, self.spec = spec['id'], spec
+    """One inventory's committed logistic v4 (or v5) outputs, checked against its manifest."""
+    def __init__(self, root, spec, model='v4'):
+        self.id, self.spec, self.model = spec['id'], spec, model
         self.results = root / spec['results_directory']
         self.paths = {'manifest': root / spec['manifest'], 'summary': self.results / 'evaluation' / 'summary.json',
                       'scored': self.results / 'evaluation' / 'scored_predictions.jsonl',
-                      'selection': self.results / 'l2_selection.jsonl'}
+                      'selection': self.results / ('selection.jsonl' if model == 'v5' else 'l2_selection.jsonl')}
+        if model == 'v5':
+            self.v4_results = root / spec['v4_results_directory']
+            self.paths['v4_selection'] = self.v4_results / 'l2_selection.jsonl'
         self.manifest = read_json(self.paths['manifest'])
         self.summary = read_json(self.paths['summary'])
         recorded = self.summary['input_sha256'].get(spec['manifest'])
@@ -140,9 +158,20 @@ class Inventory:
             self.dates[row['coda_id']] = row['recording_date']
         if {c for c, _ in self.ll} != set(CONDITIONS) or len(self.ll) != len(CONDITIONS) * len(self.dates):
             raise ValueError(f'{self.id}: scored predictions do not cover the eight conditions for every target')
-        self.stop_reasons = check_stop_conditions(self.summary, self.summary['baseline_metrics'],
-                                                  self.summary['repeat_baseline_checks'])
-        self.nonconverged = sum(1 for s in read_jsonl(self.paths['selection']) for g in s['grid'] if 'nonconverged' in g)
+        if model == 'v5':
+            if self.summary['v4_configuration']['output_directory'] != spec['v4_results_directory']:
+                raise ValueError(f'{self.id}: the v5 run was computed from another v4 run')
+            self.stop_rules = {name: {'dec23_fired': [f"{r['check']} (Holm p {r['holm_p']:.4g})"
+                                                      for r in rules['new']['checks'] if r['fires']],
+                                      'dec16_fired': rules['old']}
+                               for name, rules in self.summary['stop_rules'].items()}
+            self.stop_reasons = self.stop_rules['v5']['dec23_fired']  # DEC-23's rule on v5 governs [R2-7]
+            selection = self.paths['v4_selection']
+        else:
+            self.stop_reasons = check_stop_conditions(self.summary, self.summary['baseline_metrics'],
+                                                      self.summary['repeat_baseline_checks'])
+            selection = self.paths['selection']
+        self.nonconverged = sum(1 for s in read_jsonl(selection) for g in s['grid'] if 'nonconverged' in g)
 
     def differences(self, big, small, codas=None):
         return {c: self.ll[big, c] - self.ll[small, c] for c in (self.dates if codas is None else codas)}
@@ -161,9 +190,10 @@ class Inventory:
         return rows
 
 
-def compare(inventories, reference, draws, confidence, days=None):
+def compare(inventories, reference, draws, confidence, days=None, sign_flip=False):
     """Contrasts, T, shares and share differences against the reference, all on the same draws.
-    `days`, when given, restricts every inventory to those days (no refitting)."""
+    `days`, when given, restricts every inventory to those days (no refitting); `sign_flip` adds
+    each contrast's two-sided sign-flip p."""
     result = {}
     for ident, inv in inventories.items():
         codas = [c for c in inv.dates if days is None or inv.dates[c] in days]
@@ -172,7 +202,7 @@ def compare(inventories, reference, draws, confidence, days=None):
         total_days = day_totals(total, inv.dates)
         for name, (big, small) in CONTRASTS.items():
             values = inv.differences(big, small, codas)
-            entry['contrasts'][name] = describe_values(values, inv.dates, draws, confidence)
+            entry['contrasts'][name] = describe_values(values, inv.dates, draws, confidence, sign_flip)
             totals = day_totals(values, inv.dates)
             samples = replicate_ratios(totals, total_days, draws)
             estimate = math.fsum(s for s, _ in totals.values()) / math.fsum(s for s, _ in total_days.values())
@@ -190,7 +220,7 @@ def compare(inventories, reference, draws, confidence, days=None):
     return result
 
 
-def decomposition(coarse, fine, predictions, draws, confidence):
+def decomposition(coarse, fine, predictions, draws, confidence, sign_flip=False):
     """[R2-4] for a nested pair on the targets that are UNK in neither inventory."""
     if set(coarse.dates) != set(fine.dates):
         raise ValueError('Nested pair scores different targets')
@@ -220,7 +250,7 @@ def decomposition(coarse, fine, predictions, draws, confidence):
             'type_minus_coarse': {k: describe_values({c: type_bits[k][c] - coarse.ll[k, c] for c in eligible},
                                                      fine.dates, draws, confidence) for k in CONDITIONS},
             'tempo_contrasts': {name: describe_values({c: tempo_bits[big][c] - tempo_bits[small][c] for c in eligible},
-                                                      fine.dates, draws, confidence)
+                                                      fine.dates, draws, confidence, sign_flip)
                                 for name, (big, small) in CONTRASTS.items()}}
 
 
@@ -228,7 +258,11 @@ def run(config_path):
     path = Path(config_path).resolve()
     root, config = path.parent.parent, read_json(path)
     replicates, seed, confidence = config['bootstrap_replicates'], config['bootstrap_seed'], config['confidence']
-    inventories = {spec['id']: Inventory(root, spec) for spec in config['inventories']}
+    model = config.get('model', 'v4')
+    if model not in ('v4', 'v5'):
+        raise ValueError(f'Unknown model {model!r}')
+    v5 = model == 'v5'
+    inventories = {spec['id']: Inventory(root, spec, model) for spec in config['inventories']}
     reference = config['reference']
     first = inventories[reference]
     for inv in inventories.values():
@@ -236,7 +270,7 @@ def run(config_path):
             raise ValueError(f'{inv.id}: targets or days differ from {reference}')
     days = sorted(set(first.dates.values()))
     draws = shared_day_draws(days, replicates, seed)
-    main = compare(inventories, reference, draws, confidence)
+    main = compare(inventories, reference, draws, confidence, sign_flip=v5)
     for ident, inv in inventories.items():  # the shared draws reproduce each run's own day bootstrap
         if inv.summary['bootstrap'] != {'replicates': replicates, 'seed': seed, 'confidence': confidence,
                                         'method': inv.summary['bootstrap']['method']}:
@@ -248,18 +282,26 @@ def run(config_path):
                     raise ValueError(f'{ident} {name}: {field} differs from the recorded summary')
             if any(not math.isclose(a, b, rel_tol=0, abs_tol=1e-12) for a, b in zip(ours['ci_bits_per_coda'], recorded['ci_bits_per_coda'])):
                 raise ValueError(f'{ident} {name}: shared draws do not reproduce the recorded CI')
+            if v5 and ours['sign_flip_p_two_sided'] != inv.summary['m2_sign_flip_two_sided_p']['v5'][name]:
+                raise ValueError(f'{ident} {name}: sign-flip p differs from the v5 run')
     left_out = config['leave_out_day']
     kept = [d for d in days if d != left_out]
     if len(kept) != len(days) - 1:
         raise ValueError(f'{left_out} is not one of the test days')
-    without = compare(inventories, reference, shared_day_draws(kept, replicates, seed), confidence, set(kept))
+    without = compare(inventories, reference, shared_day_draws(kept, replicates, seed), confidence, set(kept), v5)
     nested = []
     for pair in config['nested_pairs']:
         fine = inventories[pair['fine']]
-        predictions = read_jsonl(fine.results / 'predictions.jsonl')
-        fine.paths['predictions'] = fine.results / 'predictions.jsonl'
-        nested.append(decomposition(inventories[pair['coarse']], fine, predictions, draws, confidence))
+        if v5:
+            fine.paths['v4_predictions'] = fine.v4_results / 'predictions.jsonl'
+            predictions = rebuild_predictions(read_jsonl(fine.paths['selection']), read_jsonl(fine.paths['v4_predictions']))
+        else:
+            predictions = read_jsonl(fine.results / 'predictions.jsonl')
+            fine.paths['predictions'] = fine.results / 'predictions.jsonl'
+        result = decomposition(inventories[pair['coarse']], fine, predictions, draws, confidence, v5)
+        nested.append(dict(result, note=pair['note']) if 'note' in pair else result)
     summary = {
+        **({'model': 'logistic v5 (DEC-23)'} if v5 else {}),
         'units': 'bits per coda; shares are ratios of token-weighted means',
         'reference': reference, 'days': days, 'left_out_day': left_out,
         'bootstrap': {'replicates': replicates, 'seed': seed, 'confidence': confidence,
@@ -267,6 +309,7 @@ def run(config_path):
                                 'token-weighted means; shares are ratios within each replicate'},
         'inventories': {ident: {'description': inv.spec['description'], 'results_directory': inv.spec['results_directory'],
                                 'report': inv.spec['report'], 'stop_reasons': inv.stop_reasons,
+                                **({'stop_rules': inv.stop_rules} if v5 else {}),
                                 'nonconverged_candidates': inv.nonconverged,
                                 'repeat_baseline_checks': {c: inv.summary['repeat_baseline_checks'][c] for c in A_CONDITIONS},
                                 'unk_by_fold': inv.unk_by_fold(), **main[ident]}
@@ -299,13 +342,22 @@ def interval(ci, digits=4):
 def report_lines(summary, config):
     inventories = summary['inventories']
     reference = summary['reference']
+    v5 = 'model' in summary
     stopped = {i for i, inv in inventories.items() if inv['stop_reasons']}
     def mark(ident):
         return f"{ident}‡" if ident in stopped else ident
     any_codas = next(iter(inventories.values()))['T']['codas']
-    lines = ['# RQ2: RQ1\'s contrasts under seven token inventories, logistic v4 (DEC-22)', '',
-             f"Generated by `rq2_compare.py` (`{config['output_directory']}/summary.json`) from the committed logistic v4 "
-             f"runs; inventory {reference} is RQ1's own run. All inventories label the same {any_codas:,} comparison targets, "
+    if v5:
+        title = '# RQ2: RQ1\'s contrasts under seven token inventories, logistic v5 (DEC-22, DEC-23)'
+        source = ("from the committed logistic v5 runs (DEC-23), which choose on the validation day among v4's fits of "
+                  f"every sub-condition; inventory {reference} is RQ1's own run, also under v5, so like is compared with like. "
+                  "The v4 comparison stays as the record (`reports/rq2_inventories_v4.md`).")
+    else:
+        title = '# RQ2: RQ1\'s contrasts under seven token inventories, logistic v4 (DEC-22)'
+        source = f"from the committed logistic v4 runs; inventory {reference} is RQ1's own run."
+    lines = [title, '',
+             f"Generated by `rq2_compare.py` (`{config['output_directory']}/summary.json`) {source} All inventories label the "
+             f"same {any_codas:,} comparison targets, "
              "and targets, folds, S, the UNK policy, the model and its selection rule are RQ1's (PLAN §7). Raw "
              "log-likelihoods are not compared across inventories (PLAN `[R2-3]`): every number below is a difference "
              "within one inventory, a ratio of such differences, or a difference of those ratios. Each inventory's "
@@ -315,22 +367,33 @@ def report_lines(summary, config):
              f"{reference} are paired. The draws reproduce each run's recorded contrast CIs. With "
              f"{len(summary['days'])} days the CIs are approximate, and limited data and capacity push contrasts toward "
              "zero: a CI that spans zero may mean too little data (PLAN §9).", '',
-             '## Inventories and stop rules', '',
-             '| ID | Inventory | Report | Stop rules (`[R2-7]`) | Non-converged L2 candidates |', '|---|---|---|---|---:|']
-    for ident, inv in inventories.items():
-        status = '; '.join(inv['stop_reasons']) or 'none fired'
-        lines.append(f"| {mark(ident)} | {inv['description']} | `{inv['report']}` | {status} | {inv['nonconverged_candidates']} |")
-    if stopped:
-        lines += ['', '‡ A stop rule fired for this inventory: its numbers are shown and no conclusion is drawn from '
-                  'them (PLAN `[R2-7]`).']
+             '## Inventories and stop rules', '']
+    if v5:
+        lines += ["DEC-23's rule (exact one-sided sign-flip test per check, Holm's correction across each run's 16 checks, "
+                  "fires at an adjusted p below 0.05) on each inventory's v5 run sets the stop marks (PLAN `[R2-7]`). "
+                  "DEC-16's old rule (day-bootstrap CI entirely below zero) and both rules on v4 are shown next to it.", '',
+                  '| ID | Inventory | Report | v5: DEC-23 rule | v5: DEC-16 rule | v4: DEC-23 rule | v4: DEC-16 rule | '
+                  'Non-converged L2 candidates (v4) |', '|---|---|---|---|---|---|---|---:|']
+        for ident, inv in inventories.items():
+            cells = ' | '.join('; '.join(inv['stop_rules'][m][k]) or 'none fired'
+                               for m in ('v5', 'v4') for k in ('dec23_fired', 'dec16_fired'))
+            lines.append(f"| {mark(ident)} | {inv['description']} | `{inv['report']}` | {cells} | {inv['nonconverged_candidates']} |")
+        if stopped:
+            lines += ['', "‡ DEC-23's stop rule fired on this inventory's v5 run: its numbers are shown and no conclusion "
+                      'is drawn from them (PLAN `[R2-7]`).']
+    else:
+        lines += ['| ID | Inventory | Report | Stop rules (`[R2-7]`) | Non-converged L2 candidates |', '|---|---|---|---|---:|']
+        for ident, inv in inventories.items():
+            status = '; '.join(inv['stop_reasons']) or 'none fired'
+            lines.append(f"| {mark(ident)} | {inv['description']} | `{inv['report']}` | {status} | {inv['nonconverged_candidates']} |")
+        if stopped:
+            lines += ['', '‡ A stop rule fired for this inventory: its numbers are shown and no conclusion is drawn from '
+                      'them (PLAN `[R2-7]`).']
     lines += ['', '## RQ1 contrasts per inventory (`[M2]`)', '',
               'Bits per coda within each inventory. Their size depends on the inventory, so inventories are compared '
-              'through shares of total predictability and the pattern of signs below.', '',
-              '| ID | Contrast | Token-weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---|---:|---:|---|---:|']
-    for ident, inv in inventories.items():
-        for name, c in inv['contrasts'].items():
-            lines.append(f"| {mark(ident)} | {name} | {bits(c['mean_bits_per_coda'])} | {bits(c['unweighted_mean_bits_per_coda'])} | "
-                         f"{interval(c['ci_bits_per_coda'])} | {c['positive_days']}/{c['days']} |")
+              'through shares of total predictability and the pattern of signs below.'
+              + (' Two-sided p: exact sign-flip test on the day sums (DEC-23).' if v5 else ''), '']
+    lines += contrast_table(((ident, name, c) for ident, inv in inventories.items() for name, c in inv['contrasts'].items()), mark, v5)
     lines += ['', '## Total predictability and A-conditions against repeat-own-last', '',
               'T = LL(A_B_S) − LL(none) per coda (condition viii minus the unigram), and each A-condition minus the '
               'repeat-own-last baseline (from each run\'s evaluation), within each inventory.', '',
@@ -346,12 +409,9 @@ def report_lines(summary, config):
     without = summary['without_left_out_day']
     lines += ['', f"## Without day {summary['left_out_day']} (`[R2-6]`)", '',
               f"The same quantities on the other {len(summary['days']) - 1} days; the models are not refitted. CIs resample "
-              'those days with the same seed, again shared by every inventory.', '',
-              '| ID | Contrast | Token-weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---|---:|---:|---|---:|']
-    for ident, inv in without.items():
-        for name, c in [('T', inv['T'])] + list(inv['contrasts'].items()):
-            lines.append(f"| {mark(ident)} | {name} | {bits(c['mean_bits_per_coda'])} | {bits(c['unweighted_mean_bits_per_coda'])} | "
-                         f"{interval(c['ci_bits_per_coda'])} | {c['positive_days']}/{c['days']} |")
+              'those days with the same seed, again shared by every inventory.', '']
+    lines += contrast_table(((ident, name, c) for ident, inv in without.items()
+                             for name, c in [('T', inv['T'])] + list(inv['contrasts'].items())), mark, v5)
     lines += share_lines(without, reference, mark, f"### Shares without {summary['left_out_day']}")
     lines += ['', '## Pattern (`[R2-3]`)', '',
               'Sign of each contrast\'s token-weighted mean and where its 95% CI lies, all 14 days.', '',
@@ -363,6 +423,25 @@ def report_lines(summary, config):
         lines += decomposition_lines(pair, mark)
     lines += ['', '## Inputs', '', 'SHA-256 of every input:', '']
     lines += [f"- `{p}`: `{h}`" for p, h in summary['input_sha256'].items()]
+    return lines
+
+
+def positive_days(c):
+    return f"{c['positive_days']}/{c['days']}" + (f" ({c['zero_days']} at 0)" if c.get('zero_days') else '')
+
+
+def contrast_table(rows, mark, sign_flip):
+    """Rows of (inventory ID, contrast name, describe_values result); a sign-flip p column when asked
+    (T has none: it is not a test)."""
+    lines = ['| ID | Contrast | Token-weighted mean | Unweighted day mean | 95% CI | Positive days |'
+             + (' Two-sided sign-flip p |' if sign_flip else ''),
+             '|---|---|---:|---:|---|---:|' + ('---:|' if sign_flip else '')]
+    for ident, name, c in rows:
+        line = (f"| {mark(ident)} | {name} | {bits(c['mean_bits_per_coda'])} | {bits(c['unweighted_mean_bits_per_coda'])} | "
+                f"{interval(c['ci_bits_per_coda'])} | {positive_days(c)} |")
+        if sign_flip:
+            line += f" {c['sign_flip_p_two_sided']:.4g} |" if 'sign_flip_p_two_sided' in c else ' — |'
+        lines.append(line)
     return lines
 
 
@@ -410,18 +489,23 @@ def decomposition_lines(pair, mark):
              f"lower bound. It is compared with {coarse}'s log-likelihood of the same label under the same condition "
              f"(paired, per coda). Targets mapped to UNK in either inventory are left out: {pair['eligible_targets']:,} "
              f"remain; {excluded['fine_only']} are UNK in {fine} only, {excluded['coarse_only']} in {coarse} only and "
-             f"{excluded['both']} in both.", '',
-             f"| Condition | Type term − {coarse} LL, token-weighted | Unweighted day mean | 95% CI | Positive days |",
+             f"{excluded['both']} in both.", '']
+    if pair.get('note'):
+        lines += [pair['note'], '']
+    lines += [f"| Condition | Type term − {coarse} LL, token-weighted | Unweighted day mean | 95% CI | Positive days |",
              '|---|---:|---:|---|---:|']
     for condition, d in pair['type_minus_coarse'].items():
         lines.append(f"| {condition} | {bits(d['mean_bits_per_coda'])} | {bits(d['unweighted_mean_bits_per_coda'])} | "
                      f"{interval(d['ci_bits_per_coda'])} | {d['positive_days']}/{d['days']} |")
+    sign_flip = all('sign_flip_p_two_sided' in d for d in pair['tempo_contrasts'].values())
     lines += ['', f"The three `[M2]` contrasts on the tempo term (does a source predict {fine}'s tempo class once its "
               f"{coarse} label is known):", '',
-              '| Contrast | Token-weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---:|---:|---|---:|']
+              '| Contrast | Token-weighted mean | Unweighted day mean | 95% CI | Positive days |'
+              + (' Two-sided sign-flip p |' if sign_flip else ''), '|---|---:|---:|---|---:|' + ('---:|' if sign_flip else '')]
     for name, d in pair['tempo_contrasts'].items():
         lines.append(f"| {name} | {bits(d['mean_bits_per_coda'])} | {bits(d['unweighted_mean_bits_per_coda'])} | "
-                     f"{interval(d['ci_bits_per_coda'])} | {d['positive_days']}/{d['days']} |")
+                     f"{interval(d['ci_bits_per_coda'])} | {positive_days(d)} |"
+                     + (f" {d['sign_flip_p_two_sided']:.4g} |" if sign_flip else ''))
     return lines
 
 
@@ -430,7 +514,8 @@ def main():
     parser.add_argument('--config', default='config/rq2_compare.json')
     summary = run(parser.parse_args().config)
     stopped = [i for i, inv in summary['inventories'].items() if inv['stop_reasons']]
-    print(f"Compared {len(summary['inventories'])} inventories. Stop rules fired for: {', '.join(stopped) or 'none'}.")
+    rule = "DEC-23's rule on v5" if summary.get('model') else 'DEC-16 stop rules'
+    print(f"Compared {len(summary['inventories'])} inventories. {rule} fired for: {', '.join(stopped) or 'none'}.")
 
 
 if __name__ == '__main__':

@@ -1,0 +1,12 @@
+{
+  "v4_config": "config/rq1_logistic_v4_retrospective.json",
+  "output_directory": "data/results/rq1_logistic_v5_retrospective",
+  "report": "reports/rq1_retrospective_sensitivity_v5.md",
+  "report_title": "RQ1 old-delay sensitivity run, logistic v5 (DEC-23)",
+  "headline_note": "Logistic v4 remains RQ1's headline (DEC-23; reports/rq1_logistic_v4.md). This report is the old-delay sensitivity run under v5, part of the robustness line.",
+  "report_note": "Old-delay sensitivity run (PLAN §9, DEC-1): S, A_S, B_S and A_B_S use retrospective_delay_s in place of gap_s and overlap_elapsed_s (turn_category is kept); conditions without S are those of the primary run.",
+  "primary_v5_summary": "data/results/rq1_logistic_v5/evaluation/summary.json",
+  "governing_model": "v4",
+  "reproduction_tolerance_bits": 1e-09,
+  "alpha": 0.05
+}

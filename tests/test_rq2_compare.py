@@ -4,7 +4,7 @@ import math
 import random
 import unittest
 
-from whale_coda_dynamics.evaluation import day_bootstrap_bits
+from whale_coda_dynamics.evaluation import day_bootstrap_bits, sign_flip_p
 from whale_coda_dynamics.rq2_compare import (
     CONDITIONS, Inventory, compare, decomposition, describe_values, shared_day_draws, type_and_tempo_bits,
 )
@@ -48,6 +48,17 @@ class SharedDrawTests(unittest.TestCase):
             self.assertAlmostEqual(ours[field], theirs[field], places=12)
         self.assertEqual(ours['ci_bits_per_coda'], theirs['ci_bits_per_coda'])
         self.assertEqual(ours['positive_days'], theirs['positive_days'])
+
+
+    def test_sign_flip_and_zero_days_only_when_asked(self):
+        dates = {f'c{i}': DAYS[i % 4] for i in range(12)}
+        values = {c: (0.0 if dates[c] == DAYS[0] else -0.5 if dates[c] == DAYS[1] else 0.25) for c in dates}
+        draws = shared_day_draws(DAYS[:4], 50, 42)
+        self.assertNotIn('sign_flip_p_two_sided', describe_values(values, dates, draws, 0.95))
+        result = describe_values(values, dates, draws, 0.95, sign_flip=True)
+        self.assertEqual(result['zero_days'], 1)
+        self.assertEqual(result['sign_flip_p_two_sided'],
+                         sign_flip_p({DAYS[0]: 0.0, DAYS[1]: -1.5, DAYS[2]: 0.75, DAYS[3]: 0.75}, dict.fromkeys(DAYS[:4], 3), 'two-sided'))
 
 
 class ShareTests(unittest.TestCase):
