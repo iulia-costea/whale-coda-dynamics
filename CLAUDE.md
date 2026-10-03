@@ -24,7 +24,7 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 ## Reproducibility and lessons
 
 - Before pushing results: commit all code first, then rerun from a clean checkout; `git status` must be clean afterwards. Results produced by uncommitted code can't be reproduced.
-- Reruns on another machine can differ at ~1e-6 (numeric libraries): compare printed values, not bytes. Runs that must match a primary run exactly (e.g. the old-delay sensitivity run) are regenerated together with it, on one machine.
+- Reruns on another machine (or with another BLAS thread count) agree on log-likelihoods to ~1e-6, while individual predicted probabilities can differ by up to ~1e-4 at the smallest penalties (optimizer tolerance, BLAS threads): compare log-likelihoods, penalties and printed values, not bytes or probabilities. Runs that must match a primary run exactly (e.g. the old-delay sensitivity run) are regenerated together with it, on one machine.
 - When a finding changes how models should be built (e.g. a fix to the reference model), record it in `docs/DECISIONS.md` and `docs/PLAN.md` before building the next model. Prompts and reports are not where lessons live.
 
 ## Commands

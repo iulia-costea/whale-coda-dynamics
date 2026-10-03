@@ -12,6 +12,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
 - **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
 - **Done:** the residual LSTM on top of logistic v4 (DEC-21): `reports/rq1_lstm_residual.md`, with its checks (`reports/rq1_lstm_residual_checks.md`: wiring, learnability and planted-signal gates pass) and device choice (`reports/rq1_lstm_residual_throughput.md`: CPU ×18). No `[M4]` stop rule fires. The residual gain over logistic v4 is below zero in point estimate on all seven fitted conditions (−0.010 to −0.122 bits/coda), with every day-bootstrap CI spanning zero; logistic v4 alone is chosen on 1–6 of 14 folds per condition.
+- **Done:** `[P2]` own-history length sweep (DEC-25): `reports/rq1_history_length.md`. Logistic v4 with k = 1–9 own lags in A and A,B,S, all k fitted in one environment; the k = 3 reference reproduces v4 (all 98 penalties identical, mean LL within 1e-6; gate amended, DEC-25 addendum). Primary LL(9) − LL(3) in A,B,S: +0.009 bits/coda, CI [−0.014, 0.037], 5/14 days positive (unweighted day mean −0.003): no detectable information beyond 3 own codas for this model at this data size. Calibration (planted lag-6 copies, condition A): a pattern worth more than 0.30 bits/coda to the oracle would have been detected (f = 0.4, r ≥ 0.11); no bound at f = 0.1 or 0.2. Secondary LL(1) − LL(3): −0.024 [−0.057, 0.015] in A, −0.056 [−0.111, 0.001] in A,B,S. DEC-16 stop rules fire at k = 5 and 6 (`add_input:A_B_S-A_B` below zero); no conclusion is drawn from those k.
 - **RQ2:** redesigned as a token-inventory study (§7, DEC-22): five inventories of the same codas on logistic v4. Rhythm and tempo rules verified against Sharma et al.'s files; nothing run yet.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
@@ -208,8 +209,9 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 - **Power:** the switch part rests on ~270 codas, so it is exploratory.
 - **Why not filter:** evaluating only on non-repeats would bias the RQ1 contrast.
 
+**`[P2]` Own-history length (DEC-25).** The literature disagrees on how far back structure reaches (up to 8 codas, 1–2, second order); logistic v4 sees 3 own lags. The sweep refits logistic v4 with $k \in \{1, \dots, 9\}$ own lags and changes nothing else (partner history stays at 3 lags), in conditions $A,B,S$ (primary) and $A$, with every $k$, including the $k = 3$ reference, fitted in one environment. Contrasts are $\mathrm{LL}(k) - \mathrm{LL}(3)$, paired per coda, with the `[M3]` uncertainty and the `[P1]` split: the primary, pre-specified one is $\mathrm{LL}(9) - \mathrm{LL}(3)$ in $A,B,S$; the secondary is $\mathrm{LL}(1) - \mathrm{LL}(3)$; the curve over $k$ is descriptive. Calibration reuses the residual LSTM's planted lag-6 protocol (`residual_planted.py`, $f \in \{0.1, 0.2, 0.4\}$, condition $A$), scored with $k = 9$ against $k = 3$, both refitted on the planted data; a bound on the real-data $A$ contrast is reported only where the recovery ratio's lower bound is above zero.
+
 **Other persistence tests**
-- **`[P2]`:** own-history length 1–9 (the literature disagrees on memory: 8 codas, 2, or 1).
 - **`[P3]`:** do timing and the partner predict *whether* the whale breaks a repeat? (the repeat part of `[P1]`)
 - **`[P4]`:** pure persistence predicts the partner-content contrast ≈ 0.
 
@@ -371,7 +373,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
-4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
+4. **Phase 4 — robustness:** `[P2]` own-history length sweep (DEC-25) — **done** (`reports/rq1_history_length.md`); remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]`.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
 
@@ -379,4 +381,4 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 
 ## References
 
-Andreas et al. 2022, *iScience* 25 · Assayag et al. 2026, *Bioacoustics* 35(4) · Aycock et al. 2025, *ICLR* · Bermant et al. 2019, *Sci. Rep.* · Gero et al. 2016a, *R. Soc. Open Sci.* · Gero, Whitehead & Rendell 2016b, *R. Soc. Open Sci.* · Gubnitsky et al. 2025, *Sci. Rep.* · Hersh et al. 2022, *PNAS* · Lakhotia et al. 2021, *TACL* 9 · Leitão et al. 2024, *eLife* · Mielke et al. 2019, *ACL* · O'Connor & Andreas 2021, *ACL* · Schulz et al. 2008, *Anim. Behav.* · Sharma et al. 2024a, *Nat. Commun.* · Sharma et al. 2024b, *bioRxiv* (WhaleLM) · Sinha & Chavan 2026, *arXiv:2606.16084* · Terwilliger et al. 2025, *NeurIPS workshop* · Xu et al. 2020, *ICLR*
+Aluma et al. 2026, *Sci. Rep.* 16 · Andreas et al. 2022, *iScience* 25 · Assayag et al. 2026, *Bioacoustics* 35(4) · Aycock et al. 2025, *ICLR* · Bermant et al. 2019, *Sci. Rep.* · Gero et al. 2016a, *R. Soc. Open Sci.* · Gero, Whitehead & Rendell 2016b, *R. Soc. Open Sci.* · Gubnitsky et al. 2025, *Sci. Rep.* · Hersh et al. 2022, *PNAS* · Lakhotia et al. 2021, *TACL* 9 · Leitão et al. 2024, *eLife* · Mielke et al. 2019, *ACL* · O'Connor & Andreas 2021, *ACL* · Schulz et al. 2008, *Anim. Behav.* · Sharma et al. 2024a, *Nat. Commun.* · Sharma et al. 2024b, *bioRxiv* (WhaleLM) · Sinha & Chavan 2026, *arXiv:2606.16084* · Terwilliger et al. 2025, *NeurIPS workshop* · Xu et al. 2020, *ICLR*
