@@ -107,6 +107,7 @@ class LogisticSmokeTests(unittest.TestCase):
 
 RQ2_D = 'data/processed/rq2_d_rhythm_tempo_folds/manifest.json'
 # The RQ2 runs use one BLAS thread: OpenBLAS's default thread count is far slower on these small matrices.
+# The own-history length sweep requires one BLAS thread in every fitting process (DEC-25 runs).
 ONE_BLAS_THREAD = {'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
 
 
@@ -382,6 +383,47 @@ class ResidualSmokeTests(unittest.TestCase):
             self.assertEqual(set(summary['per_fraction']), {'0.1', '0.4'})
             self.assertEqual(len(summary['counts']), 14)
             self.assertTrue((box.root / 'out/planted.md').read_text(encoding='utf-8').strip())
+
+
+PLANTED_SCORES = 'data/results/rq1_lstm_residual_planted/scores.jsonl'
+
+
+@unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
+class HistoryLengthSmokeTests(unittest.TestCase):
+    def test_sweep_runner(self):
+        """DEC-25: fit (k = 1, 3, 4, all conditions), calibrate, report; then the report alone regenerates byte for byte."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(V4 + 'predictions.jsonl', V4 + 'l2_selection.jsonl', V4 + 'evaluation/summary.json', PLANTED_SCORES)
+            box.evaluation('eval.json', PRIMARY, [42])
+            box.config('logistic_tiny.json', **LOGISTIC_V2)
+            box.config('planted_tiny.json', fractions=[0.4], lag=6, sampling_seed=42, bootstrap_replicates=50,
+                       bootstrap_seed=42, confidence=0.95, ratio_handful=5)
+            config = box.config('sweep.json', manifest=PRIMARY, logistic_config='config/logistic_tiny.json',
+                                evaluation_config='config/eval.json', planted_config='config/planted_tiny.json',
+                                output_directory='out/sweep', report='out/sweep.md', field='A_history', orders=[1, 3, 4],
+                                reference_order=3, conditions=['A', 'A_B_S'], primary=dict(condition='A_B_S', order=4),
+                                secondary_order=1,
+                                gate=dict(enforce=False, results_directory=V4.rstrip('/'), maximum_penalty_differences=1,
+                                          log_likelihood_tolerance_bits=1e-5, probability_listing_threshold=1e-5),
+                                calibration=dict(condition='A', order=4, residual_planted_scores=PLANTED_SCORES))
+            box.run('history_length', config, '--workers', '2', env=ONE_BLAS_THREAD)
+            summary = json.loads((box.root / 'out/sweep/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(set(summary['curve']['A']), {'1', '3', '4'})
+            self.assertEqual({c: set(v) for c, v in summary['contrasts'].items()}, {'A': {'1', '4'}, 'A_B_S': {'1', '4'}})
+            self.assertEqual(summary['contrasts']['A_B_S']['4']['role'], 'primary')
+            self.assertEqual(summary['contrasts']['A']['1']['role'], 'secondary')
+            self.assertEqual(set(summary['stop_rules']), {'1', '3', '4'})
+            self.assertEqual(summary['gate']['fits_compared'], 98)
+            self.assertFalse(summary['gate']['passed'])  # a one-value L2 grid cannot reproduce v4's choices
+            self.assertEqual(set(summary['calibration']['per_fraction']), {'0.4'})
+            self.assertTrue(summary['calibration']['planting_check']['flags_and_labels_identical'])
+            self.assertEqual(summary['constant_conditions'], ['none', 'S', 'B', 'B_S'])
+            self.assertTrue((box.root / 'out/sweep.md').read_text(encoding='utf-8').startswith('# RQ1 own-history length sweep'))
+            regenerated = ('out/sweep.md', 'out/sweep/summary.json')
+            before = {rel: (box.root / rel).read_bytes() for rel in regenerated}
+            box.run('history_length', config, '--stage', 'report')
+            self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
 
 
 if __name__ == '__main__':

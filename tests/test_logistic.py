@@ -106,6 +106,56 @@ class LogisticTests(unittest.TestCase):
         np.testing.assert_array_equal(timing.mean,before)
         self.assertEqual(a.transform(train).shape[1],7)
 
+    def test_per_field_history_order(self):
+        """DEC-25: a field listed in history_orders gets exactly its own number of lags; the others keep order."""
+        vocab=['a','b','UNK']
+        train=[dict(split='train',A_history=['a','b','b','a','UNK','a','b','a','b','a'][:n],B_history=['b','a','a','b'][:n%5],
+                    turn_category=['switch','overlap'][n%2],gap_s=float(n),overlap_elapsed_s=0.0) for n in range(1,11)]
+        fields=['A_history','B_history','turn_category','gap_s','overlap_elapsed_s']
+        default=Encoder(train,vocab,fields,3)
+        for orders in (None,{},{'A_history':3},{'B_history':3}):  # unset or equal to the default: unchanged
+            e=Encoder(train,vocab,fields,3,orders)
+            self.assertEqual(e.names,default.names)
+            np.testing.assert_array_equal(e.mean,default.mean);np.testing.assert_array_equal(e.scale,default.scale)
+            np.testing.assert_array_equal(e.transform(train),default.transform(train))
+        for k in (1,2,5,9):
+            e=Encoder(train,vocab,fields,3,{'A_history':k})
+            for label in vocab:
+                self.assertEqual([n for n in e.names if n.startswith('A_history:') and n.endswith(':'+label)],
+                                 [f'A_history:lag{lag}:{label}' for lag in range(1,k+1)])
+                self.assertEqual([n for n in e.names if n.startswith('B_history:') and n.endswith(':'+label)],
+                                 [f'B_history:lag{lag}:{label}' for lag in range(1,4)])
+            self.assertEqual([n for n in e.names if not n.startswith('A_history:')],
+                             [n for n in default.names if not n.startswith('A_history:')])
+            x=e.raw(train)
+            for i,r in enumerate(train):
+                for lag in range(1,k+1):
+                    columns=[e.names.index(f'A_history:lag{lag}:{t}') for t in vocab]
+                    expected=[float(len(r['A_history'])>=lag and r['A_history'][-lag]==t) for t in vocab]
+                    self.assertEqual(list(x[i,columns]),expected)
+            self.assertEqual(x.shape[1],len(e.names))
+        for bad in ({'A_history':0},{'A_history':2.0},{'gap_s':2}):
+            with self.assertRaises(ValueError):
+                Encoder(train,vocab,fields,3,bad)
+
+    def test_reference_order_through_per_field_path_is_identical(self):
+        """DEC-25's k = 3: history_orders={'A_history': 3} selects and fits exactly what the default does."""
+        vocab=['a','b','c','UNK']
+        def rows(n,seed,split):
+            rng=np.random.RandomState(seed)
+            return [dict(coda_id=f'{split}-{i}',Ct=vocab[rng.randint(3)],A_history=[vocab[rng.randint(3)] for _ in range(1+rng.randint(6))],
+                         B_history=[vocab[rng.randint(3)] for _ in range(1+rng.randint(4))],turn_category=['switch','overlap'][i%2],
+                         gap_s=float(rng.rand()),overlap_elapsed_s=0.0,split=split) for i in range(n)]
+        train,validation=rows(60,1,'train'),rows(20,2,'validation')
+        fields=['A_history','B_history','turn_category','gap_s','overlap_elapsed_s']
+        config=dict(history_order=3,l2_grid=[.01,.1],max_iterations=500,gradient_tolerance=1e-6)
+        e1,c1,g1=select_l2_and_fit(train,validation,vocab,fields,config)
+        e2,c2,g2=select_l2_and_fit(train,validation,vocab,fields,dict(config,history_orders={'A_history':3}))
+        self.assertEqual(e1.names,e2.names)
+        self.assertEqual((c1['l2'],c1['l2_s'],c1['beta'],c1['gamma']),(c2['l2'],c2['l2_s'],c2['beta'],c2['gamma']))
+        np.testing.assert_array_equal(c1['w'],c2['w'])
+        self.assertEqual([g['validation_log_likelihood_bits'] for g in g1],[g['validation_log_likelihood_bits'] for g in g2])
+
     def test_retrospective_delay_encoding(self):
         train=[dict(split='train',turn_category='switch',retrospective_delay_s=v) for v in (-1.5,0.5,2.0)]
         e=Encoder(train,['a','b'],['turn_category','retrospective_delay_s'])

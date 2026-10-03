@@ -15,12 +15,14 @@ from .preprocessing.folds import prepare_fold
 from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 
 
-def feature_names(fields, vocabulary, categories, order):
-    """Encoder's column names, in column order (the intercept, appended by transform, is unnamed)."""
+def feature_names(fields, vocabulary, categories, order, history_orders=None):
+    """Encoder's column names, in column order (the intercept, appended by transform, is unnamed).
+    `order` lags per history field, unless `history_orders` gives that field its own count (as in Encoder)."""
+    history_orders = history_orders or {}
     names = []
     for f in fields:
         if f.endswith('_history'):
-            names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, order+1) for label in vocabulary)
+            names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, history_orders.get(f, order)+1) for label in vocabulary)
         elif f == 'turn_category':
             names.extend('turn:'+c for c in categories)
         elif f == 'retrospective_delay_s':
@@ -31,15 +33,22 @@ def feature_names(fields, vocabulary, categories, order):
 
 
 class Encoder:
-    """Lag one-hot vectors; raw and log1p timing, each standardized on train."""
-    def __init__(self, train, vocabulary, fields, order=3):
+    """Lag one-hot vectors; raw and log1p timing, each standardized on train.
+
+    `order` lags per history field, unless `history_orders` gives that field its own
+    count (DEC-25: {'A_history': k}); fields it doesn't list keep `order`."""
+    def __init__(self, train, vocabulary, fields, order=3, history_orders=None):
         if not train or any(r['split'] != 'train' for r in train):
             raise ValueError('Encoder fitting requires training rows')
         if type(order) is not int or order < 1:
             raise ValueError('Invalid history order')
+        history_orders = dict(history_orders or {})
+        if any(not f.endswith('_history') or type(k) is not int or k < 1 for f, k in history_orders.items()):
+            raise ValueError('Invalid per-field history order')
         self.vocabulary, self.fields, self.order = vocabulary, fields, order
+        self.history_orders = history_orders
         self.categories = sorted({r['turn_category'] for r in train}) if 'turn_category' in fields else []
-        self.names = feature_names(fields, vocabulary, self.categories, order)
+        self.names = feature_names(fields, vocabulary, self.categories, order, history_orders)
         x = self.raw(train)
         self.mean, self.scale = np.zeros(x.shape[1]), np.ones(x.shape[1])
         for j, name in enumerate(self.names):
@@ -49,12 +58,15 @@ class Encoder:
     @classmethod
     def from_record(cls, record):
         """The encoder of a stored fit (a models.jsonl row of v2-v4), from its stored vocabulary, fields,
-        order, turn categories and standardisation; nothing is refitted. The stored feature names must be
-        exactly the names those settings produce."""
+        order, per-field orders (DEC-25; absent in rows that predate them), turn categories and
+        standardisation; nothing is refitted. The stored feature names must be exactly the names those
+        settings produce."""
         encoder = cls.__new__(cls)
         encoder.vocabulary, encoder.fields, encoder.order = record['vocabulary'], record['fields'], record['order']
+        encoder.history_orders = dict(record.get('history_orders', {}))
         encoder.categories = record['categories']
-        encoder.names = feature_names(encoder.fields, encoder.vocabulary, encoder.categories, encoder.order)
+        encoder.names = feature_names(encoder.fields, encoder.vocabulary, encoder.categories, encoder.order,
+                                      encoder.history_orders)
         encoder.mean = np.asarray(record['mean'], dtype=float)
         encoder.scale = np.asarray(record['scale'], dtype=float)
         if (encoder.names + ['intercept'] != record['feature_names'] or encoder.mean.shape != (len(encoder.names),)
@@ -62,13 +74,16 @@ class Encoder:
             raise ValueError(f"Stored encoder is inconsistent ({record.get('fold_id')}, {record.get('condition')})")
         return encoder
 
+    def lags(self, field):
+        return self.history_orders.get(field, self.order)
+
     def raw(self, rows):
         result = []
         for r in rows:
             values = []
             for f in self.fields:
                 if f.endswith('_history'):
-                    for lag in range(1, self.order+1):
+                    for lag in range(1, self.lags(f)+1):
                         label = r[f][-lag] if len(r[f]) >= lag else None
                         values.extend(float(label == t) for t in self.vocabulary)
                 elif f == 'turn_category':
@@ -194,7 +209,7 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     the original single-penalty 1D search, unchanged. With `skip_nonconverged_candidates` set (off by
     default; on only in the RQ2 inventory runs, DEC-22), a candidate whose fit fails the convergence check
     is recorded and left out of the selection; if every candidate fails, NonConvergenceError is raised."""
-    encoder = Encoder(train, vocab, fields, config['history_order'])
+    encoder = Encoder(train, vocab, fields, config['history_order'], config.get('history_orders'))
     x_train, x_val = encoder.transform(train), encoder.transform(validation)
     y_train = np.array([vocab.index(r['Ct']) for r in train])
     y_val = np.array([vocab.index(r['Ct']) for r in validation])
@@ -444,23 +459,15 @@ def run(config_path):
     return summary
 
 
-def _fit_and_evaluate_v2(config_path):
-    """Fold loop, fitting and evaluation shared by run_v2 and run_v2_sensitivity;
-    only the report each writes at the end differs. Adds shared copy features
-    (beta for A, gamma for B) and per-fold, per-condition L2 selected on the
-    validation day; everything else (preprocessing, folds, UNK policy) is
-    unchanged. See select_l2_and_fit for the test-isolation guarantee."""
-    path = Path(config_path).resolve()
-    root, config = path.parent.parent, read_json(path)
-    manifest_path = root / config['manifest']
-    manifest = read_json(manifest_path)
-    source = root / manifest['configuration']['input']
-    if hashlib.sha256(source.read_bytes()).hexdigest() != manifest['input_sha256']:
-        raise ValueError('Stale fold manifest')
-    evaluation_config = read_json(root / config['evaluation_config'])
+def fit_v2_lattice(config, manifest, rows, evaluation_config):
+    """Fold loop, fitting and evaluation of logistic v2-v4 over the manifest's conditions;
+    writes nothing. Adds shared copy features (beta for A, gamma for B) and per-fold,
+    per-condition L2 selected on the validation day; everything else (preprocessing,
+    folds, UNK policy) is unchanged. See select_l2_and_fit for the test-isolation
+    guarantee. Used by _fit_and_evaluate_v2 and by the own-history length sweep
+    (history_length.py, DEC-25), which adds only config['history_orders']."""
     if evaluation_config['seeds'] != [config['seed']]:
         raise ValueError('Evaluation seed configuration mismatch')
-    rows = read_jsonl(source)
     predictions, baselines, models, diagnostics, selections = [], [], [], [], []
     for fold in manifest['folds']:
         mapped, policy = prepare_fold(rows, fold, manifest['preparation_configuration'])
@@ -497,7 +504,9 @@ def _fit_and_evaluate_v2(config_path):
                 p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test)
                 diagnostics.append(dict(fold_id=fold['fold_id'],condition=condition,**chosen['convergence']))
                 models.append(dict(fold_id=fold['fold_id'],condition=condition,vocabulary=vocab,
-                                   fields=fields,order=encoder.order,categories=encoder.categories,
+                                   fields=fields,order=encoder.order,
+                                   **({'history_orders': encoder.history_orders} if encoder.history_orders else {}),
+                                   categories=encoder.categories,
                                    feature_names=encoder.names+['intercept'],mean=encoder.mean.tolist(),
                                    scale=encoder.scale.tolist(),weights=chosen['w'].tolist(),
                                    beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2'],
@@ -524,6 +533,27 @@ def _fit_and_evaluate_v2(config_path):
             if r['condition']==condition:
                 days.setdefault(r['recording_date'],[]).append(r['log_likelihood_bits']-indexed[r['coda_id']]['repeat_log_likelihood_bits'])
         baseline_checks[condition] = day_bootstrap_bits(days,evaluation_config['bootstrap_replicates'],evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
+    return dict(predictions=predictions, baselines=baselines, models=models, diagnostics=diagnostics,
+                selections=selections, summary=summary, scored=scored, paired=paired,
+                baseline_metrics=baseline_metrics, baseline_checks=baseline_checks)
+
+
+def _fit_and_evaluate_v2(config_path):
+    """fit_v2_lattice on a config file, writing its outputs; shared by run_v2 and
+    run_v2_sensitivity, which differ only in the report each writes at the end."""
+    path = Path(config_path).resolve()
+    root, config = path.parent.parent, read_json(path)
+    manifest_path = root / config['manifest']
+    manifest = read_json(manifest_path)
+    source = root / manifest['configuration']['input']
+    if hashlib.sha256(source.read_bytes()).hexdigest() != manifest['input_sha256']:
+        raise ValueError('Stale fold manifest')
+    evaluation_config = read_json(root / config['evaluation_config'])
+    rows = read_jsonl(source)
+    fitted = fit_v2_lattice(config, manifest, rows, evaluation_config)
+    predictions, baselines, models, diagnostics, selections, summary, scored, paired, baseline_metrics, baseline_checks = (
+        fitted[k] for k in ('predictions', 'baselines', 'models', 'diagnostics', 'selections', 'summary', 'scored',
+                            'paired', 'baseline_metrics', 'baseline_checks'))
 
     output = root / config['output_directory'];output.mkdir(parents=True,exist_ok=True)
     write_jsonl(output/'predictions.jsonl',predictions)

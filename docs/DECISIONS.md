@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -255,6 +255,27 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Vocabularies: one per factor. Tempo: the five KDE classes, no UNK. Rhythm (type): RQ1's policy per fold (`fit_vocabulary` on the training days' codas, *k* = 2), shared by the coda's own label and every lag of both whales, as RQ1's encoder shares one vocabulary between $A$ and $B$. The run checks it equals inventory C's (A's) fold vocabulary.
   - `skip_nonconverged_candidates` on, as in every RQ2 run (DEC-22 addendum).
   - The penalty search is logistic v4's own code, `logistic.grid_search_l2`, factored out of `select_l2_and_fit` with no change in behaviour (committed fits refit bit for bit).
+
+## Persistence tests (2026-10-03)
+
+**DEC-25 — Own-history length sweep (`[P2]`): logistic v4 with 1 to 9 own lags.**
+- **Decision:**
+  - Logistic v4 unchanged except the number of own-history lags, $k \in \{1, \dots, 9\}$. Partner history stays at 3 lags; copy weights, penalties, grid, selection rule, folds, targets and RQ1's labels (`guy_coda_type`) stay as they are. The encoder gets a per-field lag order; with the default it must reproduce v4 (up to the cross-machine numerical noise in repo `CLAUDE.md`, about 1e-6). All $k$, including $k = 3$, are fitted in the same environment, and contrasts use that $k = 3$ fit as the reference.
+  - Conditions: $A,B,S$ (primary; RQ1's full model) and $A$ (own history alone, comparable to the single-stream literature).
+  - Contrasts, per condition, paired per coda, with day-bootstrap CI, unweighted day mean and positive days: $\mathrm{LL}(k) - \mathrm{LL}(3)$ for every $k \neq 3$, each split into repeat and switch parts (`[P1]`).
+    - Primary, pre-specified: $\mathrm{LL}(9) - \mathrm{LL}(3)$ in $A,B,S$: does own history beyond 3 codas add usable information, given the partner and timing?
+    - Secondary: $\mathrm{LL}(1) - \mathrm{LL}(3)$: does memory beyond the last coda matter?
+    - The curve over $k$ is descriptive.
+  - Calibration: the residual LSTM's planted-signal protocol (`residual_planted.py`: lag-6 own-coda copies, $f \in \{0.1, 0.2, 0.4\}$, same eligibility, planting and seeds, condition $A$), scored with logistic regression at $k = 9$ against $k = 3$, both refitted on the planted data. Report the oracle comparison, the recovery ratio and its bootstrap interval as in the residual LSTM's planted-signal report (`reports/rq1_lstm_residual_sensitivity.md`), and a bound (the real-data $A$ contrast $\mathrm{LL}(9) - \mathrm{LL}(3)$'s upper CI divided by $r$'s lower bound) only where $r$'s lower bound is above zero.
+- **Why:**
+  - The literature disagrees on how far back structure reaches: up to 8 codas (WhaleLM), 1–2 (Assayag et al.), second order (Sinha & Chavan). Logistic v4 sees 3 own lags. The residual LSTM saw 10, but its planted run gave no bound: it did not recover a rare lag-6 pattern at this data size.
+  - Logistic regression with explicit lags is the more sensitive device for this one question: it doesn't have to discover where to look. Recommended as a must-have for the persistence argument on 2026-09-28; not run until now.
+  - RQ1's headline model is v4, so the sweep uses v4 (not DEC-23's v5) and its stop rules as they stood for RQ1.
+- **Reading:**
+  - Positive primary contrast: own history beyond 3 codas carries usable information beyond partner and timing. Still not grammar: a stable repertoire or a slowly changing behavioural state also produce it (Gero, Whitehead & Rendell 2016b; Aluma et al. 2026). Say whether it lives in the repeat or the switch part.
+  - Null: "no detectable information beyond 3 own codas for this model at this data size", with the calibration's bound, if any, saying what size of lag-6 pattern would have been detected.
+- **Not done:** partner-history length; v5 for the sweep; more than 9 lags (`history_limit` is 10); a lag-6 copy weight (too tailored to the planted pattern).
+- **Gate amended** after the k = 3 gate (2026-10-03, before any k = 9 log-likelihood, calibration or contrast number was seen; the k = 9 run's log line showed only its run time and that no DEC-16 stop rule fired): v4's committed fits are reproducible only to ~1e-4 in probability at the smallest penalties (optimizer tolerance gtol 1e-6; the BLAS thread count alone moves them by ~1e-4), while penalties and mean log-likelihoods reproduce (all 98 penalties identical; mean LL within 1e-6). The gate now requires identical chosen penalties (at most one differing) and every condition's mean LL within 1e-5 bits/coda of v4's; probability differences are reported (the largest, and which fits exceed 1e-5), not enforced. The gate checks the code path; every contrast compares fits from one environment.
 
 ## Differences from the submitted proposal
 

@@ -1,0 +1,34 @@
+{
+  "configuration": {
+    "condition": "A",
+    "field": "A_history",
+    "orders": [
+      3,
+      9
+    ],
+    "lag": 6,
+    "fractions": [
+      0.1,
+      0.2,
+      0.4
+    ],
+    "sampling_seed": 42
+  },
+  "environment": {
+    "python": "3.11.17",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "blas_threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    }
+  },
+  "input_sha256": {
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "config/rq1_history_length.json": "69e6520109bad51d4986439ac50d644daf3fe8304ffea0267a917bf0495987dd",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "config/rq1_lstm_residual_planted.json": "89dd303755baf798ec1bdd03cf51affe523b473da14670292e7f9600579a9864"
+  }
+}

@@ -248,12 +248,7 @@ def summarise(scores, selections, counts, config, real):
         mean = lambda xs: math.fsum(xs) / len(xs) if xs else None  # noqa: E731
         unplanted = [r for r in rs if not r['planted']]
         planted = [r for r in rs if r['planted']]
-        # The bound needs a denominator that stays positive in every replicate; more than a handful of
-        # replicates without one make the ratio unstable at this f.
-        degenerate = ratio['degenerate_replicates']
-        ratio['status'] = ('stable' if degenerate == 0 else
-                           'unstable' if degenerate > config['ratio_handful'] else 'denominator not always positive')
-        r_low = ratio['ci_ratio'][0] if degenerate == 0 and ratio['ci_ratio'] else None
+        ratio['status'] = ratio_status(ratio, config['ratio_handful'])
         per_fraction[str(f)] = dict(
             fraction=f, test_targets=len(rs), planted_test_targets=len(planted), eligible_test_targets=sum(r['eligible'] for r in rs),
             planted_test_share=len(planted) / len(rs),
@@ -265,9 +260,24 @@ def summarise(scores, selections, counts, config, real):
                            difference=day_bootstrap_bits(unplanted_diff, boot['replicates'], boot['seed'], boot['confidence'])),
             planted=dict(targets=len(planted), residual_bits=mean([seed_mean(r['residual_bits']) for r in planted]),
                          refitted_lr_bits=mean([r['lr_bits'] for r in planted]), oracle_bits=mean([r['oracle_bits'] for r in planted])),
-            bound_bits_per_coda=a_upper / r_low if r_low is not None and r_low > 0 else None)
+            bound_bits_per_coda=recovery_bound(a_upper, ratio))
     return dict(units='bits per coda, on the planted labels', real_run_a_gain_upper_bits=a_upper,
                 per_fraction=per_fraction, counts=counts)
+
+
+def ratio_status(ratio, handful):
+    """The bound needs a denominator that stays positive in every replicate; more than a handful of
+    replicates without one make the ratio unstable at this f."""
+    degenerate = ratio['degenerate_replicates']
+    return ('stable' if degenerate == 0 else
+            'unstable' if degenerate > handful else 'denominator not always positive')
+
+
+def recovery_bound(upper, ratio):
+    """`upper` divided by r's lower bound, stated only where the denominator stayed positive in every
+    replicate and r's lower bound is above zero; otherwise None."""
+    r_low = ratio['ci_ratio'][0] if ratio['degenerate_replicates'] == 0 and ratio['ci_ratio'] else None
+    return upper / r_low if r_low is not None and r_low > 0 else None
 
 
 def _f(value, digits=5):
