@@ -22,6 +22,7 @@ fitting process runs with one BLAS thread.
 import argparse
 import concurrent.futures
 import json
+import math
 import multiprocessing
 import os
 import platform
@@ -31,9 +32,10 @@ from collections import defaultdict
 import numpy as np
 import scipy
 
-from .evaluation import day_bootstrap_bits, log_likelihood_bits
+from .evaluation import day_bootstrap_bits, log_likelihood_bits, sign_flip_p
 from .logistic import (check_stop_conditions, fit_v2_lattice, format_ci, last_label_index, probabilities,
                        select_l2_and_fit)
+from .logistic_v5 import A_CONDITIONS, dec23_stop_rules
 from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 from .residual import _hashes, _load, prepare_folds
 from .residual_planted import (SPLITS, oracle_probabilities, paired_ratio_bootstrap, plant, ratio_status,
@@ -312,8 +314,9 @@ def by_coda(rows, condition):
     return out
 
 
-def order_contrast(rows, reference_rows, condition, boot):
-    """LL(k) - LL(reference) per coda, total and [P1] parts, with the shared day bootstrap."""
+def order_contrast(rows, reference_rows, condition, boot, sign_flip=False):
+    """LL(k) - LL(reference) per coda, total and [P1] parts, with the shared day bootstrap; with `sign_flip`,
+    also the total's exact two-sided sign-flip p on its day sums (DEC-23)."""
     mine, base = by_coda(rows, condition), by_coda(reference_rows, condition)
     if set(mine) != set(base):
         raise ValueError('The two orders scored different targets')
@@ -325,7 +328,39 @@ def order_contrast(rows, reference_rows, condition, boot):
         for f in COMPONENTS:
             if a[f] is not None and b[f] is not None:
                 days[f][a['recording_date']].append(a[f] - b[f])
-    return {f: day_bootstrap_bits(dict(values), *boot) for f, values in days.items()}
+    out = {f: day_bootstrap_bits(dict(values), *boot) for f, values in days.items()}
+    if sign_flip:
+        total = days['log_likelihood_bits']
+        out['log_likelihood_bits']['sign_flip_p_two_sided'] = sign_flip_p(
+            {d: math.fsum(v) for d, v in total.items()}, {d: len(v) for d, v in total.items()}, 'two-sided')
+    return out
+
+
+def dec23_checks(summary, day_counts):
+    """DEC-23's stop rule on one k's run: the 12 add-one-input contrasts and the 4 A-conditions against
+    repeat-own-last, through logistic_v5.dec23_stop_rules (alpha 0.05, Holm across the 16). The sweep keeps
+    per-coda values only for its swept conditions, so each check enters through the day means its run
+    stored: dec23_stop_rules uses per-coda values only through their day sums and counts, so each day is
+    passed as one value carrying its sum (mean x count) and zeros for its other targets."""
+    stats = {name: c['components']['log_likelihood_bits'] for name, c in summary['contrasts'].items()
+             if name.startswith('add_input:')}
+    stats.update({f'repeat:{a}': summary['repeat_baseline_checks'][a] for a in A_CONDITIONS})
+    checks, dates = {}, {}
+    for name, s in stats.items():
+        if set(s['day_means_bits']) != set(day_counts):
+            raise ValueError(f'{name}: stored days differ from the test days')
+        checks[name] = {}
+        for day, mean in s['day_means_bits'].items():
+            for i in range(day_counts[day]):
+                dates[f'{day}#{i}'] = day
+                checks[name][f'{day}#{i}'] = mean * day_counts[day] if i == 0 else 0.0
+    result = dec23_stop_rules(checks, dates)
+    for row in result['checks']:
+        s = stats[row['check']]
+        if not math.isclose(row['mean_bits_per_coda'], s['mean_bits_per_coda'], rel_tol=0, abs_tol=1e-12):
+            raise ValueError(f"{row['check']}: day sums do not reproduce the stored mean")
+        row.update(ci_bits_per_coda=s['ci_bits_per_coda'], old_rule_fires=s['ci_bits_per_coda'][1] < 0)
+    return result
 
 
 def penalty_summary(selections, condition, grid):
@@ -421,12 +456,14 @@ def run_report(config_path):
         for k in orders:
             if k == reference:
                 continue
-            components = order_contrast(scored[k], scored[reference], c, boot)
             role = ('primary' if (c, k) == (primary['condition'], primary['order']) else
                     'secondary' if k == config['secondary_order'] else 'descriptive')
+            components = order_contrast(scored[k], scored[reference], c, boot, sign_flip=role != 'descriptive')
             high = components['log_likelihood_bits']['ci_bits_per_coda'][1]
             contrasts[c][str(k)] = dict(role=role, components=components, fitting_flag=k > reference and high < 0)
     stop_rules = {str(k): summaries[k]['stop_reasons'] for k in orders}
+    day_counts = {fold['test_day']: len(fold['comparison_ids']['test']) for fold in manifest['folds']}
+    stop_rules_dec23 = {str(k): dec23_checks(summaries[k], day_counts) for k in orders}
 
     calibration_dir = calibration_directory(loaded)
     calibration_paths = [calibration_dir / name for name in ('summary.json', 'scores.jsonl', 'selection.jsonl')]
@@ -452,7 +489,8 @@ def run_report(config_path):
                   repeat_own_last_bits=summaries[reference]['baseline_metrics']['repeat_own_last']['mean_log_likelihood_bits'],
                   bootstrap=dict(zip(('replicates', 'seed', 'confidence'), boot)),
                   gate={k: v for k, v in gate.items() if k != 'pairs'}, constant_conditions=constant,
-                  curve=curve, contrasts=contrasts, stop_rules=stop_rules, calibration=calibration,
+                  curve=curve, contrasts=contrasts, stop_rules=stop_rules, stop_rules_dec23=stop_rules_dec23,
+                  calibration=calibration,
                   environment={str(k): summaries[k]['environment'] for k in orders},
                   fits=sum(len(s['grid']) for k in orders for s in selections[k]))
     result['reading'] = reading_lines(result, config)
@@ -489,7 +527,14 @@ def _contrast_text(contrast, condition, k, reference):
     s = contrast['components']['log_likelihood_bits']
     return (f"LL({k}) - LL({reference}) in {condition}: {s['mean_bits_per_coda']:.5f} bits/coda "
             f"(unweighted day mean {s['unweighted_mean_bits_per_coda']:.5f}, 95% CI {format_ci(s['ci_bits_per_coda'])}, "
-            f"{s['positive_days']}/{s['days']} days positive)")
+            f"{s['positive_days']}/{s['days']} days positive"
+            + (f", two-sided sign-flip p = {s['sign_flip_p_two_sided']:.4f}" if 'sign_flip_p_two_sided' in s else '') + ')')
+
+
+def stopped_orders(result):
+    """Per rule, the k at which a stop rule fires: DEC-16's (interval entirely below zero) and DEC-23's."""
+    return dict(dec16=[k for k in map(str, result['orders']) if result['stop_rules'][k]],
+                dec23=[k for k in map(str, result['orders']) if result['stop_rules_dec23'][k]['fired']])
 
 
 def reading_lines(result, config):
@@ -501,11 +546,14 @@ def reading_lines(result, config):
     low, high = total['ci_bits_per_coda']
     lines = [f"Primary, pre-specified: {_contrast_text(contrast, condition, k, reference)}. Repeat part "
              f"{_part(contrast['components']['repeat_bits'])}; switch part {_part(contrast['components']['switch_choice_bits'])}."]
-    blocked = [str(o) for o in (reference, k) if result['stop_rules'][str(o)]]
+    stopped = stopped_orders(result)
+    blocked = {rule: [o for o in orders if o in (str(reference), str(k))] for rule, orders in stopped.items()}
     if not result['gate']['passed']:
         lines.append('No reading: the reference fit does not reproduce logistic v4 (gate above).')
-    elif blocked:
-        lines.append(f"No reading: DEC-16 stop rules fire on k = {', '.join(blocked)} (see the stop rules above).")
+    elif any(blocked.values()):
+        lines.append('No reading: stop rules fire on the reference or primary run (' + '; '.join(
+            f"{rule.upper().replace('DEC', 'DEC-')}: k = {', '.join(ks)}" for rule, ks in blocked.items() if ks)
+            + '; see the stop rules above).')
     elif high < 0:
         lines.append(f"No reading: the interval lies entirely below zero, so adding own lags beyond {reference} reliably "
                      "lowered held-out log-likelihood. That signals a fitting problem (optimisation or regularisation) "
@@ -592,6 +640,14 @@ def report_lines(result, config, loaded):
                          f"{_f(d['v4_run_validation_bits_v4_choice'], 8)} | {d['max_abs_probability_difference']:.3g} |")
 
     lines += [line for note in config.get('process_notes', []) for line in ('', note)]
+    stopped = stopped_orders(result)
+    mark = lambda k: (' *' if str(k) in stopped['dec16'] else '') + (' †' if str(k) in stopped['dec23'] else '')  # noqa: E731
+    marked = [f"rows marked {sign} are the k at which {rule} fires (k = {', '.join(stopped[key])})"
+              for sign, rule, key in (('*', "DEC-16's rule (an interval entirely below zero)", 'dec16'),
+                                      ('†', "DEC-23's rule (Holm-adjusted one-sided sign-flip p below 0.05)", 'dec23'))
+              if stopped[key]]
+    stop_note = ('R' + '; '.join(marked)[1:] + '. See the stop rules below; no conclusion is drawn from a k at which '
+                 'either rule fires.' if marked else None)
     lines += ['', '## Log-likelihood by number of own lags', '',
               f"Held-out log-likelihood (bits/coda, {result['comparison_targets']:,} targets), accuracy, and the chosen "
               "history L2 (median over folds; folds at a grid edge). Repeat-own-last: "
@@ -604,25 +660,25 @@ def report_lines(result, config, loaded):
             p = result['curve'][c][str(k)]
             cells.append(f"{p['mean_log_likelihood_bits']:.5f} | {p['accuracy']:.3%} | {p['history_l2']['median']:g} "
                          f"({p['history_l2']['at_grid_edge']}/{p['history_l2']['folds']})")
-        lines.append(f"| {k}{' *' if result['stop_rules'][str(k)] else ''} | " + ' | '.join(cells) + ' |')
-    stopped = [str(k) for k in orders if result['stop_rules'][str(k)]]
-    stop_note = (f"Rows marked * are the k at which a DEC-16 stop rule fires (k = {', '.join(stopped)}; see the stop rules "
-                 "below); no conclusion is drawn from those k." if stopped else None)
+        lines.append(f"| {k}{mark(k)} | " + ' | '.join(cells) + ' |')
     lines += ['', stop_note] if stop_note else []
 
     lines += ['', f'## Contrasts LL(k) - LL({reference})', '',
               f"Primary (pre-specified): LL({config['primary']['order']}) - LL({reference}) in {config['primary']['condition']}. "
               f"Secondary (pre-specified): LL({config['secondary_order']}) - LL({reference}), in each condition. The rest "
-              'of the curve is descriptive.', '',
-              '| Condition | k | Role | Bits/coda | Unweighted day mean | 95% CI | Positive days | Repeat part [CI] | Switch part [CI] |',
-              '|---|---:|---|---:|---:|---|---:|---:|---:|']
+              'of the curve is descriptive. The primary and secondary contrasts also get the exact two-sided sign-flip p '
+              '(DEC-23: all 2^14 sign assignments of the day sums, token-weighted mean as the statistic).', '',
+              '| Condition | k | Role | Bits/coda | Unweighted day mean | 95% CI | Positive days | Repeat part [CI] | Switch part [CI] '
+              '| Sign-flip p (two-sided) |',
+              '|---|---:|---|---:|---:|---|---:|---:|---:|---:|']
     for c in conditions:
         for k, contrast in result['contrasts'][c].items():
             comp = contrast['components']
             role = f"**{contrast['role']}**" if contrast['role'] != 'descriptive' else contrast['role']
-            role += ' *' if result['stop_rules'][k] else ''
+            role += mark(k)
+            p_two = comp['log_likelihood_bits'].get('sign_flip_p_two_sided')
             lines.append(f"| {c} | {k} | {role} | {_stat(comp['log_likelihood_bits'])} | {_part(comp['repeat_bits'])} | "
-                         f"{_part(comp['switch_choice_bits'])} |")
+                         f"{_part(comp['switch_choice_bits'])} | {'' if p_two is None else f'{p_two:.4f}'} |")
     flagged = [f"{c}, k = {k}" for c in conditions for k, v in result['contrasts'][c].items() if v['fitting_flag']]
     lines += ['', stop_note] if stop_note else []
     lines += ['', (f"Fitting flags: more own lags than {reference} with an interval entirely below zero ({'; '.join(flagged)}). "
@@ -695,12 +751,23 @@ def report_lines(result, config, loaded):
               f"most {check['max_abs_refit_bits_difference']:.3g} bits ({check['targets_differing_beyond_tolerance']} "
               'targets differ by more than 1e-5).']
 
-    lines += ['', '## Stop rules (DEC-16), per k', '',
-              'Stop and investigate if an A-condition is reliably below repeat-own-last in log-likelihood, or an '
-              'add-one-input contrast has an interval entirely below zero.', '', '| k | Result |', '|---:|---|']
+    lines += ['', '## Stop rules per k (DEC-16 and DEC-23)', '',
+              'Each k is a full run of the 16 checks: the 12 add-one-input contrasts and the 4 A-conditions against '
+              "repeat-own-last. DEC-16's rule, under which the sweep was specified (DEC-25), stops when a check's day-bootstrap "
+              "interval lies entirely below zero. DEC-23's rule, which supersedes it, gives each check an exact one-sided "
+              "sign-flip test (alternative: mean below zero) on its day sums, with Holm's correction across the 16, and "
+              'stops when an adjusted p is below 0.05 (`logistic_v5.dec23_stop_rules`). Both are reported. The sweep keeps '
+              "per-coda values only for its swept conditions, so DEC-23's day sums are each run's stored day means times the "
+              "day's target count; the means they give match the stored ones to 1e-12.", '',
+              "| k | DEC-16: interval entirely below zero | DEC-23: Holm-adjusted p < 0.05 | Smallest one-sided p, Holm-adjusted (check) |",
+              '|---:|---|---|---|']
     for k in orders:
-        reasons = result['stop_rules'][str(k)]
-        lines.append(f"| {k} | {'; '.join(reasons) if reasons else 'no stop rule fires'} |")
+        reasons, dec23 = result['stop_rules'][str(k)], result['stop_rules_dec23'][str(k)]
+        fired = [f"{r['check']} (p = {r['sign_flip_p']:.4f}, Holm {r['holm_p']:.4f})" for r in dec23['checks'] if r['fires']]
+        smallest = min(dec23['checks'], key=lambda r: r['sign_flip_p'])
+        lines.append(f"| {k} | {'; '.join(reasons) if reasons else 'no stop rule fires'} | "
+                     f"{'; '.join(fired) if fired else 'no stop rule fires'} | {smallest['sign_flip_p']:.4f}, Holm "
+                     f"{smallest['holm_p']:.4f} ({smallest['check']}) |")
 
     lines += ['', '## Reading (DEC-25)', ''] + result['reading']
     lines += ['', '## Limits', '',
