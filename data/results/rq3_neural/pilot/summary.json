@@ -1,0 +1,319 @@
+{
+  "commit": "9a5d723e7caa0dc3f1ebb4753c08d7eece2b0ba0",
+  "config": {
+    "arm5": {
+      "draws": 3,
+      "learning_rates": [
+        0.001,
+        0.003
+      ],
+      "reduced_draws": 1,
+      "reduced_shares": [
+        0.05,
+        0.25,
+        1.0
+      ],
+      "shares": [
+        0.02,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0
+      ]
+    },
+    "bootstrap_draws": 1000,
+    "bootstrap_seed": 42,
+    "capacity_multiplier": 2,
+    "checkpoint_directory": "data/results/rq3_neural/checkpoints",
+    "clans": [
+      "EC1",
+      "EC2",
+      "FP",
+      "PALI",
+      "PO",
+      "REG",
+      "RI",
+      "SH",
+      "SI"
+    ],
+    "codas_input": "data/processed/rq3/rq3_codas.csv",
+    "device": "auto",
+    "figure_directory": "reports/rq3_neural_figures",
+    "folds_input": "data/processed/rq3/rq3_folds.csv",
+    "gate_rerun": {
+      "hidden_grid": [
+        32,
+        64,
+        128,
+        256
+      ],
+      "learning_rates": [
+        0.003,
+        0.001
+      ],
+      "patience": 10
+    },
+    "model": {
+      "batch_size": 64,
+      "dropout_grid": [
+        0.0,
+        0.2,
+        0.4
+      ],
+      "embedding_dim": 32,
+      "eval_batch_size": 4096,
+      "hidden_grid": [
+        32,
+        64,
+        128
+      ],
+      "learning_rate": 0.003,
+      "max_epochs": 100,
+      "patience": 5,
+      "refit_seeds": [
+        0,
+        1,
+        2
+      ],
+      "selection_seed": 0
+    },
+    "ngram_calibration_input": "data/results/rq3/calibration/self_calibration.csv",
+    "ngram_matrix_scores_input": "data/results/rq3/transfer_matrix/scores.csv",
+    "ngram_matrix_summary_input": "data/results/rq3/transfer_matrix/summary.csv",
+    "ngram_self_scores_input": "data/results/rq3/calibration/self_scores.csv",
+    "output_directory": "data/results/rq3_neural",
+    "pilot": {
+      "budget_hours": 6,
+      "cpu_workers": [
+        10,
+        18
+      ],
+      "cublas_workspace_config": ":4096:8",
+      "gpu_workers": [
+        1,
+        4
+      ],
+      "own_clan": "EC2",
+      "own_fold": 0,
+      "pooled_alpha": 0.7,
+      "pooled_run": 0,
+      "pooled_tagged": true,
+      "stop_hours": 12,
+      "tie_tolerance": 0.05,
+      "timing_epochs": 3
+    },
+    "pooled_alphas": [
+      1.0,
+      0.7,
+      0.5,
+      0.3
+    ],
+    "report_output": "reports/rq3_neural.md",
+    "require_clean_tree": true,
+    "smoke_test": false,
+    "tokenizer_id": "fixed-50ms-v1",
+    "workers": null
+  },
+  "decision": {
+    "arm5": {
+      "draws": 3,
+      "reduced": false,
+      "shares": [
+        0.02,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0
+      ]
+    },
+    "device": "cuda",
+    "projection": {
+      "arm5": {
+        "draws": 3,
+        "reduced": false,
+        "shares": [
+          0.02,
+          0.05,
+          0.1,
+          0.25,
+          0.5,
+          1.0
+        ]
+      },
+      "hours": {
+        "arm1": 0.07836491033447686,
+        "arm23": 0.44431376650923865,
+        "arm4": 0.08932522908803822,
+        "arm5": 0.36452061434960886
+      },
+      "total_hours": 0.9765245202813626
+    },
+    "stop": false,
+    "workers": 4
+  },
+  "determinism": [
+    {
+      "cublas_workspace_config": "",
+      "device": "cpu",
+      "identical": true,
+      "seed": 0
+    },
+    {
+      "cublas_workspace_config": ":4096:8",
+      "device": "cuda",
+      "identical": true,
+      "seed": 0
+    }
+  ],
+  "dirty_paths": [],
+  "estimates": {
+    "own": {
+      "best_epochs": 32.44444444444444,
+      "selection_epochs": 37.44444444444444
+    },
+    "pooled": {
+      "best_epochs": 19.0,
+      "selection_epochs": 24.0
+    }
+  },
+  "finished": "2026-10-03T23:58:56+00:00",
+  "fit_seconds": 642.9,
+  "fits": 24,
+  "gate0_passed": true,
+  "input_sha256": {
+    "config/rq3_neural.json": "59d9c0fc2747b1a4d0d2674701f2680cdc1c24e9e4801d8defcf58af0d77b2f7",
+    "data/processed/rq3/rq3_codas.csv": "82ab3cc2de8e0cd5e31ddc18e238bd1ab1a55776e5091cc75afbb1ae3e022ffa",
+    "data/processed/rq3/rq3_folds.csv": "272bb592515d6f11918a6914d2b087d4f530f0b2a60c98e6bb066248d52cb9ce",
+    "data/results/rq3/calibration/self_scores.csv": "b3fb74cb3f30635df0c74ae4ecc22ceb0850f162ca61c7a991f694a9c98e3df2"
+  },
+  "numpy": "2.2.6",
+  "options": [
+    {
+      "device": "cpu",
+      "projection": {
+        "arm5": {
+          "draws": 3,
+          "reduced": false,
+          "shares": [
+            0.02,
+            0.05,
+            0.1,
+            0.25,
+            0.5,
+            1.0
+          ]
+        },
+        "hours": {
+          "arm1": 0.12159326911414295,
+          "arm23": 0.6894101346085202,
+          "arm4": 0.13859961777313257,
+          "arm5": 0.5656007640292616
+        },
+        "total_hours": 1.5152037855250573
+      },
+      "rates": {
+        "32": 119189.94633208826,
+        "64": 76308.26221071943,
+        "128": 36386.30927992699
+      },
+      "workers": 10
+    },
+    {
+      "device": "cpu",
+      "projection": {
+        "arm5": {
+          "draws": 3,
+          "reduced": false,
+          "shares": [
+            0.02,
+            0.05,
+            0.1,
+            0.25,
+            0.5,
+            1.0
+          ]
+        },
+        "hours": {
+          "arm1": 0.12219978536039408,
+          "arm23": 0.6928489635010776,
+          "arm4": 0.13929096294804258,
+          "arm5": 0.5684220225970673
+        },
+        "total_hours": 1.5227617344065816
+      },
+      "rates": {
+        "32": 121151.53166269604,
+        "64": 76749.73867530475,
+        "128": 35793.040605733455
+      },
+      "workers": 18
+    },
+    {
+      "device": "cuda",
+      "projection": {
+        "arm5": {
+          "draws": 3,
+          "reduced": false,
+          "shares": [
+            0.02,
+            0.05,
+            0.1,
+            0.25,
+            0.5,
+            1.0
+          ]
+        },
+        "hours": {
+          "arm1": 0.22883955995525493,
+          "arm23": 1.2974756989583787,
+          "arm4": 0.26084565183782094,
+          "arm5": 1.0644654173193666
+        },
+        "total_hours": 2.8516263280708207
+      },
+      "rates": {
+        "32": 31197.96545031118,
+        "64": 33476.72953054945,
+        "128": 33056.38625650527
+      },
+      "workers": 1
+    },
+    {
+      "device": "cuda",
+      "projection": {
+        "arm5": {
+          "draws": 3,
+          "reduced": false,
+          "shares": [
+            0.02,
+            0.05,
+            0.1,
+            0.25,
+            0.5,
+            1.0
+          ]
+        },
+        "hours": {
+          "arm1": 0.07836491033447686,
+          "arm23": 0.44431376650923865,
+          "arm4": 0.08932522908803822,
+          "arm5": 0.36452061434960886
+        },
+        "total_hours": 0.9765245202813626
+      },
+      "rates": {
+        "32": 94948.06903374704,
+        "64": 104634.96429268568,
+        "128": 87137.2158575064
+      },
+      "workers": 4
+    }
+  ],
+  "python": "3.10.21",
+  "stage": "pilot",
+  "started": "2026-10-03T23:54:11+00:00",
+  "torch": "2.14.0+cu130",
+  "wall_seconds": 284.9
+}
