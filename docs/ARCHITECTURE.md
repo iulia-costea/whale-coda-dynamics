@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `logistic_v5.py` (v5 and DEC-23's stop rules, computed from v4's fits; see "Logistic v5"), `neural.py` (LSTM v1/v2, superseded), `residual.py` (residual LSTM on a frozen logistic v4, DEC-21: model, checks, device measurement and full run); their design is PLAN `[M4]`. RQ2 (DEC-22) adds `sharma_inventory.py` and `rq2_compare.py` (see "RQ2 token inventories"). This file covers preprocessing and repo conventions.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `logistic_v5.py` (v5 and DEC-23's stop rules, computed from v4's fits; see "Logistic v5"), `neural.py` (LSTM v1/v2, superseded), `residual.py` (residual LSTM on a frozen logistic v4, DEC-21: model, checks, device measurement and full run); their design is PLAN `[M4]`. RQ2 (DEC-22) adds `sharma_inventory.py` and `rq2_compare.py` (see "RQ2 token inventories"), and DEC-24 `tempo_factor.py` (see "Partner-tempo ablation"). This file covers preprocessing and repo conventions.
 
 ## Stages
 
@@ -102,6 +102,58 @@ OPENBLAS_NUM_THREADS=1 PYTHONPATH=src python3 -m whale_coda_dynamics.rq2_compare
 - **Report** (`reports/<v4 report name with v4 → v5>.md`): the gates, both stop rules for the three models with the governing status, the v4/v5 lattices, how often each sub-condition was chosen (and per fold), the `[M2]` contrasts with sign-flip p and the v4-vs-v5 sign pattern, the 16 checks per model. Positive-day counts also give the days at exactly zero: under v5 both conditions of a contrast often share a sub-condition on a fold.
 - **Reuse (DEC-24):** `subconditions`, `select_max`, `select_one_se` and `dec23_stop_rules` take arbitrary block names and a block order; `evaluation.sign_flip_p` and `evaluation.holm` are standard library.
 - **`rq2_compare.py` with `"model": "v5"`** (`config/rq2_compare_v5.json`): each inventory spec gives `results_directory` (v5) and `v4_results_directory`. Stop marks come from DEC-23's rule on v5; the inventory table also shows DEC-16's rule and both rules on v4. Contrast tables gain a two-sided sign-flip p and the days at zero. `[R2-4]` uses `rebuild_predictions` on the fine inventory's `selection.jsonl` and v4 `predictions.jsonl`. A nested pair may carry a `note` (the A → E′ boundary sensitivity). Without the key, the v4 comparison regenerates byte for byte.
+
+## Partner-tempo ablation (DEC-24)
+
+`tempo_factor.py` fits the chain rule's tempo factor as its own model: the target is a coda's KDE tempo class (`t0`–`t4`), given the coda's own pattern. The pattern is the Sharma rhythm in the primary run and `guy_coda_type` in the secondary run. One command fits both runs and writes one report:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=src python3 -m whale_coda_dynamics.tempo_factor --config config/rq2_partner_tempo.json
+```
+
+- **Config** (`config/rq2_partner_tempo.json`):
+  - top-level settings: `tempo_classes`, `reference_manifest` (RQ1's folds), v4's settings (`l2_grid`, `history_order`, `max_iterations`, `gradient_tolerance`, `skip_nonconverged_candidates`), the bootstrap settings, `alpha`, `governing_model` (must be `v5`), `report` and `report_title`;
+  - one entry in `runs` per run: `name`, `role`, `pattern_label`, `manifest` (the fine inventory: D or E), `pattern_manifest` (the coarse inventory: C, or RQ1's folds for types) and `output_directory`.
+- **Labels.** The fine inventory's `Ct_raw` (`<pattern>|<tempo>`) is split by `split_label`.
+  - `factor_labels` (gate 1) requires, for every coda:
+    - the pattern equals the coarse file's `Ct_raw`;
+    - the tempo is a configured class;
+    - histories, S fields, day and eligibility equal the coarse file's.
+  - Tempo labels must be equal across runs.
+  - `check_folds` (gate 2) requires each run's folds, S fields and preparation settings to equal the coarse manifest's and RQ1's.
+- **Folds.** `prepare_factor_fold` runs `prepare_fold` (the fine manifest's policy must reproduce).
+  - It fits the pattern vocabulary with `fit_vocabulary` on the training days' patterns (*k* = 2, UNK), which must equal the coarse manifest's fold vocabulary.
+  - It builds per-split comparison rows: `tempo`, `pattern` and the four streams `own_tempo`, `own_pattern`, `partner_tempo`, `partner_pattern`, each from `A_history_ids`/`B_history_ids` (oldest first), plus the S fields.
+  - Tempo has no UNK.
+- **`FactorEncoder`**, fitted on training rows only. Its columns, in order:
+  - the coda's own pattern (one-hot);
+  - lags 1–3 of each present stream (one-hot in that factor's vocabulary; missing lags are zero vectors);
+  - S, built by `logistic.Encoder` on the manifest's S fields (the same columns and standardisation as v4), without its intercept;
+  - one intercept.
+  - `timing_mask` marks the S columns for the S penalty.
+  - `copy_indices` gives β's class (the own last tempo; absent in the floor) and γ's class (the partner's last tempo; only with T).
+  - Labels outside a vocabulary raise.
+- **Conditions.** `floor`, and own history with every subset of {T, P, S}: `own`, `own_T`, …, `own_T_P_S`.
+- **Fitting.** `fit_condition` calls `logistic.grid_search_l2`, which is v4's grid loop, factored out of `select_l2_and_fit` unchanged. It runs on training and validation rows only and records per-target validation log-likelihoods.
+- **Selection.**
+  - `select_fold` gives v5's candidates for each condition: the own fits of its sub-conditions, with `logistic_v5.subconditions(…, BLOCKS)`. It selects with `select_max` and `select_one_se` (block order T, P, S).
+  - `validation_monotonicity` is gate 3.
+  - `model_predictions` rebuilds v5's test predictions with `logistic_v5.rebuild_predictions`; the floor keeps its own fit.
+- **Evaluation**, only after every gate of both runs passes:
+  - `score`: per-coda `evaluation.log_likelihood_bits`, argmax ties broken on sorted labels;
+  - `contrast_stats`: `evaluation.day_bootstrap_bits`, days at zero and `evaluation.sign_flip_p`, two-sided;
+  - `stop_rules`: `logistic_v5.dec23_stop_rules` on the 13 checks of `stop_family()`, plus DEC-16's rule;
+  - `turn_category_breakdown`: descriptive, for the four `CONTRASTS`;
+  - all of the above for the own fits, v5 and v5 one-SE.
+  - `own` and `floor` must be identical under all three.
+- **Outputs**, per run, in `output_directory`; nothing is written until both runs are done:
+  - `predictions.jsonl`: the own fits' test probabilities;
+  - `models.jsonl`: encoder record, weights, β, γ and the chosen penalties;
+  - `l2_selection.jsonl`: every penalty candidate;
+  - `selection.jsonl`: v5's candidates and choices per rule;
+  - `evaluation/scored_predictions.jsonl`: every model, condition and coda;
+  - `evaluation/summary.json`: gates, fit summaries, selection counts, per-model metrics, contrasts, checks, stop rules and turn-category breakdown, governing status, BLAS environment and `input_sha256` of every file read.
+- **Report** (`reports/rq2_partner_tempo.md`), for both runs: checks, stop rules (both rules, three models, governing status), the four contrasts with sign pattern and DEC-24's reading rules (no automatic conclusion), turn categories, lattices, sub-conditions chosen, penalties and copy weights, the 13 checks per model.
 
 ## Known gotchas
 
