@@ -7,7 +7,7 @@ Raw codas: 32956. Primary-eligible codas: 31346.
 | Dataset | Raw rows | SHA-256 |
 |---|---:|---|
 | caribbean (`data/raw/CarribeanCodas.csv`) | 8719 | `c8ad7b47e6bc102db5a40d7dd2bbbebe8026e4271d135a8e952d68f1baddebd5` |
-| pacific (`data/raw/PacificCodas.csv`) | 24237 | `96bbf264286eadc94c3d2d68229b133fa135733f759c0bad915c66ccd7a84acf` |
+| pacific (`data/raw/PacificCodas.csv`) | 24237 | `717f939a829f7db6910f35c8e3f465685167b6c00471f09ce5a5aad5fe4d2da9` |
 
 ## Primary eligibility
 
@@ -118,6 +118,6 @@ Run configuration:
 Output SHA-256 checksums:
 
 - `rq3_codas.csv`: `d1000f7b28c78b7c20bcf4f3615ad0ed7ebca3ca67085ffe501ce44afe06fd96`
-- `rq3_codas_metadata.csv`: `59752046a57ddd0b1d6fa10821261cb932fa3972783171a9fdb668b5de05db9d`
-- `rq3_codas_normalized.jsonl`: `035a1e1e4f50cf843696d07cab244389d0935661c3f268389b86a68dab42a58b`
+- `rq3_codas_metadata.csv`: `b101eaa1210a438785fd75e9ae59558e0309ba9c6828694482230bdf1efa4b47`
+- `rq3_codas_normalized.jsonl`: `827164a2da645125a69dc8a1fe8e446e4f60993f890f1497629c401c50a8aef8`
 - `rq3_folds.csv`: `a32878f1ef913235c093e4a0cf6a103066411590f19682da60219116f728f87a`
