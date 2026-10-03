@@ -1,6 +1,6 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `neural.py` (LSTM v1/v2, superseded), `residual.py` (residual LSTM on a frozen logistic v4, DEC-21: model, checks, device measurement and full run); their design is PLAN `[M4]`. This file covers preprocessing and repo conventions.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `neural.py` (LSTM v1/v2, superseded), `residual.py` (residual LSTM on a frozen logistic v4, DEC-21: model, checks, device measurement and full run); their design is PLAN `[M4]`. RQ2 (DEC-22) adds `sharma_inventory.py` and `rq2_compare.py` (see "RQ2 token inventories"). This file covers preprocessing and repo conventions.
 
 ## Stages
 
@@ -53,15 +53,28 @@ Detail and verified counts: PLAN §2.
 | `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3; its EC1 durations fix the RQ2 tempo cuts |
 | Hersh et al. 2022 (not in repo) | RQ3 allopatric extension |
 
-## RQ2 token inventories (DEC-22; planned, to be implemented)
+## RQ2 token inventories (DEC-22)
 
-Interfaces fixed so that PLAN, the prompt and the code agree; the implementing PR fills in the rest of this section.
+Only the labels change: every stage after labelling is RQ1's code, run on a relabelled copy of RQ1's targets. Names: `b_dtree`, `c_rhythm`, `d_rhythm_tempo`, `e_type_tempo`, `d_rhythm_tempo_tdict`, `e_type_tempo_tdict` (PLAN `[R2-0]`'s B, C, D, E, D′, E′). Inventory A is RQ1's own `rq1_logistic_v4` run.
 
-- **`sharma_inventory.py`** (needs NumPy to unpickle; not under `preprocessing/`): reads `data/raw/mean_codas.p` and `data/raw/tempos-dict.p`, writes `data/interim/sharma_inventory.json` (the 18 templates as plain lists, the `tempos-dict.p` class extremes and cuts, SHA-256 of both inputs). Run once; its output is committed so that preprocessing stays standard-library only.
-- **`preprocessing/inventories.py`** (standard library), config `config/rq2_inventories.json`: recomputes the KDE tempo cuts from `CarribeanCodas.csv` and checks them; checks the rhythm rule against `rhythms.p` on all `[D2]` rows; labels every row of `data/processed/rq1_targets.jsonl` and writes one targets file per inventory, `data/processed/rq2_<name>_targets.jsonl`, identical to `rq1_targets.jsonl` except `Ct`, `Ct_raw`, `A_history`, `B_history` (and an `inventory` field); writes `reports/rq2_inventories.md`. Names: `b_dtree`, `c_rhythm`, `d_rhythm_tempo`, `e_type_tempo`, `d_rhythm_tempo_tdict`, `e_type_tempo_tdict`.
-- **Per inventory, unchanged code:** `preprocessing.folds` with `config/rq2_<name>_folds.json` (preparation config `config/rq1.json`), then `logistic` with `config/rq2_<name>_logistic_v4.json` and `config/rq2_<name>_evaluation_v4.json`, writing `data/results/rq2_<name>_logistic_v4/` and `reports/rq2_<name>_logistic_v4.md`. Inventory A is RQ1's existing `rq1_logistic_v4` run.
-- **`rq2_compare.py`**, config `config/rq2_compare.json`: reads every inventory's evaluation outputs and stored probabilities; writes `data/results/rq2_compare/summary.json` (with `input_sha256`) and `reports/rq2_inventories_v4.md` (PLAN `[R2-3]`–`[R2-6]`).
-- The inventories stage and each inventory's folds run join `PREPROCESSING` in `tests/test_committed_artifacts.py`.
+```sh
+PYTHONPATH=src python3 -m whale_coda_dynamics.sharma_inventory                 # once, needs NumPy; output committed
+PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.inventories        # config/rq2_inventories.json
+PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.folds --config config/rq2_<name>_folds.json
+OPENBLAS_NUM_THREADS=1 PYTHONPATH=src python3 -m whale_coda_dynamics.logistic --config config/rq2_<name>_logistic_v4.json
+PYTHONPATH=src python3 -m whale_coda_dynamics.rq2_compare                      # config/rq2_compare.json
+```
+
+- **`sharma_inventory.py`** (NumPy, outside `preprocessing/`), `config/sharma_inventory.json`: unpickles `data/raw/mean_codas.p` and `tempos-dict.p` and writes `data/interim/sharma_inventory.json`: the 18 templates in their original order (index = rhythm label) with click counts; per `tempos-dict.p` class its count, shortest and longest duration; the boundaries midway between adjacent classes; SHA-256 of both pickles; the source commit. `tempos-dict.p` has a sixth key (5) that is empty; it is recorded and left out. The JSON is committed, so preprocessing stays standard-library only; `tests/test_inventories.py` re-extracts it byte for byte when NumPy is present.
+- **`preprocessing/inventories.py`** (standard library), `config/rq2_inventories.json`. Reads `rq1_targets.jsonl`, the `raw_values` and `alternative_coda_type` of `codas_normalized.jsonl`, `sharma_inventory.json`, `CarribeanCodas.csv` (`utf-8-sig`, via `io_utils.read_csv_rows`), `sperm-whale-dialogues.csv` and `rhythms.p`.
+  - Raises unless the KDE of the EC1 durations gives the configured minima and maxima (`kde_cuts`) and the rhythm rule reproduces every `rhythms.p` label (`check_rhythm_reproduction`).
+  - Labels all 2,075 rows by `coda_id` from their own raw values (`coda_labels`, `rhythm_label`, `tempo_class`); raises on any missing or unparseable value a rule needs and on labels equal to the UNK token or with a stray `|`. Zero intervals are parsed values, not missing ones: the rule is applied as written and the report lists those codas.
+  - Writes `data/processed/rq2_<name>_targets.jsonl`: `rq1_targets.jsonl` with `Ct_raw` = `Ct` = the label and `A_history`/`B_history` rebuilt from the history IDs, plus `inventory`. `check_relabelled` verifies the written files (same rows, order, IDs and every other field).
+  - `reports/rq2_inventories.md`: the checks, the `[D1]`/`[D2]` agreement (matched one-to-one on REC with TsTo and Duration rounded to 3 decimals), the KDE vs `tempos-dict.p` agreement, per-inventory counts (`[R2-0]`) and SHA-256 of inputs and outputs.
+  - `prepare_rq2.py` checksums its own files by name: the inventory files share its `rq2_` prefix in `data/processed/`.
+- **Folds, unchanged code:** `config/rq2_<name>_folds.json` (preparation config `config/rq1.json`, 14 days, validation seed 42, an optional report `title`), writing `data/processed/rq2_<name>_folds/manifest.json` and `reports/rq2_<name>_folds.md`. The inventories stage and the six folds runs are in `PREPROCESSING` (`tests/test_committed_artifacts.py`).
+- **Logistic v4, unchanged model and selection:** `config/rq2_<name>_logistic_v4.json` and `config/rq2_<name>_evaluation_v4.json` (settings as `rq1_logistic_v4`, 10,000 replicates, no `compare_against`), writing `data/results/rq2_<name>_logistic_v4/` and `reports/rq2_<name>_logistic_v4.md`. RQ2-only config keys, all off by default: `skip_nonconverged_candidates` (DEC-22: a grid candidate that fails `fit()`'s convergence check, `NonConvergenceError`, is left out of the validation-day selection and counted per fold and condition; all failing fails the run), `report_title`, `report_note`. Without `compare_against`, `write_v2_report` drops the comparison columns. Run with one BLAS thread: OpenBLAS's default (one thread per core) is over ten times slower on these small matrices, and the thread count changes summation order, so a byte-for-byte rerun needs the same setting.
+- **`rq2_compare.py`**, `config/rq2_compare.json`: reads each inventory's manifest, `evaluation/summary.json`, `evaluation/scored_predictions.jsonl` and `l2_selection.jsonl`, and the fine inventories' `predictions.jsonl` for `[R2-4]`. One set of resampled days per replicate is shared by all inventories (`shared_day_draws`, drawn exactly as `evaluation.day_bootstrap_bits` draws them; the run checks that it reproduces each inventory's recorded contrast CIs). Shares are ratios of token-weighted means within each replicate. Writes `data/results/rq2_compare/summary.json` (with `input_sha256`) and `reports/rq2_inventories_v4.md`. Stop rules come from `logistic.check_stop_conditions`. No raw log-likelihood is compared across inventories.
 
 ## Known gotchas
 

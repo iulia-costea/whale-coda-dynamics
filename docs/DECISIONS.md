@@ -200,6 +200,7 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Nearest-mode tempo (DEC-15): its cuts fall halfway between the modes, not at the density minima.
   - Segmentation proper (a coda as two tokens; clicks as tokens): a different question, in `docs/LATER.md`.
 - **Supersedes:** DEC-3's two tests (the standalone Sharma pipeline keeps its role as a whole-chain check); DEC-15.
+- **Addendum (2026-10-03, decided before any RQ2 fit):** the RQ2 logistic runs set `skip_nonconverged_candidates` (off by default, so RQ1 is unchanged): a grid candidate that fails `fit()`'s convergence check is left out of the validation-day selection and counted per fold and condition, and if every candidate for a fold and condition fails, that inventory's run fails and is reported as such. No candidate failed in any RQ2 run.
 
 ## Differences from the submitted proposal
 

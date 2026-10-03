@@ -12,7 +12,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
 - **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
 - **Done:** the residual LSTM on top of logistic v4 (DEC-21): `reports/rq1_lstm_residual.md`, with its checks (`reports/rq1_lstm_residual_checks.md`: wiring, learnability and planted-signal gates pass) and device choice (`reports/rq1_lstm_residual_throughput.md`: CPU ×18). No `[M4]` stop rule fires. The residual gain over logistic v4 is below zero in point estimate on all seven fitted conditions (−0.010 to −0.122 bits/coda), with every day-bootstrap CI spanning zero; logistic v4 alone is chosen on 1–6 of 14 folds per condition.
-- **RQ2:** redesigned as a token-inventory study (§7, DEC-22): five inventories of the same codas on logistic v4. Rhythm and tempo rules verified against Sharma et al.'s files; nothing run yet.
+- **RQ2:** a token-inventory study (§7, DEC-22). **Done:** six inventories of the same codas (`reports/rq2_inventories.md`: the `[R2-1]`/`[R2-2]` checks and `[R2-0]` counts reproduce), their folds (UNK counts equal `[R2-0]`'s), logistic v4 on each and the comparison `reports/rq2_inventories_v4.md`. All fits converged. DEC-16 stop rules fire for B, C, D, E and D′ (add-one-input contrasts that add S, CIs just below zero); A and E′ have none. Per `[R2-7]` no conclusion is drawn from the five; no setting was changed.
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -53,7 +53,7 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 - **`pair_category` `[D1]`** is 62% empty. Never use it as a feature; turn category is derived instead.
   - Unlabelled codas are disproportionately non-focal: 66% vs 50%.
   - All 157 missing-`Focal` rows are unlabelled.
-- **`[D1]` and `[D2]` overlap heavily.** 214/219 recordings are shared, and 2,769 codas match on (`REC`, `TsTo`, `Duration`). They are not independent corpora.
+- **`[D1]` and `[D2]` overlap heavily.** 214/219 recordings are shared, and 2,769 codas match on (`REC`, `TsTo`, `Duration`) (rounded to 3 decimals). They are not independent corpora.
 - **`[D2]` quirks:**
   - It keeps 153 codas with more than 10 clicks, which Sharma et al. excluded. Flag them, and report results with and without them.
   - `rhythms.p` holds one rhythm label per CSV row (joined by position). `mean_codas.p` holds the 18 rhythm templates. `tempos-dict.p` is not per coda: it lists the durations in each of 5 tempo classes, which fixes only the class boundaries. `ornaments.p` (one flag per row, 151 ornamented) is not used (DEC-22).
@@ -240,7 +240,7 @@ A coda becomes a token by discretising its click intervals, and which discretisa
 **`[R2-1]` Rhythm** (Sharma et al. 2024a; their 18 rhythm types come from Gero et al. 2016b):
 - click positions = the cumulative sums of `ICI1`…`ICI(n−1)` divided by their total, with *n* = `nClicks`;
 - label = the template in `data/raw/mean_codas.p` with the same number of clicks that is nearest by mean squared difference; *n* < 3 or *n* > 10 → rhythm 17;
-- verified: this rule reproduces `rhythms.p` on all 3,840 `[D2]` rows. On `[D1]`'s own intervals it agrees with `rhythms.p` on 2,743 of the 2,769 codas matched between `[D1]` and `[D2]` on (`REC`, `TsTo`, `Duration`); the rest differ in their intervals between the two releases.
+- verified: this rule reproduces `rhythms.p` on all 3,840 `[D2]` rows. On `[D1]`'s own intervals it agrees with `rhythms.p` on 2,743 of the 2,769 codas matched between `[D1]` and `[D2]` on (`REC`, `TsTo`, `Duration`) (rounded to 3 decimals); the rest differ in their intervals between the two releases.
 
 **`[R2-2]` Tempo:**
 - label = `Duration` cut at 0.45, 0.61, 0.93 and 1.08 s, giving 5 classes;
@@ -372,7 +372,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
-5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]`.
+5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`); stop rules fire for B, C, D, E and D′ (`[R2-7]`).
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
 
 ---
