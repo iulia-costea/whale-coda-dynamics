@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -276,6 +276,34 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Null: "no detectable information beyond 3 own codas for this model at this data size", with the calibration's bound, if any, saying what size of lag-6 pattern would have been detected.
 - **Not done:** partner-history length; v5 for the sweep; more than 9 lags (`history_limit` is 10); a lag-6 copy weight (too tailored to the planted pattern).
 - **Gate amended** after the k = 3 gate (2026-10-03, before any k = 9 log-likelihood, calibration or contrast number was seen; the k = 9 run's log line showed only its run time and that no DEC-16 stop rule fired): v4's committed fits are reproducible only to ~1e-4 in probability at the smallest penalties (optimizer tolerance gtol 1e-6; the BLAS thread count alone moves them by ~1e-4), while penalties and mean log-likelihoods reproduce (all 98 penalties identical; mean LL within 1e-6). The gate now requires identical chosen penalties (at most one differing) and every condition's mean LL within 1e-5 bits/coda of v4's; probability differences are reported (the largest, and which fits exceed 1e-5), not enforced. The gate checks the code path; every contrast compares fits from one environment.
+
+## After the first RQ3 results (2026-10-03)
+
+**DEC-26 — The identity split uses the matrix models' scores.**
+- **Decision:** `[R3-6]` splits each Pacific target coda's loss from the `[R3-4]` models (one per clan, all codas) by its own clan's identity list. It no longer trains separate identity and non-identity models. Separate models become a robustness check, if time. This records what `rq3/experiments/identity.py` already does ("models are never retrained").
+- **Why:**
+  - It asks how well one clan's whole repertoire predicts another clan's identity and non-identity codas.
+  - Clans differ in their coda mix (identity codas are 11% of SH's codas and 63% of PO's), but that works mostly at the clan level, which the pair-level reading removes.
+  - Separate identity models would learn only one or two coda types for SH, RI and FP.
+- **Rejected:** separate models (Leitão et al.'s design) as the primary analysis. It costs a rerun, and the overlap test is exploratory.
+
+**DEC-27 — RQ3 adds the pooled multilingual experiment `[R3-8]`, with an LSTM.**
+- **Decision:** "Pooled training across clans" moves from `docs/LATER.md` into PLAN §8 as `[R3-8]`:
+  - one LSTM on all clans, with clan tags and size-balanced sampling;
+  - leave one clan out;
+  - with and without the tag;
+  - fine-tuning against training from scratch at several data sizes.
+
+  Own-clan LSTMs are the comparison, and the n-gram is the reference they must match.
+- **Why:**
+  - It's the standard multilingual-NLP experiment (Liu et al. 2020), so RQ3 maps onto the course directly.
+  - The course asks for neural models trained by backpropagation, and RQ3 had none.
+  - Compute is small (about 137,000 intervals).
+- **Rejected:**
+  - comparing the pooled LSTM with the n-gram, which would mix pooling with a change of model family;
+  - pretrained mBART weights, which were trained on human text.
+
+  Size-matched reruns stay in LATER.
 
 ## Differences from the submitted proposal
 
