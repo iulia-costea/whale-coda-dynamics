@@ -262,7 +262,7 @@ A coda becomes a token by discretising its click intervals, and which discretisa
 - **Share differences against A:** paired day bootstrap, with the same resampled days for both inventories.
 - **Pattern:** for each contrast and inventory, the sign and whether the CI excludes zero.
 
-**`[R2-4]` Tempo decomposition** (exploratory; nested pairs A → E and C → D only):
+**`[R2-4]` Tempo decomposition** (exploratory; nested pairs A → E and C → D; under v5 also A → E′, a tempo-boundary sensitivity of the A → E split, added after the v4 results):
 $$\log_2 p(\text{type}, \text{tempo}) = \log_2 p(\text{type}) + \log_2 p(\text{tempo} \mid \text{type})$$
 - Computed from E's (D's) stored probability vectors: $p(\text{type})$ sums E's in-vocabulary labels with that type (D: that rhythm).
 - The type term is compared with A's (C's) log-likelihood on the same targets, paired: does the finer model still predict the type as well?
@@ -273,9 +273,9 @@ $$\log_2 p(\text{type}, \text{tempo}) = \log_2 p(\text{type}) + \log_2 p(\text{t
 
 **`[R2-6]` Sensitivities:** D′ and E′ (tempo boundaries); every inventory without day 2016-04-12 (`[D1]` facts).
 
-**`[R2-7]` Stop rules:** DEC-23's rules apply to every inventory's run, for v4 and v5; the outcomes of DEC-16's old rule under v4 stay in the report. If one fires, report it and draw no conclusion from that inventory. No setting changes before the freeze.
+**`[R2-7]` Stop rules:** DEC-23's rules apply to every inventory's run, for v4 and v5; the outcomes of DEC-16's old rule under v4 stay in the report. DEC-23's rule on v5 governs the comparison's stop marks. If one fires, report it and draw no conclusion from that inventory. No setting changes before the freeze.
 
-**`[R2-8]` Partner-tempo ablation (DEC-24):** `[R2-4]` found that the partner's codas predict a coda's tempo class beyond own history and timing (A → E: +0.039 bits/coda, CI [0.022, 0.061]); is that the partner's tempo or the partner's rhythm? A dedicated model for the chain rule's tempo factor: the target is the coda's KDE tempo class given its own Sharma rhythm, with own history always present (last 3 tempo classes and rhythms, own-tempo copy weight) and partner tempo (last 3 classes, partner-tempo copy weight), partner rhythm (last 3 rhythms) and $S$ as blocks, fitted with v4's procedure and v5's absent candidates. Contrasts in bits per coda of the tempo class, with day-bootstrap CI and DEC-23's sign-flip $p$: partner tempo alone, partner rhythm alone, tempo beyond rhythm, rhythm beyond tempo; a descriptive breakdown by turn category; secondary: `guy_coda_type` in place of rhythm. Same targets, folds and UNK policy. Conditions, readings and limits: DEC-24.
+**`[R2-8]` Partner-tempo ablation (DEC-24):** `[R2-4]` found that the partner's codas predict a coda's tempo class beyond own history and timing (A → E: +0.039 bits/coda, CI [0.022, 0.061]; under v5 +0.028, CI [0.010, 0.053], two-sided sign-flip $p$ = 0.012, and in the tempo-boundary sensitivity A → E′ +0.016, CI [−0.0002, 0.036], $p$ = 0.12; `reports/rq2_inventories_v5.md`); is that the partner's tempo or the partner's rhythm? A dedicated model for the chain rule's tempo factor: the target is the coda's KDE tempo class given its own Sharma rhythm, with own history always present (last 3 tempo classes and rhythms, own-tempo copy weight) and partner tempo (last 3 classes, partner-tempo copy weight), partner rhythm (last 3 rhythms) and $S$ as blocks, fitted with v4's procedure and v5's absent candidates. Contrasts in bits per coda of the tempo class, with day-bootstrap CI and DEC-23's sign-flip $p$: partner tempo alone, partner rhythm alone, tempo beyond rhythm, rhythm beyond tempo; a descriptive breakdown by turn category; secondary: `guy_coda_type` in place of rhythm. Same targets, folds and UNK policy. Conditions, readings and limits: DEC-24.
 
 **Not in RQ2** (`docs/LATER.md`): segmentation proper (a coda as two tokens, rhythm then tempo; clicks as tokens), ornaments, rubato as a continuous input, the residual LSTM on the new inventories. The standalone Sharma pipeline stays a whole-chain check; `reports/rq2.md` is its preprocessing report, not RQ2 results.
 
@@ -377,12 +377,12 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 2. **Phase 2 — evaluation and folds: done.** The shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
    - Logistic regression v1 (fixed L2), v2 (copy weights, validation-chosen L2, DEC-16) and v3 (extended grid) — done, superseded. v4 with separate history and $S$ penalties (DEC-20) — done; the reference.
-   - Logistic v5 (DEC-23): absent-block candidates chosen on the validation day from v4's fits, and the sign-flip stop rules with Holm's correction, for RQ1 (primary and old-delay) and the six RQ2 inventories — pending.
+   - Logistic v5 (DEC-23): absent-block candidates chosen on the validation day from v4's fits, and the sign-flip stop rules with Holm's correction, for RQ1 (primary and old-delay) and the six RQ2 inventories — **done** (`reports/rq1_logistic_v5.md`, `reports/rq1_retrospective_sensitivity_v5.md`, `reports/rq2_*_logistic_v5.md`). Both gates pass in every run (v4's fits reproduce; every add-one-input contrast ≥ 0 on the validation day). DEC-23's stop rule fires in no run, for v4, v5 or the one-SE sensitivity. RQ1's `[M2]` pattern is the same under v4 and v5; v4 stays RQ1's headline.
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
-5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`); stop rules fire for B, C, D, E and D′ (`[R2-7]`). Then v5 and DEC-23's stop rules on every inventory, and the partner-tempo ablation `[R2-8]` (DEC-24) — pending.
+5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`, kept as the record); DEC-16's stop rules fire for B, C, D, E and D′ (`[R2-7]`). Then v5 and DEC-23's stop rules on every inventory, and the comparison on v5 with `[R2-4]` for A → E, C → D and A → E′ — **done** (`reports/rq2_inventories_v5.md`); DEC-23's rule fires for no inventory, on v5 or v4 (DEC-16's old rule still fires on v5 for B, C, D, E, D′ and E′, always on a contrast that adds $S$). The partner-tempo ablation `[R2-8]` (DEC-24) — pending.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
 
 ---
