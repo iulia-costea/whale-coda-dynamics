@@ -9,8 +9,10 @@ and exactly the configured seeds. Neural runs should configure three seeds.
 import argparse
 from collections import defaultdict
 import hashlib
+import itertools
 import json
 import math
+import numbers
 from pathlib import Path
 import random
 
@@ -80,6 +82,58 @@ def day_bootstrap_bits(day_values, replicates=2000, seed=42, confidence=0.95):
             "ci_bits_per_coda": [quantile(tail), quantile(1 - tail)],
             "positive_days": sum(sums[d] > 0 for d in days), "days": len(days),
             "day_means_bits": day_means}
+
+
+SIGN_FLIP_MAX_DAYS = 20
+
+
+def sign_flip_p(day_sums, n_tokens, alternative='less'):
+    """Exact sign-flip p-value on day-level sums of per-coda differences (DEC-23).
+
+    Statistic: the token-weighted mean, sum over days of s_d * day_sums[d] divided by the total
+    token count, for every one of the 2^d sign assignments s. Alternatives: 'less' (mean below
+    zero; the stop rules), 'greater', 'two-sided' (|T| >= |T_obs|). Assignments tying the observed
+    value count as extreme. Sums use math.fsum, which rounds the exact sum once, so assignments
+    whose sums are mathematically equal (e.g. flipping a day whose sum is exactly zero) give the
+    same float and tie exactly."""
+    if alternative not in ('less', 'greater', 'two-sided'):
+        raise ValueError(f"Unknown alternative {alternative!r}")
+    days = sorted(day_sums)
+    if not days or set(days) != set(n_tokens):
+        raise ValueError("Day sums and token counts need the same nonempty set of days")
+    if len(days) > SIGN_FLIP_MAX_DAYS:
+        raise ValueError(f"Exact enumeration over {len(days)} days (2^{len(days)} assignments) is not supported")
+    sums = [day_sums[d] for d in days]
+    if any(not isinstance(v, numbers.Real) or isinstance(v, bool) or not math.isfinite(v) for v in sums):
+        raise ValueError("Nonfinite day sum")
+    if any(not isinstance(n_tokens[d], numbers.Integral) or isinstance(n_tokens[d], bool) or n_tokens[d] < 1
+           for d in days):
+        raise ValueError("Token counts must be positive integers")
+    sums, total = [float(v) for v in sums], int(sum(n_tokens[d] for d in days))
+    observed = math.fsum(sums) / total
+    extreme = 0
+    for signs in itertools.product((1, -1), repeat=len(days)):
+        value = math.fsum(s * v for s, v in zip(signs, sums)) / total
+        if alternative == 'less':
+            extreme += value <= observed
+        elif alternative == 'greater':
+            extreme += value >= observed
+        else:
+            extreme += abs(value) >= abs(observed)
+    return extreme / 2 ** len(days)
+
+
+def holm(pvalues):
+    """Holm's step-down adjusted p-values, in the order given, capped at 1."""
+    pvalues = list(pvalues)
+    if any(not isinstance(p, numbers.Real) or not 0 <= p <= 1 for p in pvalues):
+        raise ValueError("p-values must lie in [0, 1]")
+    m = len(pvalues)
+    adjusted, running = [0.0] * m, 0.0
+    for rank, index in enumerate(sorted(range(m), key=lambda i: pvalues[i])):
+        running = max(running, min(1.0, (m - rank) * pvalues[index]))
+        adjusted[index] = running
+    return adjusted
 
 
 def evaluate(predictions, manifest, targets, seeds, replicates=2000, bootstrap_seed=42, confidence=0.95):
