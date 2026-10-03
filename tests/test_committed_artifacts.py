@@ -28,6 +28,7 @@ PREPROCESSING = [
     ('preprocessing.prepare_rq2', 'config/rq2.json'),
     ('preprocessing.folds', 'config/rq1_folds.json'),
     ('preprocessing.folds', 'config/rq1_folds_retrospective.json'),
+    ('rq3.preprocessing.prepare', 'config/preprocessing_rq3.json'),
 ]
 
 # Result summaries fitted before the CRLF provenance fix (2026-09-28). Their inputs were the

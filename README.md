@@ -147,8 +147,8 @@ identity, exchange order, or the RQ1/RQ2 interaction features.
 Run preparation and its read-only independent validation from the repository root:
 
 ```sh
-PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json
-PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json
+PYTHONPATH=src python3 -m whale_coda_dynamics.rq3.preprocessing.prepare --config config/preprocessing_rq3.json
+PYTHONPATH=src python3 -m whale_coda_dynamics.rq3.preprocessing.validate --config config/preprocessing_rq3.json
 ```
 
 Preparation preserves all 32,956 raw rows in

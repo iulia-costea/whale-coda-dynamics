@@ -2,13 +2,14 @@
 import argparse
 import csv
 import hashlib
+import io
 import json
 import math
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from whale_coda_dynamics.preprocessing.io_utils import read_json, write_jsonl, write_text
+from whale_coda_dynamics.preprocessing.io_utils import read_json, read_text, write_jsonl, write_text
 
 from .folds import FOLD_COLUMNS, build_fold_rows
 
@@ -169,17 +170,16 @@ def validate_config(config):
 
 def read_source_rows(path, required_columns):
     """Read one raw CSV losslessly after checking its required schema."""
-    with Path(path).open(encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        columns = reader.fieldnames
-        if not columns:
-            raise ValueError(f"Source CSV has no header: {path}")
-        if len(columns) != len(set(columns)):
-            raise ValueError(f"Source CSV has duplicate header names: {path}")
-        missing = required_columns - set(columns)
-        if missing:
-            raise ValueError(f"Required source columns missing from {path}: {sorted(missing)}")
-        rows = list(reader)
+    reader = csv.DictReader(io.StringIO(read_text(path, encoding="utf-8-sig")))
+    columns = reader.fieldnames
+    if not columns:
+        raise ValueError(f"Source CSV has no header: {path}")
+    if len(columns) != len(set(columns)):
+        raise ValueError(f"Source CSV has duplicate header names: {path}")
+    missing = required_columns - set(columns)
+    if missing:
+        raise ValueError(f"Required source columns missing from {path}: {sorted(missing)}")
+    rows = list(reader)
     if any(None in row or any(value is None for value in row.values()) for row in rows):
         raise ValueError(f"Malformed CSV row in {path}; no output generated")
     return rows, columns
@@ -474,14 +474,15 @@ def table_row(record, columns):
 
 def write_processed_csv(path, rows, columns):
     """Write an eligible-coda CSV with JSON-encoded continuous ICI sequence cells."""
-    with Path(path).open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=columns, lineterminator="\n")
-        writer.writeheader()
-        for row in rows:
-            serialized = dict(row)
-            if "ici_sequence_s" in columns:
-                serialized["ici_sequence_s"] = json.dumps(row["ici_sequence_s"], ensure_ascii=False, allow_nan=False)
-            writer.writerow(serialized)
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=columns, lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        serialized = dict(row)
+        if "ici_sequence_s" in columns:
+            serialized["ici_sequence_s"] = json.dumps(row["ici_sequence_s"], ensure_ascii=False, allow_nan=False)
+        writer.writerow(serialized)
+    write_text(path, buffer.getvalue())
 
 
 def build_report(config, checksums, all_records, eligible_records, artifact_checksums, identity_mapping):

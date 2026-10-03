@@ -87,7 +87,7 @@ Run `PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.folds` with `co
 
 ## RQ3 pipeline
 
-The RQ3 preprocessing pipeline in `src/rq3/preprocessing/` normalizes the Caribbean and Pacific coda sources, applies the fixed eligibility rules and tokenizer, and writes the processed tables and deterministic group-disjoint folds. Its read-only validator independently checks source coverage, derived coda fields, and fold assignments. RQ3 experiment stages in `src/rq3/experiments/` perform source-clan calibration, cross-clan transfer scoring, bootstrap uncertainty, identity strata, and exploratory overlap analysis.
+The RQ3 preprocessing pipeline in `src/whale_coda_dynamics/rq3/preprocessing/` normalizes the Caribbean and Pacific coda sources, applies the fixed eligibility rules and tokenizer, and writes the processed tables and deterministic group-disjoint folds. Its read-only validator independently checks source coverage, derived coda fields, and fold assignments. RQ3 experiment stages in `src/whale_coda_dynamics/rq3/experiments/` perform source-clan calibration, cross-clan transfer scoring, bootstrap uncertainty, identity strata, and exploratory overlap analysis.
 
 ## Shared evaluation in bits
 

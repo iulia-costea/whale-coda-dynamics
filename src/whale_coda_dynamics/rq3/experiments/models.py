@@ -2,7 +2,7 @@
 import math
 from collections import Counter, defaultdict
 
-from rq3.preprocessing.tokenize import EOS
+from whale_coda_dynamics.rq3.preprocessing.tokenize import EOS
 
 
 PREDICTION_VOCABULARY = tuple(range(20)) + (EOS,)

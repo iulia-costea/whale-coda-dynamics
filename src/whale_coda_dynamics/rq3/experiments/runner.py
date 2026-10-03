@@ -3,7 +3,7 @@ import argparse
 from collections import defaultdict
 from pathlib import Path
 
-from rq3.preprocessing.tokenize import TOKENIZER_ID, tokenize_ici_sequence
+from whale_coda_dynamics.rq3.preprocessing.tokenize import TOKENIZER_ID, tokenize_ici_sequence
 
 from .data import CALIBRATION_COLUMNS, SELF_SCORE_COLUMNS, load_experiment_data, write_csv
 from .evaluation import mean_bits_per_coda, mean_bits_per_symbol

@@ -2,13 +2,14 @@
 import argparse
 import csv
 import hashlib
+import io
 import json
 import math
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl
+from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl, read_text
 
 from .prepare import CORE_COLUMNS, METADATA_COLUMNS, SOURCE_SPECS, validate_config
 
@@ -99,15 +100,14 @@ def expected_identity_status(dataset, clan, raw, mapping):
 
 def read_raw_csv(path, required_columns):
     """Read and schema-check a raw source without using the preparation loader."""
-    with Path(path).open(encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        columns = reader.fieldnames
-        if not columns or len(columns) != len(set(columns)):
-            raise ValueError(f"Invalid raw CSV header: {path}")
-        missing = required_columns - set(columns)
-        if missing:
-            raise ValueError(f"Raw CSV is missing required columns: {path}: {sorted(missing)}")
-        rows = list(reader)
+    reader = csv.DictReader(io.StringIO(read_text(path, encoding="utf-8-sig")))
+    columns = reader.fieldnames
+    if not columns or len(columns) != len(set(columns)):
+        raise ValueError(f"Invalid raw CSV header: {path}")
+    missing = required_columns - set(columns)
+    if missing:
+        raise ValueError(f"Raw CSV is missing required columns: {path}: {sorted(missing)}")
+    rows = list(reader)
     if any(None in row or any(value is None for value in row.values()) for row in rows):
         raise ValueError(f"Malformed raw CSV row: {path}")
     return rows
@@ -115,11 +115,10 @@ def read_raw_csv(path, required_columns):
 
 def read_generated_csv(path, expected_columns):
     """Read one generated CSV and reject a schema drift before row validation."""
-    with Path(path).open(encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames != expected_columns:
-            raise ValueError(f"Unexpected CSV schema in {path}: {reader.fieldnames}")
-        rows = list(reader)
+    reader = csv.DictReader(io.StringIO(read_text(path)))
+    if reader.fieldnames != expected_columns:
+        raise ValueError(f"Unexpected CSV schema in {path}: {reader.fieldnames}")
+    rows = list(reader)
     if any(None in row or any(value is None for value in row.values()) for row in rows):
         raise ValueError(f"Malformed generated CSV row: {path}")
     return rows

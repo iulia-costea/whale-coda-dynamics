@@ -34,8 +34,8 @@ Python 3.10+, `preprocessing/` is stdlib-only. Run with `PYTHONPATH=src`.
 ```sh
 PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare      # RQ1 → rq1_* tables, reports/rq1.md
 PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.prepare_rq2  # Sharma pipeline → rq2_*, reports/rq2.md
-PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json
-PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json
+PYTHONPATH=src python3 -m whale_coda_dynamics.rq3.preprocessing.prepare --config config/preprocessing_rq3.json
+PYTHONPATH=src python3 -m whale_coda_dynamics.rq3.preprocessing.validate --config config/preprocessing_rq3.json
 ```
 
 Tests: `PYTHONPATH=src python3 -m pytest tests` (model tests need numpy, scipy and torch; about 1.5 minutes locally; longer on GitHub's runners). They also run automatically on every PR and push to `main` (`.github/workflows/checks.yml`); don't merge a PR whose checks fail. Besides unit tests they rerun preprocessing and require byte-identical output, check every recorded SHA-256 against the committed files, and run each model runner end to end on tiny settings. A new runner gets a smoke test in `tests/test_pipeline_smoke.py`. Beyond them, `prepare.validate()` independently recomputes every derived field, and the RQ3 validator independently rechecks the RQ3 tables. A clean run of **both** pipelines is the test for preprocessing. Treat any `ValueError` as a failure, never work around it. New derived fields need an independent recomputation in `validate()`.
