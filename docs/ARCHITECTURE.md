@@ -59,9 +59,6 @@ Interfaces fixed so that PLAN, the prompt and the code agree; the implementing P
 
 - **`sharma_inventory.py`** (needs NumPy to unpickle; not under `preprocessing/`): reads `data/raw/mean_codas.p` and `data/raw/tempos-dict.p`, writes `data/interim/sharma_inventory.json` (the 18 templates as plain lists, the `tempos-dict.p` class extremes and cuts, SHA-256 of both inputs). Run once; its output is committed so that preprocessing stays standard-library only.
 
-## RQ3 pipeline
-
-The RQ3 preprocessing pipeline in `src/rq3/preprocessing/` normalizes the Caribbean and Pacific coda sources, applies the fixed eligibility rules and tokenizer, and writes the processed tables and deterministic group-disjoint folds. Its read-only validator independently checks the source coverage, derived coda fields, and fold assignments. RQ3 experiment stages in `src/rq3/experiments/` perform source-clan calibration, cross-clan transfer scoring, bootstrap uncertainty, identity strata, and the exploratory overlap analysis.
 - **`preprocessing/inventories.py`** (standard library), config `config/rq2_inventories.json`: recomputes the KDE tempo cuts from `CarribeanCodas.csv` and checks them; checks the rhythm rule against `rhythms.p` on all `[D2]` rows; labels every row of `data/processed/rq1_targets.jsonl` and writes one targets file per inventory, `data/processed/rq2_<name>_targets.jsonl`, identical to `rq1_targets.jsonl` except `Ct`, `Ct_raw`, `A_history`, `B_history` (and an `inventory` field); writes `reports/rq2_inventories.md`. Names: `b_dtree`, `c_rhythm`, `d_rhythm_tempo`, `e_type_tempo`, `d_rhythm_tempo_tdict`, `e_type_tempo_tdict`.
 - **Per inventory, unchanged code:** `preprocessing.folds` with `config/rq2_<name>_folds.json` (preparation config `config/rq1.json`), then `logistic` with `config/rq2_<name>_logistic_v4.json` and `config/rq2_<name>_evaluation_v4.json`, writing `data/results/rq2_<name>_logistic_v4/` and `reports/rq2_<name>_logistic_v4.md`. Inventory A is RQ1's existing `rq1_logistic_v4` run.
 - **`rq2_compare.py`**, config `config/rq2_compare.json`: reads every inventory's evaluation outputs and stored probabilities; writes `data/results/rq2_compare/summary.json` (with `input_sha256`) and `reports/rq2_inventories_v4.md` (PLAN `[R2-3]`–`[R2-6]`).
@@ -87,6 +84,10 @@ Run `PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.folds` with `co
 `prepare_fold(rows, fold, preparation)` returns fresh mapped rows and the fitted vocabulary/prior. It reruns the shared history/timing validator and independent mapping validator. Model consumers select comparison-eligible rows and only declared input columns; numerical transforms remain training-only work for the model encoder. The original fixed-split preparation tables are not rewritten.
 
 `data/processed/rq1_folds/manifest.json` records all fold assignments, comparison IDs shared by all conditions, training counts, vocabularies, priors, UNK statistics and input/config hashes. `reports/rq1_folds.md` summarizes sizes. Exactly-once coverage currently concerns test assignments; prediction coverage will be checked by the future evaluator. Shared evaluation is implemented; model code remains unimplemented.
+
+## RQ3 pipeline
+
+The RQ3 preprocessing pipeline in `src/rq3/preprocessing/` normalizes the Caribbean and Pacific coda sources, applies the fixed eligibility rules and tokenizer, and writes the processed tables and deterministic group-disjoint folds. Its read-only validator independently checks source coverage, derived coda fields, and fold assignments. RQ3 experiment stages in `src/rq3/experiments/` perform source-clan calibration, cross-clan transfer scoring, bootstrap uncertainty, identity strata, and exploratory overlap analysis.
 
 ## Shared evaluation in bits
 
