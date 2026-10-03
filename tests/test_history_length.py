@@ -6,9 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-from whale_coda_dynamics.evaluation import day_bootstrap_bits
-from whale_coda_dynamics.history_length import order_contrast, reading_lines, reference_gate
+from whale_coda_dynamics.evaluation import day_bootstrap_bits, sign_flip_p
+from whale_coda_dynamics.history_length import dec23_checks, order_contrast, reading_lines, reference_gate
 from whale_coda_dynamics.logistic import Encoder
+from whale_coda_dynamics.logistic_v5 import A_CONDITIONS, dec23_stop_rules
 from whale_coda_dynamics.preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 from whale_coda_dynamics.residual import prepare_folds
 
@@ -120,9 +121,41 @@ class ContrastTests(unittest.TestCase):
         self.assertTrue(math.isclose(total, out['log_likelihood_bits']['mean_bits_per_coda'], abs_tol=1e-12))
         with self.assertRaises(ValueError):
             order_contrast(other[:-1], base, 'A', (200, 42, 0.95))
+        self.assertNotIn('sign_flip_p_two_sided', out['log_likelihood_bits'])
+        flipped = order_contrast(other, base, 'A', (200, 42, 0.95), sign_flip=True)['log_likelihood_bits']
+        sums = {d: math.fsum(v) for d, v in differences.items()}
+        self.assertEqual(flipped['sign_flip_p_two_sided'],
+                         sign_flip_p(sums, {d: len(v) for d, v in differences.items()}, 'two-sided'))
 
 
-def result_with(ci, gate=True, stops=(), bound=None):
+class Dec23Tests(unittest.TestCase):
+    def test_day_means_reproduce_the_rule_on_per_coda_values(self):
+        """The 16 checks from stored day means give dec23_stop_rules' result on the per-coda values."""
+        rng = np.random.RandomState(5)
+        counts = {f'2020-01-{d:02d}': 2 + d for d in range(1, 11)}  # 10 days: min p 1/1024, x16 < 0.05
+        dates = {f'{day}-{i}': day for day, n in counts.items() for i in range(n)}
+        names = [f'add_input:X{i}-Y{i}' for i in range(12)] + [f'repeat:{a}' for a in A_CONDITIONS]
+        shifts = [-0.3] + [0.05] * 15  # one clearly negative check
+        values = {name: {c: float(rng.normal(shift, 0.2)) for c in sorted(dates)} for name, shift in zip(names, shifts)}
+
+        def stats(name):
+            days = {}
+            for c in sorted(dates):
+                days.setdefault(dates[c], []).append(values[name][c])
+            return day_bootstrap_bits(days, 50, 1, 0.95)
+        summary = dict(contrasts={n: dict(components=dict(log_likelihood_bits=stats(n))) for n in names[:12]},
+                       repeat_baseline_checks={a: stats(f'repeat:{a}') for a in A_CONDITIONS})
+        got, expected = dec23_checks(summary, counts), dec23_stop_rules(values, dates)
+        self.assertEqual(got['fired'], expected['fired'])
+        self.assertEqual(got['fired'], [names[0]])
+        for a, b in zip(got['checks'], expected['checks']):
+            self.assertEqual((a['check'], a['sign_flip_p'], a['holm_p']), (b['check'], b['sign_flip_p'], b['holm_p']))
+            self.assertAlmostEqual(a['mean_bits_per_coda'], b['mean_bits_per_coda'], places=12)
+        with self.assertRaises(ValueError):
+            dec23_checks(summary, dict(counts, extra=3))
+
+
+def result_with(ci, gate=True, stops=(), bound=None, dec23_stops=()):
     stats = lambda low, high: dict(mean_bits_per_coda=(low + high) / 2, unweighted_mean_bits_per_coda=0.0,  # noqa: E731
                                    ci_bits_per_coda=[low, high], positive_days=7, days=14)
     contrast = lambda low, high: dict(components=dict(log_likelihood_bits=stats(low, high), repeat_bits=stats(low, high),  # noqa: E731
@@ -130,7 +163,9 @@ def result_with(ci, gate=True, stops=(), bound=None):
     return dict(reference_order=3, primary=dict(condition='A_B_S', order=9), conditions=['A', 'A_B_S'],
                 contrasts={'A': {'1': contrast(-0.3, -0.1), '9': contrast(-0.01, 0.02)},
                            'A_B_S': {'1': contrast(-0.3, -0.1), '9': contrast(*ci)}},
-                stop_rules={'1': [], '3': [], '9': list(stops)}, gate=dict(passed=gate),
+                orders=[1, 3, 9], stop_rules={'1': [], '3': [], '9': list(stops)},
+                stop_rules_dec23={'1': dict(fired=[]), '3': dict(fired=[]), '9': dict(fired=list(dec23_stops))},
+                gate=dict(passed=gate),
                 calibration=dict(lag=6, per_fraction={'0.4': dict(bound_bits_per_coda=bound)}))
 
 
@@ -146,7 +181,8 @@ class ReadingTests(unittest.TestCase):
         bounded = reading_lines(result_with((-0.01, 0.05), bound=0.3), self.config)[1]
         self.assertIn('size. Calibration (condition A): at f = 0.4, a lag-6 copy pattern worth more than 0.3000 bits/coda', bounded)
         self.assertIn('fitting problem', reading_lines(result_with((-0.05, -0.01)), self.config)[1])
-        self.assertTrue(reading_lines(result_with((0.01, 0.05), stops=['x']), self.config)[1].startswith('No reading: DEC-16'))
+        self.assertIn('(DEC-16: k = 9; see', reading_lines(result_with((0.01, 0.05), stops=['x']), self.config)[1])
+        self.assertIn('(DEC-23: k = 9; see', reading_lines(result_with((0.01, 0.05), dec23_stops=['x']), self.config)[1])
         self.assertTrue(reading_lines(result_with((0.01, 0.05), gate=False), self.config)[1].startswith('No reading: the reference'))
         self.assertTrue(reading_lines(result_with((0.01, 0.05)), self.config)[-1].startswith('Secondary, pre-specified: LL(1) - LL(3) in A'))
 

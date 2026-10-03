@@ -947,7 +947,8 @@
               "2016-04-24": -0.12419842133851317,
               "2016-05-12": 0.037990618380170066,
               "2016-05-13": 0.3428784182675627
-            }
+            },
+            "sign_flip_p_two_sided": 0.3294677734375
           },
           "repeat_bits": {
             "mean_bits_per_coda": 0.00010567575861399795,
@@ -1621,7 +1622,8 @@
               "2016-04-24": -0.09935569426249968,
               "2016-05-12": -0.010093117089647505,
               "2016-05-13": 0.3696050704241181
-            }
+            },
+            "sign_flip_p_two_sided": 0.1376953125
           },
           "repeat_bits": {
             "mean_bits_per_coda": -0.02070179019589386,
@@ -2209,7 +2211,8 @@
               "2016-04-24": -0.0029021916842137834,
               "2016-05-12": -0.003509305812808772,
               "2016-05-13": -0.061650197728959785
-            }
+            },
+            "sign_flip_p_two_sided": 0.9805908203125
           },
           "repeat_bits": {
             "mean_bits_per_coda": 0.0012799452660373692,
@@ -2282,6 +2285,1943 @@
     "7": [],
     "8": [],
     "9": []
+  },
+  "stop_rules_dec23": {
+    "1": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.4820187854843994,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1919427098786997,
+            1.8832914355359316
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.056858356842350306,
+          "days": 14,
+          "sign_flip_p": 0.2371826171875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1480277277447511,
+            0.056849162927875355
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.295396892350324,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9201271163346765,
+            1.6272914168451023
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4252823776676915,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.19411469340378,
+            1.7233466746484496
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.008075685536248536,
+          "days": 14,
+          "sign_flip_p": 0.33563232421875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.02086449483162419,
+            0.0037553667127130544
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.011083136469973364,
+          "days": 14,
+          "sign_flip_p": 0.19940185546875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.02600627427808761,
+            0.0034824686387926705
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.05986580777607514,
+          "days": 14,
+          "sign_flip_p": 0.2305908203125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.15271184395924164,
+            0.05463686829207058
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.2878371713771195,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9214275841392824,
+            1.6303932318583239
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.27223779499398953,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23477794648725664,
+            0.3412177222607875
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.21537943815163924,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.1245948521174854,
+            0.36429288639881874
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.264162109457741,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.22569314930611095,
+            0.34198568452315703
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.20429630168166588,
+          "days": 14,
+          "sign_flip_p": 0.9996337890625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.09957977913291571,
+            0.36445111422232424
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "2": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5055962692068308,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1984659532912352,
+            1.9143068264810514
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.030818393541434595,
+          "days": 14,
+          "sign_flip_p": 0.30023193359375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.09883837874776552,
+            0.053648192919881925
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.345014339373671,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9434737019844985,
+            1.713834367066279
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4479462077772403,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.205502383235905,
+            1.7490529547551628
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.008989339149131264,
+          "days": 14,
+          "sign_flip_p": 0.365478515625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.024377505424306355,
+            0.006727057669820368
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.018421157117111963,
+          "days": 14,
+          "sign_flip_p": 0.140869140625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.04251151398015021,
+            0.0016944401881527403
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.04025021150941529,
+          "days": 14,
+          "sign_flip_p": 0.275146484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.11523080877348887,
+            0.05005390292343887
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.330116597753328,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9390530946660666,
+            1.70762207892641
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.2958152787164211,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.24458818551163136,
+            0.3719696213387852
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.2649968851749865,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.1967606121457504,
+            0.39979492490084095
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2868259395672898,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.24117804646715674,
+            0.3685333527404862
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.24657572805787453,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.16533452276062022,
+            0.39696169630606315
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "3": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5056418061647179,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1967004265192316,
+            1.9136836316003305
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.015471679510114255,
+          "days": 14,
+          "sign_flip_p": 0.336181640625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.07466275844068734,
+            0.06646115476689637
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3604065903628786,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9492821755638015,
+            1.7408105016622977
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4469329718712516,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.199324715909775,
+            1.750715590110755
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.010048112013007125,
+          "days": 14,
+          "sign_flip_p": 0.2471923828125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.024835538383666526,
+            0.003740276694591742
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.020235931099267346,
+          "days": 14,
+          "sign_flip_p": 0.11944580078125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.04635341242210386,
+            0.0013559023677891856
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.02565949859637447,
+          "days": 14,
+          "sign_flip_p": 0.31402587890625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.09421969083622182,
+            0.06350709387288882
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.34369407476038,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9445375153783202,
+            1.7317132084783315
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.29586081567430805,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.24198521114111923,
+            0.3719025296538541
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.2803891361641938,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21579718151249386,
+            0.409194417521087
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.28581270366130096,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23860285016313637,
+            0.366278972647643
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2601532050649265,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.18546410930556848,
+            0.4046935892830635
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "4": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5092298884070858,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1954252380972734,
+            1.9395103649744527
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.015673776774152593,
+          "days": 14,
+          "sign_flip_p": 0.3414306640625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.05839330586264952,
+            0.033524870798442394
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3637925753412081,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9527879125063281,
+            1.7463372870834468
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4517728257450082,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2060791280765326,
+            1.7640690214710406
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.008796340381618287,
+          "days": 14,
+          "sign_flip_p": 0.23284912109375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.02087549017986353,
+            0.0031133763159134696
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.016436456800075695,
+          "days": 14,
+          "sign_flip_p": 0.15948486328125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.037455143961082765,
+            0.002220409093859392
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.023313893192610007,
+          "days": 14,
+          "sign_flip_p": 0.3197021484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.07379957043757505,
+            0.03178967913339404
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3508795340379014,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9462722406658756,
+            1.7461448753221227
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.29944889791667606,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.24350855744586444,
+            0.39513057915086647
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.28377512114252346,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21997112441045968,
+            0.41316103601286186
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2906525575350578,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23867433935114285,
+            0.390662901247558
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2673386643424478,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.19665013435749726,
+            0.4099358799564921
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "5": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5062251399251385,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1930042470613929,
+            1.9309313689777705
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.015156404395982299,
+          "days": 14,
+          "sign_flip_p": 0.33660888671875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.061700185027753686,
+            0.036456993891568014
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3613051992374312,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9457592924839902,
+            1.7466004659135024
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4529447036203442,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.204015015346554,
+            1.7583895843590946
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.0046197140243352,
+          "days": 14,
+          "sign_flip_p": 0.22003173828125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.010330539526229166,
+            0.003002648075337178
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.010803231712367311,
+          "days": 14,
+          "sign_flip_p": 0.05621337890625,
+          "holm_p": 0.8994140625,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.018591013880216587,
+            -0.0009104008189535969
+          ],
+          "old_rule_fires": true
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.02133992208401441,
+          "days": 14,
+          "sign_flip_p": 0.2891845703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.06908999147673804,
+            0.03071325188227085
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3540253830218327,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9396312164016203,
+            1.763280387405192
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.29644414943472885,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23951305829071398,
+            0.3899567659505608
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.28128774503874654,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21610229429577887,
+            0.40806688858197715
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2918244354103936,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2362054874687978,
+            0.3885712151391522
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.27048451332637924,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.20384687356722553,
+            0.40178460433328117
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "6": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5060738701982341,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.194116230048116,
+            1.927244417989509
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.021181074235626953,
+          "days": 14,
+          "sign_flip_p": 0.2874755859375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.06796121580802443,
+            0.03421608854244191
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3551292596708822,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9418875318674633,
+            1.736041413670824
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4467387584770652,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1953831720372026,
+            1.753183942541755
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.010674389440709661,
+          "days": 14,
+          "sign_flip_p": 0.1551513671875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.023188412214777108,
+            0.0016476237158520245
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.005873807926228743,
+          "days": 14,
+          "sign_flip_p": 0.0504150390625,
+          "holm_p": 0.806640625,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.010709395385758253,
+            -0.0006117588411167687
+          ],
+          "old_rule_fires": true
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.016380492721146032,
+          "days": 14,
+          "sign_flip_p": 0.32891845703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.06308642796934637,
+            0.03522457935020325
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3527788672414218,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9338073262195423,
+            1.7650693701473672
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.2962928797078242,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23980202571649506,
+            0.387431371627849
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.2751118054721972,
+          "days": 14,
+          "sign_flip_p": 0.99969482421875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.20582335043795497,
+            0.4054535408666165
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2856184902671145,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.22943194032321468,
+            0.3826322403456916
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2692379975459685,
+          "days": 14,
+          "sign_flip_p": 0.99969482421875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.19968694135690881,
+            0.40138573621204854
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "7": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5054023589336452,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1943356649962849,
+            1.9302903000373555
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.017819048487378662,
+          "days": 14,
+          "sign_flip_p": 0.252197265625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.05549123991425795,
+            0.02948481433827067
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3578197741545415,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9397494312882196,
+            1.7470695499968247
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4551592123242383,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2107095785980477,
+            1.760395492748498
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.0015824243289478065,
+          "days": 14,
+          "sign_flip_p": 0.39666748046875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.008924208440818537,
+            0.012965474431145568
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.009574073756692865,
+          "days": 14,
+          "sign_flip_p": 0.111328125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.018839758691881422,
+            0.0006943683751853335
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.025810697915123727,
+          "days": 14,
+          "sign_flip_p": 0.197509765625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.0713525642676594,
+            0.025636719383010296
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3517691158946177,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9338310496494566,
+            1.7645061315930604
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.2956213684432356,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23796905547391395,
+            0.3918170667431665
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.27780231995585697,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2111763839758946,
+            0.4041857847738892
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2940389441142878,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.239703795845288,
+            0.3928469655773909
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2682282461991641,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.20071722529399805,
+            0.399933496420895
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "8": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5021425384321305,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1886680943598757,
+            1.925907818062043
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.013584413189127925,
+          "days": 14,
+          "sign_flip_p": 0.3023681640625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.05132084832126059,
+            0.035524833108840984
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3587945889512774,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9406537739990997,
+            1.7478745717887045
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4487748860381728,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1998742728607248,
+            1.7532678535245558
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.00470693011349841,
+          "days": 14,
+          "sign_flip_p": 0.14044189453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.009369575996081674,
+            0.001661873294047054
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.010238575554834458,
+          "days": 14,
+          "sign_flip_p": 0.09490966796875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.019296012165250412,
+            0.0006462866206409882
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.019116058630463978,
+          "days": 14,
+          "sign_flip_p": 0.2764892578125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.05999805777125051,
+            0.03295284203855735
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3520794288932116,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9333357112395607,
+            1.7645875104718114
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.2923615479417206,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23506570117113507,
+            0.38623103676758536
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.2787771347525927,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21209614084652448,
+            0.40484990919843555
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2876546178282222,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23270138014321287,
+            0.38205805177726954
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2685385591977582,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2013565295124821,
+            0.39954159596494754
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "9": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.04866072228045919,
+          "days": 14,
+          "sign_flip_p": 0.5595703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038903304724292,
+            0.2991914233026535
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.502435100901674,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1888557153776305,
+            1.9246237890079356
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976353629172502,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077040074053906,
+            0.6997500002923444
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.013025555236668193,
+          "days": 14,
+          "sign_flip_p": 0.30279541015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.04943478544917227,
+            0.0352306752613924
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3596460093732807,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.941323382171618,
+            1.7503318036555946
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4490066813801128,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1996180022838583,
+            1.7518901243209748
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.004767697241101968,
+          "days": 14,
+          "sign_flip_p": 0.13763427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.009425990219517153,
+            0.001597799175709671
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.077579398514497,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.28327230217133426,
+            0.45813527046978963
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035234154967688073,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084507351201303,
+            0.1404210185433518
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.01043446803608369,
+          "days": 14,
+          "sign_flip_p": 0.06787109375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.019507857877907066,
+            2.6162945402374714e-05
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.018692326031649917,
+          "days": 14,
+          "sign_flip_p": 0.27581787109375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.05841435655927294,
+            0.03234587579417802
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.352734956833966,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9328632600165051,
+            1.7672567425379753
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.29265411041126427,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23564659460905107,
+            0.3843465850431045
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.27962855517459606,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21470378234584844,
+            0.4045626683773784
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2878864131701623,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2333568745245163,
+            0.38098098545857656
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2691940871385124,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.204450885828089,
+            0.39830161897164773
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    }
   },
   "calibration": {
     "lag": 6,
@@ -4575,9 +6515,9 @@
   },
   "fits": 44226,
   "reading": [
-    "Primary, pre-specified: LL(9) - LL(3) in A_B_S: 0.00904 bits/coda (unweighted day mean -0.00328, 95% CI [-0.0141, 0.0374], 5/14 days positive). Repeat part 0.00128 [-0.0144, 0.0170]; switch part 0.00776 [-0.0045, 0.0212].",
+    "Primary, pre-specified: LL(9) - LL(3) in A_B_S: 0.00904 bits/coda (unweighted day mean -0.00328, 95% CI [-0.0141, 0.0374], 5/14 days positive, two-sided sign-flip p = 0.9806). Repeat part 0.00128 [-0.0144, 0.0170]; switch part 0.00776 [-0.0045, 0.0212].",
     "No detectable information beyond 3 own codas for this model at this data size. Calibration (condition A): at f = 0.4, a lag-6 copy pattern worth more than 0.2966 bits/coda to the oracle would have been detected. A null may also mean too little data: limited data and capacity push contrasts toward zero (PLAN \u00a79).",
-    "Secondary, pre-specified: LL(1) - LL(3) in A: -0.02362 bits/coda (unweighted day mean -0.00843, 95% CI [-0.0572, 0.0150], 5/14 days positive); LL(1) - LL(3) in A_B_S: -0.05586 bits/coda (unweighted day mean -0.03124, 95% CI [-0.1109, 0.0006], 2/14 days positive)."
+    "Secondary, pre-specified: LL(1) - LL(3) in A: -0.02362 bits/coda (unweighted day mean -0.00843, 95% CI [-0.0572, 0.0150], 5/14 days positive, two-sided sign-flip p = 0.3295); LL(1) - LL(3) in A_B_S: -0.05586 bits/coda (unweighted day mean -0.03124, 95% CI [-0.1109, 0.0006], 2/14 days positive, two-sided sign-flip p = 0.1377)."
   ],
   "input_sha256": {
     "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",

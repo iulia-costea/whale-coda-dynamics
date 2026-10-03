@@ -414,6 +414,8 @@ class HistoryLengthSmokeTests(unittest.TestCase):
             self.assertEqual(summary['contrasts']['A_B_S']['4']['role'], 'primary')
             self.assertEqual(summary['contrasts']['A']['1']['role'], 'secondary')
             self.assertEqual(set(summary['stop_rules']), {'1', '3', '4'})
+            self.assertEqual({k: len(v['checks']) for k, v in summary['stop_rules_dec23'].items()}, {'1': 16, '3': 16, '4': 16})
+            self.assertIn('sign_flip_p_two_sided', summary['contrasts']['A_B_S']['4']['components']['log_likelihood_bits'])
             self.assertEqual(summary['gate']['fits_compared'], 98)
             self.assertFalse(summary['gate']['passed'])  # a one-value L2 grid cannot reproduce v4's choices
             self.assertEqual(set(summary['calibration']['per_fraction']), {'0.4'})

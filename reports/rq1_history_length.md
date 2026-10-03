@@ -59,32 +59,32 @@ Held-out log-likelihood (bits/coda, 1,547 targets), accuracy, and the chosen his
 | 8 | -1.10040 | 83.710% | 0.003 (2/14) | -1.12422 | 82.547% | 0.002 (2/14) |
 | 9 | -1.10010 | 83.646% | 0.003 (2/14) | -1.12356 | 82.482% | 0.002 (1/14) |
 
-Rows marked * are the k at which a DEC-16 stop rule fires (k = 5, 6; see the stop rules below); no conclusion is drawn from those k.
+Rows marked * are the k at which DEC-16's rule (an interval entirely below zero) fires (k = 5, 6). See the stop rules below; no conclusion is drawn from a k at which either rule fires.
 
 ## Contrasts LL(k) - LL(3)
 
-Primary (pre-specified): LL(9) - LL(3) in A_B_S. Secondary (pre-specified): LL(1) - LL(3), in each condition. The rest of the curve is descriptive.
+Primary (pre-specified): LL(9) - LL(3) in A_B_S. Secondary (pre-specified): LL(1) - LL(3), in each condition. The rest of the curve is descriptive. The primary and secondary contrasts also get the exact two-sided sign-flip p (DEC-23: all 2^14 sign assignments of the day sums, token-weighted mean as the statistic).
 
-| Condition | k | Role | Bits/coda | Unweighted day mean | 95% CI | Positive days | Repeat part [CI] | Switch part [CI] |
-|---|---:|---|---:|---:|---|---:|---:|---:|
-| A | 1 | **secondary** | -0.02362 | -0.00843 | [-0.0572, 0.0150] | 5/14 | 0.00011 [-0.0252, 0.0267] | -0.02373 [-0.0494, 0.0016] |
-| A | 2 | descriptive | -0.00005 | 0.00551 | [-0.0077, 0.0104] | 5/14 | -0.00059 [-0.0056, 0.0071] | 0.00054 [-0.0058, 0.0066] |
-| A | 4 | descriptive | 0.00359 | 0.02020 | [-0.0136, 0.0393] | 8/14 | 0.00776 [-0.0085, 0.0447] | -0.00418 [-0.0097, 0.0011] |
-| A | 5 | descriptive * | 0.00058 | 0.01517 | [-0.0168, 0.0349] | 6/14 | 0.00501 [-0.0115, 0.0405] | -0.00443 [-0.0156, 0.0038] |
-| A | 6 | descriptive * | 0.00043 | 0.00974 | [-0.0200, 0.0339] | 6/14 | 0.00400 [-0.0143, 0.0388] | -0.00357 [-0.0141, 0.0033] |
-| A | 7 | descriptive | -0.00024 | 0.01163 | [-0.0209, 0.0350] | 7/14 | 0.00297 [-0.0172, 0.0401] | -0.00321 [-0.0105, 0.0018] |
-| A | 8 | descriptive | -0.00350 | 0.00681 | [-0.0261, 0.0319] | 7/14 | 0.00144 [-0.0206, 0.0398] | -0.00494 [-0.0193, 0.0026] |
-| A | 9 | descriptive | -0.00321 | 0.00811 | [-0.0254, 0.0319] | 5/14 | 0.00063 [-0.0215, 0.0389] | -0.00383 [-0.0193, 0.0046] |
-| A_B_S | 1 | **secondary** | -0.05586 | -0.03124 | [-0.1109, 0.0006] | 2/14 | -0.02070 [-0.0630, 0.0189] | -0.03516 [-0.0797, -0.0053] |
-| A_B_S | 2 | descriptive | -0.01358 | -0.01046 | [-0.0238, -0.0039] | 1/14 | -0.00847 [-0.0165, 0.0004] | -0.00511 [-0.0090, -0.0016] |
-| A_B_S | 4 | descriptive | 0.00719 | 0.00738 | [0.0002, 0.0151] | 7/14 | 0.00459 [-0.0023, 0.0115] | 0.00260 [-0.0012, 0.0075] |
-| A_B_S | 5 | descriptive * | 0.01033 | -0.00186 | [-0.0083, 0.0333] | 5/14 | 0.00862 [-0.0086, 0.0265] | 0.00171 [-0.0080, 0.0087] |
-| A_B_S | 6 | descriptive * | 0.00908 | -0.00725 | [-0.0160, 0.0349] | 6/14 | 0.00507 [-0.0143, 0.0224] | 0.00401 [-0.0085, 0.0144] |
-| A_B_S | 7 | descriptive | 0.00808 | -0.00369 | [-0.0139, 0.0340] | 6/14 | 0.00419 [-0.0128, 0.0207] | 0.00388 [-0.0086, 0.0148] |
-| A_B_S | 8 | descriptive | 0.00839 | -0.00474 | [-0.0143, 0.0344] | 6/14 | 0.00143 [-0.0140, 0.0165] | 0.00696 [-0.0039, 0.0189] |
-| A_B_S | 9 | **primary** | 0.00904 | -0.00328 | [-0.0141, 0.0374] | 5/14 | 0.00128 [-0.0144, 0.0170] | 0.00776 [-0.0045, 0.0212] |
+| Condition | k | Role | Bits/coda | Unweighted day mean | 95% CI | Positive days | Repeat part [CI] | Switch part [CI] | Sign-flip p (two-sided) |
+|---|---:|---|---:|---:|---|---:|---:|---:|---:|
+| A | 1 | **secondary** | -0.02362 | -0.00843 | [-0.0572, 0.0150] | 5/14 | 0.00011 [-0.0252, 0.0267] | -0.02373 [-0.0494, 0.0016] | 0.3295 |
+| A | 2 | descriptive | -0.00005 | 0.00551 | [-0.0077, 0.0104] | 5/14 | -0.00059 [-0.0056, 0.0071] | 0.00054 [-0.0058, 0.0066] |  |
+| A | 4 | descriptive | 0.00359 | 0.02020 | [-0.0136, 0.0393] | 8/14 | 0.00776 [-0.0085, 0.0447] | -0.00418 [-0.0097, 0.0011] |  |
+| A | 5 | descriptive * | 0.00058 | 0.01517 | [-0.0168, 0.0349] | 6/14 | 0.00501 [-0.0115, 0.0405] | -0.00443 [-0.0156, 0.0038] |  |
+| A | 6 | descriptive * | 0.00043 | 0.00974 | [-0.0200, 0.0339] | 6/14 | 0.00400 [-0.0143, 0.0388] | -0.00357 [-0.0141, 0.0033] |  |
+| A | 7 | descriptive | -0.00024 | 0.01163 | [-0.0209, 0.0350] | 7/14 | 0.00297 [-0.0172, 0.0401] | -0.00321 [-0.0105, 0.0018] |  |
+| A | 8 | descriptive | -0.00350 | 0.00681 | [-0.0261, 0.0319] | 7/14 | 0.00144 [-0.0206, 0.0398] | -0.00494 [-0.0193, 0.0026] |  |
+| A | 9 | descriptive | -0.00321 | 0.00811 | [-0.0254, 0.0319] | 5/14 | 0.00063 [-0.0215, 0.0389] | -0.00383 [-0.0193, 0.0046] |  |
+| A_B_S | 1 | **secondary** | -0.05586 | -0.03124 | [-0.1109, 0.0006] | 2/14 | -0.02070 [-0.0630, 0.0189] | -0.03516 [-0.0797, -0.0053] | 0.1377 |
+| A_B_S | 2 | descriptive | -0.01358 | -0.01046 | [-0.0238, -0.0039] | 1/14 | -0.00847 [-0.0165, 0.0004] | -0.00511 [-0.0090, -0.0016] |  |
+| A_B_S | 4 | descriptive | 0.00719 | 0.00738 | [0.0002, 0.0151] | 7/14 | 0.00459 [-0.0023, 0.0115] | 0.00260 [-0.0012, 0.0075] |  |
+| A_B_S | 5 | descriptive * | 0.01033 | -0.00186 | [-0.0083, 0.0333] | 5/14 | 0.00862 [-0.0086, 0.0265] | 0.00171 [-0.0080, 0.0087] |  |
+| A_B_S | 6 | descriptive * | 0.00908 | -0.00725 | [-0.0160, 0.0349] | 6/14 | 0.00507 [-0.0143, 0.0224] | 0.00401 [-0.0085, 0.0144] |  |
+| A_B_S | 7 | descriptive | 0.00808 | -0.00369 | [-0.0139, 0.0340] | 6/14 | 0.00419 [-0.0128, 0.0207] | 0.00388 [-0.0086, 0.0148] |  |
+| A_B_S | 8 | descriptive | 0.00839 | -0.00474 | [-0.0143, 0.0344] | 6/14 | 0.00143 [-0.0140, 0.0165] | 0.00696 [-0.0039, 0.0189] |  |
+| A_B_S | 9 | **primary** | 0.00904 | -0.00328 | [-0.0141, 0.0374] | 5/14 | 0.00128 [-0.0144, 0.0170] | 0.00776 [-0.0045, 0.0212] | 0.9806 |
 
-Rows marked * are the k at which a DEC-16 stop rule fires (k = 5, 6; see the stop rules below); no conclusion is drawn from those k.
+Rows marked * are the k at which DEC-16's rule (an interval entirely below zero) fires (k = 5, 6). See the stop rules below; no conclusion is drawn from a k at which either rule fires.
 
 No contrast with more own lags than 3 has an interval entirely below zero (no fitting flag). A negative LL(k) - LL(3) for k < 3 is not a flag: the smaller model drops lags.
 
@@ -114,27 +114,27 @@ Planted test targets: mean log2-probability of the planted label.
 
 Planting check against the residual planted run (`data/results/rq1_lstm_residual_planted/scores.jsonl`): eligibility, planted flags and planted labels are identical on all 4,641 fold, fraction and target combinations; the k = 3 refit differs from that run's refitted logistic regression by at most 0.000759 bits (68 targets differ by more than 1e-5).
 
-## Stop rules (DEC-16), per k
+## Stop rules per k (DEC-16 and DEC-23)
 
-Stop and investigate if an A-condition is reliably below repeat-own-last in log-likelihood, or an add-one-input contrast has an interval entirely below zero.
+Each k is a full run of the 16 checks: the 12 add-one-input contrasts and the 4 A-conditions against repeat-own-last. DEC-16's rule, under which the sweep was specified (DEC-25), stops when a check's day-bootstrap interval lies entirely below zero. DEC-23's rule, which supersedes it, gives each check an exact one-sided sign-flip test (alternative: mean below zero) on its day sums, with Holm's correction across the 16, and stops when an adjusted p is below 0.05 (`logistic_v5.dec23_stop_rules`). Both are reported. The sweep keeps per-coda values only for its swept conditions, so DEC-23's day sums are each run's stored day means times the day's target count; the means they give match the stored ones to 1e-12.
 
-| k | Result |
-|---:|---|
-| 1 | no stop rule fires |
-| 2 | no stop rule fires |
-| 3 | no stop rule fires |
-| 4 | no stop rule fires |
-| 5 | add_input:A_B_S-A_B: contrast CI entirely below zero [-0.0186, -0.0009] |
-| 6 | add_input:A_B_S-A_B: contrast CI entirely below zero [-0.0107, -0.0006] |
-| 7 | no stop rule fires |
-| 8 | no stop rule fires |
-| 9 | no stop rule fires |
+| k | DEC-16: interval entirely below zero | DEC-23: Holm-adjusted p < 0.05 | Smallest one-sided p, Holm-adjusted (check) |
+|---:|---|---|---|
+| 1 | no stop rule fires | no stop rule fires | 0.1994, Holm 1.0000 (add_input:A_B_S-A_B) |
+| 2 | no stop rule fires | no stop rule fires | 0.1409, Holm 1.0000 (add_input:A_B_S-A_B) |
+| 3 | no stop rule fires | no stop rule fires | 0.1194, Holm 1.0000 (add_input:A_B_S-A_B) |
+| 4 | no stop rule fires | no stop rule fires | 0.1595, Holm 1.0000 (add_input:A_B_S-A_B) |
+| 5 | add_input:A_B_S-A_B: contrast CI entirely below zero [-0.0186, -0.0009] | no stop rule fires | 0.0562, Holm 0.8994 (add_input:A_B_S-A_B) |
+| 6 | add_input:A_B_S-A_B: contrast CI entirely below zero [-0.0107, -0.0006] | no stop rule fires | 0.0504, Holm 0.8066 (add_input:A_B_S-A_B) |
+| 7 | no stop rule fires | no stop rule fires | 0.1113, Holm 1.0000 (add_input:A_B_S-A_B) |
+| 8 | no stop rule fires | no stop rule fires | 0.0949, Holm 1.0000 (add_input:A_B_S-A_B) |
+| 9 | no stop rule fires | no stop rule fires | 0.0679, Holm 1.0000 (add_input:A_B_S-A_B) |
 
 ## Reading (DEC-25)
 
-Primary, pre-specified: LL(9) - LL(3) in A_B_S: 0.00904 bits/coda (unweighted day mean -0.00328, 95% CI [-0.0141, 0.0374], 5/14 days positive). Repeat part 0.00128 [-0.0144, 0.0170]; switch part 0.00776 [-0.0045, 0.0212].
+Primary, pre-specified: LL(9) - LL(3) in A_B_S: 0.00904 bits/coda (unweighted day mean -0.00328, 95% CI [-0.0141, 0.0374], 5/14 days positive, two-sided sign-flip p = 0.9806). Repeat part 0.00128 [-0.0144, 0.0170]; switch part 0.00776 [-0.0045, 0.0212].
 No detectable information beyond 3 own codas for this model at this data size. Calibration (condition A): at f = 0.4, a lag-6 copy pattern worth more than 0.2966 bits/coda to the oracle would have been detected. A null may also mean too little data: limited data and capacity push contrasts toward zero (PLAN §9).
-Secondary, pre-specified: LL(1) - LL(3) in A: -0.02362 bits/coda (unweighted day mean -0.00843, 95% CI [-0.0572, 0.0150], 5/14 days positive); LL(1) - LL(3) in A_B_S: -0.05586 bits/coda (unweighted day mean -0.03124, 95% CI [-0.1109, 0.0006], 2/14 days positive).
+Secondary, pre-specified: LL(1) - LL(3) in A: -0.02362 bits/coda (unweighted day mean -0.00843, 95% CI [-0.0572, 0.0150], 5/14 days positive, two-sided sign-flip p = 0.3295); LL(1) - LL(3) in A_B_S: -0.05586 bits/coda (unweighted day mean -0.03124, 95% CI [-0.1109, 0.0006], 2/14 days positive, two-sided sign-flip p = 0.1377).
 
 ## Limits
 
