@@ -2,7 +2,7 @@
 
 `fold_scores.csv` contains all source-fold predictions for the 72 off-diagonal directions. `scores.csv` contains paired per-coda results for all 81 cells, including zero-loss own-clan diagonal references. `summary.csv` contains the aggregate matrix.
 
-All 72 cross-clan directions have positive loss, from 0.301064 to 2.918707 bits/symbol.
+All 72 cross-clan directions have positive loss, from 0.317484 to 2.815491 bits/symbol.
 
 ## Derived analyses
 

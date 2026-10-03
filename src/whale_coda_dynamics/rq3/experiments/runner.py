@@ -15,6 +15,7 @@ from .uncertainty import run_bootstrap
 from .identity import run_identity_breakdown
 from .overlap import run_pacific_overlap
 from .result_summaries import build_summaries
+from .sensitivity import write_zzz_comparison
 
 
 def tokenise_codas(codas):
@@ -135,7 +136,7 @@ def run_full_matrix(config_path):
     if config["tokenizer_id"] != TOKENIZER_ID:
         raise ValueError("Experiment configuration tokenizer does not match implementation")
     tokenise_codas(codas)
-    for output in ("transfer_fold_scores_output", "transfer_scores_output", "transfer_summary_output", "transfer_coverage_summary_output", "transfer_report_output"):
+    for output in ("transfer_fold_scores_output", "transfer_scores_output", "transfer_summary_output", "transfer_coverage_summary_output", "transfer_report_output", "transfer_heatmap_output"):
         (root / config[output]).parent.mkdir(parents=True, exist_ok=True)
     fold_rows, aggregate_rows, summaries, coverage = run_full_transfer_matrix(root, config, codas)
     from .report import write_transfer_report
@@ -144,7 +145,8 @@ def run_full_matrix(config_path):
     if uncertainty_path.exists():
         from .data import UNCERTAINTY_SUMMARY_COLUMNS, read_csv
         uncertainty_rows = read_csv(uncertainty_path, UNCERTAINTY_SUMMARY_COLUMNS)
-    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty_rows)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty_rows,
+                          heatmap_path=root / config["transfer_heatmap_output"])
     return {"fold_scores": len(fold_rows), "paired_target_scores": len(aggregate_rows), "cells": len(summaries), "coverage_rows": len(coverage)}
 
 
@@ -158,7 +160,8 @@ def run_uncertainty(config_path):
     from .report import write_transfer_report
     summaries = read_csv(root / config["transfer_summary_output"], TRANSFER_SUMMARY_COLUMNS)
     coverage = read_csv(root / config["transfer_coverage_summary_output"], COVERAGE_SUMMARY_COLUMNS)
-    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty_rows)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty_rows,
+                          heatmap_path=root / config["transfer_heatmap_output"])
     return {"draws": len(draw_rows), "cells": len(uncertainty_rows)}
 
 
@@ -173,7 +176,8 @@ def run_identity(config_path):
     summaries = read_csv(root / config["transfer_summary_output"], TRANSFER_SUMMARY_COLUMNS)
     coverage = read_csv(root / config["transfer_coverage_summary_output"], COVERAGE_SUMMARY_COLUMNS)
     uncertainty = read_csv(root / config["transfer_uncertainty_summary_output"], UNCERTAINTY_SUMMARY_COLUMNS)
-    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty, identity_rows)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty, identity_rows,
+                          heatmap_path=root / config["transfer_heatmap_output"])
     return {"scores": len(score_rows), "draws": len(draw_rows), "strata": len(identity_rows)}
 
 
@@ -189,7 +193,8 @@ def run_overlap(config_path):
     coverage = read_csv(root / config["transfer_coverage_summary_output"], COVERAGE_SUMMARY_COLUMNS)
     uncertainty = read_csv(root / config["transfer_uncertainty_summary_output"], UNCERTAINTY_SUMMARY_COLUMNS)
     identity = read_csv(root / config["transfer_identity_summary_output"], IDENTITY_SUMMARY_COLUMNS)
-    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty, identity, pair_rows, overlap_results)
+    write_transfer_report(root / config["transfer_report_output"], summaries, coverage, uncertainty, identity, pair_rows, overlap_results,
+                          heatmap_path=root / config["transfer_heatmap_output"])
     return {"pairs": len(pair_rows), "strata": len(overlap_results)}
 
 
@@ -202,7 +207,7 @@ def run_result_summaries(config_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="config/rq3_experiments.json")
-    parser.add_argument("--stage", choices=("calibration", "initial-transfer", "matrix", "bootstrap", "identity", "overlap", "summaries"), default="calibration")
+    parser.add_argument("--stage", choices=("calibration", "initial-transfer", "matrix", "bootstrap", "identity", "overlap", "summaries", "sensitivity-report"), default="calibration")
     args = parser.parse_args()
     if args.stage == "calibration":
         summary = run_calibration(args.config)
@@ -222,6 +227,9 @@ def main():
     elif args.stage == "overlap":
         summary = run_overlap(args.config)
         print(f"RQ3 Pacific overlap analysis complete: {summary['pairs']} pair rows across {summary['strata']} identity strata.")
+    elif args.stage == "sensitivity-report":
+        write_zzz_comparison(args.config)
+        print("RQ3 EC2 ZZZ sensitivity comparison report complete.")
     else:
         summary = run_result_summaries(args.config)
         print(f"RQ3 result summaries complete: {summary['readmes']} README files.")

@@ -1,4 +1,6 @@
 """Render the generated report for RQ3 self-model calibration."""
+import struct
+import zlib
 from collections import defaultdict
 
 from whale_coda_dynamics.preprocessing.io_utils import write_text
@@ -15,12 +17,16 @@ def build_self_calibration_report(calibration_rows, self_score_rows):
         "",
         "## Selected models",
         "",
-        "| Dataset | Clan | Model | Context order | Alpha | Held-out codas | Mean bits/coda | Mean bits/symbol |",
-        "|---|---|---|---:|---:|---:|---:|---:|",
+        "| Dataset | Clan | Source codas | Model | Context order | Alpha | Held-out codas | Mean bits/coda | Mean bits/symbol |",
+        "|---|---|---:|---|---:|---:|---:|---:|---:|",
     ]
+    source_counts = defaultdict(int)
+    for row in self_score_rows:
+        source_counts[(row["source_dataset"], row["clan"])] += 1
     for row in selected:
         lines.append(
-            f"| {row['source_dataset']} | {row['clan']} | {row['model_family']} | "
+            f"| {row['source_dataset']} | {row['clan']} | {source_counts[(row['source_dataset'], row['clan'])]} | "
+            f"{row['model_family']} | "
             f"{row['context_order']} | {row['alpha']} | {row['validation_coda_count']} | "
             f"{float(row['mean_bits_per_coda']):.6f} | {float(row['mean_bits_per_symbol']):.6f} |"
         )
@@ -70,6 +76,41 @@ def write_initial_transfer_report(path, summary_rows):
     write_text(path, build_initial_transfer_report(summary_rows))
 
 
+def _png_chunk(kind, payload):
+    return (struct.pack(">I", len(payload)) + kind + payload
+            + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff))
+
+
+def write_transfer_heatmap(path, summary_rows):
+    """Write a dependency-free RGB heatmap of matrix transfer loss."""
+    clans = sorted({row["source_clan"] for row in summary_rows})
+    values = {(row["source_clan"], row["target_clan"]): float(row["mean_transfer_loss_bits_per_symbol"])
+              for row in summary_rows}
+    if not clans or len(values) != len(clans) ** 2:
+        raise ValueError("Transfer heatmap requires a complete non-empty matrix")
+    maximum = max(abs(value) for value in values.values()) or 1.0
+    cell = 80
+    width = height = cell * len(clans)
+    rows = []
+    for source in clans:
+        row = bytearray([0])
+        for target in clans:
+            scaled = max(-1.0, min(1.0, values[(source, target)] / maximum))
+            if scaled >= 0:
+                red, green, blue = 255, int(255 * (1 - scaled)), int(255 * (1 - scaled))
+            else:
+                red, green, blue = int(255 * (1 + scaled)), int(255 * (1 + scaled)), 255
+            row.extend(bytes((red, green, blue)) * cell)
+        for _ in range(cell):
+            rows.append(bytes(row))
+    png = b"\x89PNG\r\n\x1a\n"
+    png += _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    png += _png_chunk(b"IDAT", zlib.compress(b"".join(rows), 9))
+    png += _png_chunk(b"IEND", b"")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(png)
+
+
 def build_transfer_report(summary_rows, coverage_rows, uncertainty_rows, identity_rows=None, overlap_pairs=None, overlap_results=None):
     """Render the primary 9 x 9 transfer-loss matrix."""
     clans = sorted({row["source_clan"] for row in summary_rows})
@@ -80,8 +121,10 @@ def build_transfer_report(summary_rows, coverage_rows, uncertainty_rows, identit
     lines = [
         "# RQ3 cross-clan transfer matrix",
         "",
-        "Each off-diagonal cell is the equal-coda average paired loss in bits per symbol: the target clan's cross-fitted own score minus the source clan's averaged source-fold transfer score.",
+        "Each off-diagonal cell is the symbol-weighted paired loss in bits per symbol: the target clan's cross-fitted own score minus the source clan's averaged source-fold transfer score.",
         "Positive values mean that the source model predicts the target codas worse. Diagonal cells are zero by definition.",
+        "",
+        "The corresponding per-symbol transfer-loss heatmap is [rq3_transfer_heatmap.png](rq3_transfer_heatmap.png).",
         "",
         "## Transfer loss matrix (bits per symbol)",
         "",
@@ -173,6 +216,8 @@ def build_transfer_report(summary_rows, coverage_rows, uncertainty_rows, identit
     return "\n".join(lines)
 
 
-def write_transfer_report(path, summary_rows, coverage_rows, uncertainty_rows, identity_rows=None, overlap_pairs=None, overlap_results=None):
+def write_transfer_report(path, summary_rows, coverage_rows, uncertainty_rows, identity_rows=None, overlap_pairs=None, overlap_results=None, heatmap_path=None):
     """Write the generated primary transfer-matrix report."""
     write_text(path, build_transfer_report(summary_rows, coverage_rows, uncertainty_rows, identity_rows, overlap_pairs, overlap_results))
+    if heatmap_path is not None:
+        write_transfer_heatmap(heatmap_path, summary_rows)

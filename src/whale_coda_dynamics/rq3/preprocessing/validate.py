@@ -246,11 +246,26 @@ def csv_scalar(value):
     return "" if value is None else str(value)
 
 
+def configured_eligible(config, interim):
+    """Return records exported by preprocessing after configured sensitivity exclusions."""
+    excluded_units = set(config.get("exclude_source_units", []))
+    return [
+        record for record in interim
+        if record["eligible_for_primary_transfer"]
+        and not (
+            record["source_dataset"] == "caribbean"
+            and record["clan"] == "EC2"
+            and record.get("source_unit") in excluded_units
+        )
+    ]
+
+
 def validate_core_and_metadata(config, root, interim):
     """Validate both processed tables against the eligible interim rows."""
     core = read_generated_csv(root / config["processed_output"], CORE_COLUMNS)
     metadata = read_generated_csv(root / config["metadata_output"], METADATA_COLUMNS)
-    eligible = [record for record in interim if record["eligible_for_primary_transfer"]]
+    excluded_units = set(config.get("exclude_source_units", []))
+    eligible = configured_eligible(config, interim)
     expected_ids = [record["rq3_coda_id"] for record in eligible]
     core_ids = [row["rq3_coda_id"] for row in core]
     metadata_ids = [row["rq3_coda_id"] for row in metadata]
@@ -279,7 +294,17 @@ def validate_core_and_metadata(config, root, interim):
             elif row[column] != csv_scalar(record.get(column)):
                 raise ValueError(f"Metadata field mismatch for {row_id}: {column}")
     counts = Counter((record["source_dataset"], record["clan"]) for record in eligible)
-    if counts != EXPECTED_ELIGIBLE_BY_CLAN:
+    expected_counts = EXPECTED_ELIGIBLE_BY_CLAN.copy()
+    for record in interim:
+        if (
+            record["eligible_for_primary_transfer"]
+            and record["source_dataset"] == "caribbean"
+            and record["clan"] == "EC2"
+            and record.get("source_unit") in excluded_units
+        ):
+            key = (record["source_dataset"], record["clan"])
+            expected_counts[key] -= 1
+    if counts != expected_counts:
         raise ValueError(f"Eligible per-clan counts differ from the expected RQ3 sample: {dict(counts)}")
     return len(core)
 
@@ -297,7 +322,9 @@ def expected_fold_rows(eligible):
     for (dataset, clan), groups in sorted(by_clan.items()):
         fold_count = 6 if clan == "EC2" else 5
         if len(groups) < fold_count:
-            raise ValueError(f"{dataset}/{clan} has too few groups for its configured folds")
+            if clan != "EC2":
+                raise ValueError(f"{dataset}/{clan} has too few groups for its configured folds")
+            fold_count = len(groups)
         sizes = [0] * fold_count
         ordered = sorted(
             groups,
@@ -338,7 +365,7 @@ def validate_folds(config, root, interim):
             "fold": csv_integer(row["fold"], "fold", row_id),
             "n_codas": csv_integer(row["n_codas"], "n_codas", row_id),
         })
-    eligible = [record for record in interim if record["eligible_for_primary_transfer"]]
+    eligible = configured_eligible(config, interim)
     if actual != expected_fold_rows(eligible):
         raise ValueError("RQ3 fold artifact does not match the deterministic group-fold assignment")
 

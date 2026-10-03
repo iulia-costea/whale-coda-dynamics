@@ -108,7 +108,8 @@ Run configuration:
     "RI",
     "SH",
     "SI"
-  ]
+  ],
+  "exclude_source_units": []
 }
 ```
 

@@ -1,4 +1,5 @@
 {
+  "results_root": "data/results/rq3",
   "core_input": "data/processed/rq3/rq3_codas.csv",
   "metadata_input": "data/processed/rq3/rq3_codas_metadata.csv",
   "folds_input": "data/processed/rq3/rq3_folds.csv",
@@ -26,6 +27,7 @@
   "bootstrap_draws": 1000,
   "bootstrap_seed": 42,
   "transfer_report_output": "reports/rq3_transfer.md",
+  "transfer_heatmap_output": "reports/rq3_transfer_heatmap.png",
   "tokenizer_id": "fixed-50ms-v1",
   "candidates": [
     {"family": "unigram", "context_order": 0, "alpha": 0.1},

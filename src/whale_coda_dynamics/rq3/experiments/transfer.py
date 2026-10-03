@@ -104,18 +104,30 @@ def score_pair(source_codas, target_codas, source_key, target_key, candidate, ow
             "transfer_loss_bits_per_symbol": float(own["bits_per_symbol"]) - transfer_symbol,
         })
     paired = paired_transfer_loss(
-        [{"rq3_coda_id": row["rq3_coda_id"], "bits_per_coda": row["own_bits_per_coda"], "bits_per_symbol": row["own_bits_per_symbol"]} for row in aggregate_rows],
-        [{"rq3_coda_id": row["rq3_coda_id"], "bits_per_coda": row["transfer_bits_per_coda"], "bits_per_symbol": row["transfer_bits_per_symbol"]} for row in aggregate_rows],
+        [{"rq3_coda_id": row["rq3_coda_id"], "bits_per_coda": row["own_bits_per_coda"],
+          "bits_per_symbol": row["own_bits_per_symbol"], "token_count": row["token_count"]}
+         for row in aggregate_rows],
+        [{"rq3_coda_id": row["rq3_coda_id"], "bits_per_coda": row["transfer_bits_per_coda"],
+          "bits_per_symbol": row["transfer_bits_per_symbol"], "token_count": row["token_count"]}
+         for row in aggregate_rows],
     )
     losses = aggregate_transfer_loss(paired)
     summary = {
         "source_dataset": source_key[0], "source_clan": source_key[1],
         "target_dataset": target_key[0], "target_clan": target_key[1],
         "target_coda_count": len(aggregate_rows), "source_model_count": len(source_folds),
-        "mean_own_bits_per_coda": sum(row["own_bits_per_coda"] for row in aggregate_rows) / len(aggregate_rows),
-        "mean_own_bits_per_symbol": sum(row["own_bits_per_symbol"] for row in aggregate_rows) / len(aggregate_rows),
-        "mean_transfer_bits_per_coda": sum(row["transfer_bits_per_coda"] for row in aggregate_rows) / len(aggregate_rows),
-        "mean_transfer_bits_per_symbol": sum(row["transfer_bits_per_symbol"] for row in aggregate_rows) / len(aggregate_rows),
+        "mean_own_bits_per_coda": mean_bits_per_coda([{"bits_per_coda": row["own_bits_per_coda"]} for row in aggregate_rows]),
+        "mean_own_bits_per_symbol": mean_bits_per_symbol([
+            {"bits_per_coda": row["own_bits_per_coda"], "token_count": row["token_count"]}
+            for row in aggregate_rows
+        ]),
+        "mean_transfer_bits_per_coda": mean_bits_per_coda([
+            {"bits_per_coda": row["transfer_bits_per_coda"]} for row in aggregate_rows
+        ]),
+        "mean_transfer_bits_per_symbol": mean_bits_per_symbol([
+            {"bits_per_coda": row["transfer_bits_per_coda"], "token_count": row["token_count"]}
+            for row in aggregate_rows
+        ]),
         **losses,
     }
     return fold_rows, aggregate_rows, summary
@@ -167,10 +179,20 @@ def diagonal_rows(clan_key, codas, own_by_id):
         "source_dataset": clan_key[0], "source_clan": clan_key[1],
         "target_dataset": clan_key[0], "target_clan": clan_key[1],
         "target_coda_count": len(rows), "source_model_count": 1,
-        "mean_own_bits_per_coda": sum(row["own_bits_per_coda"] for row in rows) / len(rows),
-        "mean_own_bits_per_symbol": sum(row["own_bits_per_symbol"] for row in rows) / len(rows),
-        "mean_transfer_bits_per_coda": sum(row["transfer_bits_per_coda"] for row in rows) / len(rows),
-        "mean_transfer_bits_per_symbol": sum(row["transfer_bits_per_symbol"] for row in rows) / len(rows),
+        "mean_own_bits_per_coda": mean_bits_per_coda([
+            {"bits_per_coda": row["own_bits_per_coda"]} for row in rows
+        ]),
+        "mean_own_bits_per_symbol": mean_bits_per_symbol([
+            {"bits_per_coda": row["own_bits_per_coda"], "token_count": row["token_count"]}
+            for row in rows
+        ]),
+        "mean_transfer_bits_per_coda": mean_bits_per_coda([
+            {"bits_per_coda": row["transfer_bits_per_coda"]} for row in rows
+        ]),
+        "mean_transfer_bits_per_symbol": mean_bits_per_symbol([
+            {"bits_per_coda": row["transfer_bits_per_coda"], "token_count": row["token_count"]}
+            for row in rows
+        ]),
         "mean_transfer_loss_bits_per_coda": 0.0,
         "mean_transfer_loss_bits_per_symbol": 0.0,
     }
@@ -192,12 +214,34 @@ def coverage_summaries(fold_rows):
                 "target_dataset": pair[2], "target_clan": pair[3], "coverage_status": status,
                 "source_fold_target_score_count": count,
                 "source_fold_target_score_share": count / len(rows),
-                "mean_own_bits_per_coda": (sum(row["own_bits_per_coda"] for row in stratum) / count) if count else "",
-                "mean_own_bits_per_symbol": (sum(row["own_bits_per_symbol"] for row in stratum) / count) if count else "",
-                "mean_transfer_bits_per_coda": (sum(row["bits_per_coda"] for row in stratum) / count) if count else "",
-                "mean_transfer_bits_per_symbol": (sum(row["bits_per_symbol"] for row in stratum) / count) if count else "",
-                "mean_transfer_loss_bits_per_coda": (sum(row["transfer_loss_bits_per_coda"] for row in stratum) / count) if count else "",
-                "mean_transfer_loss_bits_per_symbol": (sum(row["transfer_loss_bits_per_symbol"] for row in stratum) / count) if count else "",
+                "mean_own_bits_per_coda": mean_bits_per_coda([
+                    {"bits_per_coda": row["own_bits_per_coda"]} for row in stratum
+                ]) if count else "",
+                "mean_own_bits_per_symbol": mean_bits_per_symbol([
+                    {"bits_per_coda": row["own_bits_per_coda"], "token_count": row["token_count"]}
+                    for row in stratum
+                ]) if count else "",
+                "mean_transfer_bits_per_coda": mean_bits_per_coda([
+                    {"bits_per_coda": row["bits_per_coda"]} for row in stratum
+                ]) if count else "",
+                "mean_transfer_bits_per_symbol": mean_bits_per_symbol([
+                    {"bits_per_coda": row["bits_per_coda"], "token_count": row["token_count"]}
+                    for row in stratum
+                ]) if count else "",
+                "mean_transfer_loss_bits_per_coda": aggregate_transfer_loss([
+                    {"transfer_loss_bits_per_coda": row["transfer_loss_bits_per_coda"],
+                     "own_bits_per_coda": row["own_bits_per_coda"],
+                     "transfer_bits_per_coda": row["bits_per_coda"],
+                     "n_symbols": row["token_count"]}
+                    for row in stratum
+                ])["mean_transfer_loss_bits_per_coda"] if count else "",
+                "mean_transfer_loss_bits_per_symbol": aggregate_transfer_loss([
+                    {"transfer_loss_bits_per_coda": row["transfer_loss_bits_per_coda"],
+                     "own_bits_per_coda": row["own_bits_per_coda"],
+                     "transfer_bits_per_coda": row["bits_per_coda"],
+                     "n_symbols": row["token_count"]}
+                    for row in stratum
+                ])["mean_transfer_loss_bits_per_symbol"] if count else "",
             })
     return summaries
 

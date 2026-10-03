@@ -4,7 +4,7 @@
 
 | Status | Pearson r | One-sided p for predicted negative association | Two-sided exact p |
 |---|---:|---:|---:|
-| identity | 0.363279 | 0.894841 | 0.232937 |
-| non_identity | 0.624567 | 0.996032 | 0.012698 |
+| identity | 0.345062 | 0.878175 | 0.261508 |
+| non_identity | 0.558125 | 0.987897 | 0.029960 |
 
 Both observed associations are positive, opposite to the predeclared prediction. The non-identity association is positive with two-sided exact p = 0.012698. This remains exploratory: pair values share clans and Table S4 measures repertoire proximity, not confirmed contemporaneous co-occurrence.

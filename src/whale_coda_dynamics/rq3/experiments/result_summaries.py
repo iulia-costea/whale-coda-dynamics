@@ -31,7 +31,7 @@ def mean(values):
 
 def build_summaries(root, config):
     """Create result-level READMEs from already generated experiment artifacts."""
-    result_root = root / "data/results/rq3"
+    result_root = root / config["results_root"]
     calibration = read_rows(root, config, "calibration_output", CALIBRATION_COLUMNS)
     initial = read_rows(root, config, "initial_transfer_summary_output", TRANSFER_SUMMARY_COLUMNS)
     matrix = read_rows(root, config, "transfer_summary_output", TRANSFER_SUMMARY_COLUMNS)

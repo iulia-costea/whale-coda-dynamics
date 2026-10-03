@@ -47,6 +47,9 @@ def run_identity_breakdown(root, config):
         score_rows.append(result)
         by_stratum[(result["source_dataset"], result["source_clan"], result["target_dataset"], result["target_clan"], status)].append({
             "group_id": result["group_id"],
+            "n_symbols": int(result["token_count"]),
+            "own_bits_per_coda": float(result["own_bits_per_coda"]),
+            "transfer_bits_per_coda": float(result["transfer_bits_per_coda"]),
             "transfer_loss_bits_per_coda": float(result["transfer_loss_bits_per_coda"]),
             "transfer_loss_bits_per_symbol": float(result["transfer_loss_bits_per_symbol"]),
         })

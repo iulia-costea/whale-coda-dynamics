@@ -38,6 +38,9 @@ def run_bootstrap(root, config):
             continue
         by_pair[(row["source_dataset"], row["source_clan"], row["target_dataset"], row["target_clan"])].append({
             "group_id": row["group_id"],
+            "n_symbols": int(row["token_count"]),
+            "own_bits_per_coda": float(row["own_bits_per_coda"]),
+            "transfer_bits_per_coda": float(row["transfer_bits_per_coda"]),
             "transfer_loss_bits_per_coda": float(row["transfer_loss_bits_per_coda"]),
             "transfer_loss_bits_per_symbol": float(row["transfer_loss_bits_per_symbol"]),
         })

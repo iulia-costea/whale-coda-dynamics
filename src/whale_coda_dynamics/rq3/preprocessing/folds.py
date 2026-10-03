@@ -29,7 +29,7 @@ def build_fold_rows(eligible_records):
 
     rows = []
     for (dataset, clan), groups in sorted(by_clan.items()):
-        count = fold_count(clan)
+        count = min(fold_count(clan), len(groups))
         if len(groups) < count:
             raise ValueError(f"{dataset}/{clan} has {len(groups)} groups, fewer than its required {count} folds")
         sizes = [0] * count

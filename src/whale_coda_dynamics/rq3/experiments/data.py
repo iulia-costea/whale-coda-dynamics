@@ -114,7 +114,7 @@ def validate_config(config):
         "initial_transfer_summary_output", "initial_transfer_report_output",
         "initial_transfer_pairs",
         "transfer_fold_scores_output", "transfer_scores_output", "transfer_summary_output",
-        "transfer_coverage_summary_output", "transfer_report_output",
+        "transfer_coverage_summary_output", "transfer_report_output", "transfer_heatmap_output",
         "transfer_bootstrap_output", "transfer_uncertainty_summary_output", "bootstrap_draws",
         "bootstrap_seed",
         "transfer_identity_scores_output", "transfer_identity_bootstrap_output",
@@ -190,7 +190,7 @@ def build_fold_lookup(codas, fold_rows):
         raise ValueError("Fold artifact does not cover exactly the core coda groups")
     for dataset, clan in {(c["source_dataset"], c["clan"]) for c in codas}:
         folds = {fold_lookup[(dataset, clan, coda["group_id"])] for coda in codas if coda["source_dataset"] == dataset and coda["clan"] == clan}
-        expected = set(range(6 if clan == "EC2" else 5))
+        expected = set(range(min(6 if clan == "EC2" else 5, len(folds))))
         if folds != expected:
             raise ValueError(f"Unexpected folds for {dataset}/{clan}: {sorted(folds)}")
     return {

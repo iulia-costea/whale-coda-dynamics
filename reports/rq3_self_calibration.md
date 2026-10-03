@@ -5,17 +5,17 @@ Model settings are selected using the same clan's held-out folds only.
 
 ## Selected models
 
-| Dataset | Clan | Model | Context order | Alpha | Held-out codas | Mean bits/coda | Mean bits/symbol |
-|---|---|---|---:|---:|---:|---:|---:|
-| caribbean | EC1 | ngram | 4 | 0.1 | 7742 | -8.699694 | -1.661529 |
-| caribbean | EC2 | ngram | 4 | 0.1 | 946 | -8.843677 | -1.635778 |
-| pacific | FP | ngram | 2 | 0.1 | 2556 | -14.725189 | -2.928978 |
-| pacific | PALI | ngram | 3 | 0.1 | 2052 | -11.692300 | -2.095520 |
-| pacific | PO | ngram | 3 | 0.1 | 1985 | -11.143864 | -1.840511 |
-| pacific | REG | ngram | 4 | 0.1 | 8107 | -8.727398 | -1.446075 |
-| pacific | RI | ngram | 2 | 0.1 | 1747 | -11.725358 | -2.328553 |
-| pacific | SH | ngram | 2 | 0.1 | 5138 | -10.035126 | -2.291833 |
-| pacific | SI | ngram | 2 | 0.1 | 1206 | -8.753158 | -1.863796 |
+| Dataset | Clan | Source codas | Model | Context order | Alpha | Held-out codas | Mean bits/coda | Mean bits/symbol |
+|---|---|---:|---|---:|---:|---:|---:|---:|
+| caribbean | EC1 | 7742 | ngram | 4 | 0.1 | 7742 | -8.695923 | -1.658672 |
+| caribbean | EC2 | 946 | ngram | 4 | 0.1 | 946 | -8.822502 | -1.630095 |
+| pacific | FP | 2556 | ngram | 2 | 0.1 | 2556 | -14.643846 | -2.871254 |
+| pacific | PALI | 2052 | ngram | 3 | 0.1 | 2052 | -11.692300 | -2.004227 |
+| pacific | PO | 1985 | ngram | 3 | 0.1 | 1985 | -11.175805 | -1.848356 |
+| pacific | REG | 8107 | ngram | 4 | 0.1 | 8107 | -8.681947 | -1.443874 |
+| pacific | RI | 1747 | ngram | 2 | 0.1 | 1747 | -11.737846 | -2.221911 |
+| pacific | SH | 5138 | ngram | 2 | 0.1 | 5138 | -10.020354 | -2.355519 |
+| pacific | SI | 1206 | ngram | 2 | 0.1 | 1206 | -8.786183 | -1.956451 |
 
 ## Score coverage
 

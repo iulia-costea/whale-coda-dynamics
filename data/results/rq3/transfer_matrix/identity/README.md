@@ -4,7 +4,7 @@
 
 | Status | Pacific↔Pacific directed cells | Mean transfer loss (bits/symbol) |
 |---|---:|---:|
-| identity | 42 | 1.828332 |
-| non_identity | 42 | 1.033871 |
+| identity | 42 | 1.789521 |
+| non_identity | 42 | 0.979747 |
 
 Non-identity codas have lower average transfer loss than identity codas in the Pacific↔Pacific subset. This descriptive contrast is distinct from the overlap test below.

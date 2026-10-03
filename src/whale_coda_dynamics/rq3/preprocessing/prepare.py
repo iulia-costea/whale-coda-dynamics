@@ -29,6 +29,7 @@ REQUIRED_CONFIG_KEYS = {
     "primary_max_ici_s",
     "accepted_caribbean_clans",
     "accepted_pacific_clans",
+    "exclude_source_units",
 }
 
 CARIBBEAN_REQUIRED_COLUMNS = {
@@ -166,6 +167,9 @@ def validate_config(config):
             raise ValueError(f"Configuration value {key!r} must be a non-empty list of clan names")
         if len(clans) != len(set(clans)):
             raise ValueError(f"Configuration value {key!r} contains duplicate clan names")
+    if (not isinstance(config["exclude_source_units"], list)
+            or any(not isinstance(value, str) or not value for value in config["exclude_source_units"])):
+        raise ValueError("Configuration value 'exclude_source_units' must be a list of non-empty strings")
 
 
 def read_source_rows(path, required_columns):
@@ -547,7 +551,13 @@ def run(config_path):
     loaded = add_source_checksums(loaded, checksums)
     validate_for_writing(loaded, config)
     all_records = [record for source in loaded.values() for record in source["records"]]
-    eligible_records = [record for record in all_records if record["eligible_for_primary_transfer"]]
+    eligible_records = [
+        record for record in all_records
+        if record["eligible_for_primary_transfer"]
+        and not (record["source_dataset"] == "caribbean"
+                 and record["clan"] == "EC2"
+                 and record.get("source_unit") in config["exclude_source_units"])
+    ]
     interim_path = root / config["interim_output"]
     processed_path = root / config["processed_output"]
     metadata_path = root / config["metadata_output"]
