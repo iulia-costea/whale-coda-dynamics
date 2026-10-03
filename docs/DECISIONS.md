@@ -249,6 +249,12 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Nulls read "not detectable at this data size" (14 days).
 - **Why:** RQ2's split can't separate the two. E's partner labels carry type and tempo jointly, and named types partly encode tempo. Modelling the chain rule's tempo factor directly, given the coda's rhythm, makes every contrast a difference in bits of the same five-class target, and the conditions nest.
 - **Not done:** continuous durations (rubato, `docs/LATER.md`); separate penalties per block.
+- **Addendum (2026-10-03, decided before any fit):** implementation choices for `tempo_factor.py`.
+  - Condition names: `own`, `own_T`, `own_P`, `own_S`, `own_T_P`, `own_T_S`, `own_P_S`, `own_T_P_S` (T = partner tempo, P = partner pattern: rhythm, or type in the secondary run) and `floor`; the base is `own_S`.
+  - Stop-rule family: 13 add-one-block contrasts, the 12 pairs among the eight conditions and own history added to the floor (DEC-24 lists own history as a block and the floor as a condition). No repeat-own-last-tempo check: DEC-24 asks for none. DEC-23's rule on v5 (max) governs each run, as for the rest of RQ2; the own fits (no absent candidates) and the one-SE variant are reported beside it, each under both rules.
+  - Vocabularies: one per factor. Tempo: the five KDE classes, no UNK. Rhythm (type): RQ1's policy per fold (`fit_vocabulary` on the training days' codas, *k* = 2), shared by the coda's own label and every lag of both whales, as RQ1's encoder shares one vocabulary between $A$ and $B$. The run checks it equals inventory C's (A's) fold vocabulary.
+  - `skip_nonconverged_candidates` on, as in every RQ2 run (DEC-22 addendum).
+  - The penalty search is logistic v4's own code, `logistic.grid_search_l2`, factored out of `select_l2_and_fit` with no change in behaviour (committed fits refit bit for bit).
 
 ## Differences from the submitted proposal
 

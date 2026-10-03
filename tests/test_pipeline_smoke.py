@@ -153,6 +153,40 @@ class Rq2SmokeTests(unittest.TestCase):
             self.assertEqual([p['excluded_targets']['both'] for p in summary['tempo_decomposition']], [31, 31])
             self.assertIn('exploratory', (box.root / 'out/compare.md').read_text(encoding='utf-8'))
 
+    def test_partner_tempo_runner(self):
+        """DEC-24 on the committed config with one L2 value and 50 replicates: both runs and the report."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(*(f'data/processed/{name}' for name in (
+                'rq2_c_rhythm_targets.jsonl', 'rq2_c_rhythm_folds/manifest.json', 'rq2_d_rhythm_tempo_targets.jsonl',
+                RQ2_D.split('data/processed/')[1], 'rq2_e_type_tempo_targets.jsonl', 'rq2_e_type_tempo_folds/manifest.json')))
+            values = json.loads((ROOT / 'config' / 'rq2_partner_tempo.json').read_text(encoding='utf-8'))
+            for run in values['runs']:
+                run['output_directory'] = 'out/' + run['name']
+            values.update(l2_grid=[0.01], bootstrap_replicates=50, report='out/partner_tempo.md')
+            box.run('tempo_factor', box.config('partner_tempo.json', **values), env=ONE_BLAS_THREAD)
+            for name in ('rhythm', 'type'):
+                out = box.root / 'out' / name
+                summary = json.loads((out / 'evaluation/summary.json').read_text(encoding='utf-8'))
+                self.assertEqual(summary['conditions'], ['floor', 'own', 'own_T', 'own_P', 'own_S', 'own_T_P', 'own_T_S',
+                                                         'own_P_S', 'own_T_P_S'])
+                self.assertEqual(summary['comparison_targets'], 1547)
+                self.assertEqual(summary['governing_stop_rule']['model'], 'v5')
+                for model in ('own_fit', 'v5', 'v5_one_se'):
+                    self.assertEqual(len(summary['models'][model]['stop_rules']['new']['checks']), 13)
+                    self.assertEqual(set(summary['models'][model]['contrasts']),
+                                     {'partner_tempo', 'partner_pattern', 'tempo_beyond_pattern', 'pattern_beyond_tempo'})
+                self.assertGreaterEqual(summary['gates']['validation_monotonicity']['min_add_block_validation_contrast_bits'], 0.0)
+                self.assertEqual(summary['turn_category_counts'], {'overlap': 441, 'self_continuation': 461, 'switch': 645})
+                lines = (out / 'selection.jsonl').read_text(encoding='utf-8').splitlines()
+                self.assertEqual(len(lines), 14 * 8 * 2)
+                self.assertEqual(len((out / 'models.jsonl').read_text(encoding='utf-8').splitlines()), 14 * 9)
+                self.assertIn('data/processed/rq2_c_rhythm_targets.jsonl', summary['input_sha256'])
+            text = (box.root / 'out/partner_tempo.md').read_text(encoding='utf-8')
+            self.assertTrue(text.startswith('# RQ2 partner-tempo ablation (DEC-24)\n'))
+            self.assertIn('| partner type alone | own_P_S − own_S | v5 (max) |', text)
+            self.assertIn('By turn category (v5, descriptive)', text)
+
 
 V4_RUN_FILES = ('models.jsonl', 'l2_selection.jsonl', 'predictions.jsonl', 'baseline_predictions.jsonl',
                 'evaluation/summary.json', 'evaluation/scored_predictions.jsonl')
