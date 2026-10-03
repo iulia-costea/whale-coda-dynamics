@@ -1,0 +1,48 @@
+{
+  "exchange_config": "config/exchanges.json",
+  "history_limit": 10,
+  "minimum_history_per_caller": 1,
+  "provisional_assumptions_accepted": true,
+  "split_seed": 42,
+  "output_directory": "data/processed",
+  "report_directory": "reports",
+  "validation_day_fraction": 0.15,
+  "test_day_fraction": 0.15,
+  "timing_convention": "onset_available",
+  "input_conditions": {
+    "none": [],
+    "S": [
+      "turn_category",
+      "retrospective_delay_s"
+    ],
+    "A": [
+      "A_history"
+    ],
+    "B": [
+      "B_history"
+    ],
+    "A_B": [
+      "A_history",
+      "B_history"
+    ],
+    "A_S": [
+      "A_history",
+      "turn_category",
+      "retrospective_delay_s"
+    ],
+    "B_S": [
+      "B_history",
+      "turn_category",
+      "retrospective_delay_s"
+    ],
+    "A_B_S": [
+      "A_history",
+      "B_history",
+      "turn_category",
+      "retrospective_delay_s"
+    ]
+  },
+  "unk_min_count": 2,
+  "unk_token": "UNK",
+  "unk_smoothing_alpha": 1.0
+}

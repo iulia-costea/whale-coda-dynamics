@@ -47,5 +47,6 @@
       "gap_s",
       "overlap_elapsed_s"
     ]
-  }
+  },
+  "unk_min_count": 2
 }

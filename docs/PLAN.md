@@ -4,10 +4,16 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Why** each choice was made, and how this differs from the proposal: `docs/DECISIONS.md`.
 - **Deferred** ideas: `docs/LATER.md`.
 
-**Status (2026-09-22):**
+**Status (2026-10-03):**
 - **Done:** the preprocessing pipeline (RQ1: 1,547 targets; Sharma pipeline: 1,318), including the new $S$ (DEC-1).
-- **In progress:** the rest of phase 1.
-- **Not started:** no models exist yet.
+- **Done:** Phase 1: shared rare/unseen-type policy (DEC-7/10), verified pair-category missingness documentation, and the Sharma long-coda flag.
+- **Done:** Phase 2: 14 leave-one-day-out folds and the shared evaluation module.
+- **Done:** logistic-regression reference v4 with copy weights and separate validation-chosen penalties for the history and $S$ blocks (DEC-16, DEC-20): `reports/rq1_logistic_v4.md`, `reports/rq1_retrospective_sensitivity_v4.md`. Gate 1 fully holds: all 4,914 fits converged, no DEC-16 stop rule fires in either the primary or old-delay run, and no condition sits at a grid edge in a majority of folds for its real feature blocks. The `add_input:A_B_S-A_B` failure that persisted through v2 and v3 is resolved: the timing contrast now spans zero (`-0.020`, CI `[-0.046, 0.001]`) instead of being reliably negative, confirming DEC-20's diagnosis.
+- **Superseded:** logistic regression v1, v2 and v3, and LSTM v1 (fixed settings, one shared penalty, or no history/$S$ split); kept as a record, see `reports/README.md`.
+- **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
+- **Done:** the residual LSTM on top of logistic v4 (DEC-21): `reports/rq1_lstm_residual.md`, with its checks (`reports/rq1_lstm_residual_checks.md`: wiring, learnability and planted-signal gates pass) and device choice (`reports/rq1_lstm_residual_throughput.md`: CPU ×18). No `[M4]` stop rule fires. The residual gain over logistic v4 is below zero in point estimate on all seven fitted conditions (−0.010 to −0.122 bits/coda), with every day-bootstrap CI spanning zero; logistic v4 alone is chosen on 1–6 of 14 folds per condition.
+- **RQ2:** redesigned as a token-inventory study (§7, DEC-22): five inventories of the same codas on logistic v4. Rhythm and tempo rules verified against Sharma et al.'s files; nothing run yet.
+- **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
 
@@ -19,8 +25,8 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 
 - **RQ1.** Does a whale's own coda history still predict its next coda once the partner's codas and the interaction timing are known?
   - **Primary contrast:** LL(viii) − LL(vii).
-- **RQ2.** Does the answer hold under a different coda labelling?
-- **RQ3.** Do within-coda patterns transfer across clans, sympatric first and then allopatric?
+- **RQ2.** Does the answer hold under a different token inventory, i.e. a different way of turning codas into discrete labels? (§7, DEC-22)
+- **RQ3.** How well does a model of within-coda timing trained on one clan predict another clan's codas, and how much of the shortfall comes from patterns the source clan never produces? Descriptive, with one exploratory test (§8, DEC-19).
 
 **Method.** We train one model per combination of inputs. The difference in held-out log-likelihood between models estimates how much usable information an input adds: predictive 𝒱-information (Xu et al., 2020; O'Connor & Andreas, 2021). It is relative to model class and data size, and defined on the real data distribution, so training data is never filtered or reweighted.
 
@@ -34,13 +40,13 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 
 | ID | Source | Size | Used for |
 |---|---|---|---|
-| `[D1]` | Assayag et al. 2026, `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | 3,933 codas, EC1, 14 days (2014-04-16 to 2016-05-13) | RQ1; both RQ2 labellings |
-| `[D2]` | Sharma et al. 2024a, `data/raw/sperm-whale-dialogues.csv` + `rhythms.p` | 3,840 codas, 219 recordings | secondary RQ2 labels; standalone "whole-pipeline" robustness check |
-| `[D6]` | `data/raw/CarribeanCodas.csv` (probably Leitão et al.'s data) | 8,719 codas, clans EC1 + EC2, 101 dates | RQ3 sympatric test |
-| `[D4]` | Hersh et al. 2022, `data/raw/PacificCodas.csv` (OSF `ae6pd`) | 24,237 codas; 23,429 with 3–10 clicks across 7 Pacific clans | RQ3 allopatric extension |
+| `[D1]` | Assayag et al. 2026, `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | 3,933 codas, EC1 except one day (below), 14 days (2014-04-16 to 2016-05-13) | RQ1; RQ2 (every inventory is computed from its intervals and durations) |
+| `[D2]` | Sharma et al. 2024a, `data/raw/sperm-whale-dialogues.csv` + `rhythms.p`; also `mean_codas.p` and `tempos-dict.p`, copied unchanged from `github.com/pratyushasharma/sw-combinatoriality` (commit `7228c8e`) | 3,840 codas, 219 recordings | RQ2 rhythm templates `[R2-1]` and tempo-class sensitivity `[R2-2]`; standalone "whole-pipeline" robustness check |
+| `[D6]` | Sharma et al. 2024a "Dataset 1" (DSWP), `data/raw/CarribeanCodas.csv` (sic); same counts as the Dominica sets of Bermant et al. 2019 and Leitão et al. 2024 | 8,719 codas: EC1 7,770, EC2 949; 97 recording days | RQ3; RQ2 tempo boundaries `[R2-2]` |
+| `[D4]` | Hersh et al. 2022, `data/raw/PacificCodas.csv` (OSF `ae6pd`); identity coda types and clan overlap from their SI Tables S2 and S4 | 24,237 rows; 23,429 codas with 3–10 clicks, 22,829 of them with a clan; 7 clans, 191 repertoires | RQ3 |
 
 **Facts that matter**
-- **Coda types `[D1]`:** two labellings exist. `guy_coda_type` has 23 types and `decision_tree_coda_type` has 25, and they disagree on 265 codas. 21 types appear in the RQ1 comparison set. Never write "27 types"; that figure is from Gubnitsky et al.
+- **Coda types `[D1]`:** two labellings exist (RQ2 adds three computed ones, §7). `guy_coda_type` has 23 types and `decision_tree_coda_type` has 25, and they disagree on 265 codas. 21 types appear in the RQ1 comparison set. Never write "27 types"; that figure is from Gubnitsky et al.
 - **No global whale ID.**
   - `Whale` is a segment-local caller code in both files.
   - `IDN` in `[D1]` is 0 (unresolved) on 2,510 rows.
@@ -50,9 +56,13 @@ Recent models find long-range structure in coda sequences (WhaleLM: dependence o
 - **`[D1]` and `[D2]` overlap heavily.** 214/219 recordings are shared, and 2,769 codas match on (`REC`, `TsTo`, `Duration`). They are not independent corpora.
 - **`[D2]` quirks:**
   - It keeps 153 codas with more than 10 clicks, which Sharma et al. excluded. Flag them, and report results with and without them.
-  - `tempos-dict.p` and `ornaments.p` are not in the repo; fetch them from Sharma's GitHub.
+  - `rhythms.p` holds one rhythm label per CSV row (joined by position). `mean_codas.p` holds the 18 rhythm templates. `tempos-dict.p` is not per coda: it lists the durations in each of 5 tempo classes, which fixes only the class boundaries. `ornaments.p` (one flag per row, 151 ornamented) is not used (DEC-22).
   - One `Duration=0` row drops the whole 731-row recording `sw061b003` in the Sharma pipeline.
-- **`[D6]` encoding:** `CarribeanCodas.csv` starts with a UTF-8 BOM, so read it with `utf-8-sig`.
+- **One `[D1]` day is not EC1.** Test day 2016-04-12 (52 comparison targets) is an unidentified unit (`ZZZ`) that `[D6]` labels EC2 (same `codaNUM2018`). Report RQ1 with and without that day; without it the logistic v2 contrasts barely change (own history +1.363 vs +1.361 bits/coda).
+- **`[D6]` encoding:** the file starts with a UTF-8 BOM, so read it with `utf-8-sig`.
+- **`[D6]` dates** come in two formats (`dd/mm/yyyy` and `dd-mm-yyyy`, both day first); four days appear in both, so group by the parsed date.
+- **`[D6]` types:** 25 named types plus 10 `N-NOISE` classes (codas the type clustering left unassigned; Gero et al. 2016a). Unit `ZZZ` (134 codas, one day) is an unidentified unit labelled EC2.
+- **`[D4]` types** are numeric codes, one for every 3–10-click coda. The two datasets' type systems differ, so type comparisons stay within a dataset.
 
 **`[D7]` Sample.**
 - **Segmentation:** exchanges are cut at a 7 s end-to-start gap (as in Assayag et al.; cite their 3/5/7/10 s sweep).
@@ -104,7 +114,7 @@ $A$ = the whale's own preceding codas, $B$ = the partner's preceding codas, $S$ 
 - **Majority class:** reported for accuracy and macro-F1 only; it has no usable log-likelihood.
 - **Repeat-own-last:**
   - It predicts the whale's last coda with probability equal to the training repeat rate; the rest is spread by frequency.
-  - An $A$-model *below* it has failed to train. *Matching* it is a finding: own history carries nothing beyond repetition.
+  - An $A$-model *below* it in log-likelihood (CI entirely below zero) has failed to train. Every $A$-model has the copy weight (`[M4]`), so it can express repetition with one number; *matching* the baseline is therefore a finding: own history carries nothing beyond repetition.
 
 **`[M2]` Contrasts**
 
@@ -121,28 +131,37 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 - **Folds:** leave-one-day-out, 14 folds. In each fold, one training day is held aside for validation and early stopping.
 - **Paired contrasts:** all conditions score the same test codas.
   - A contrast is the mean over test codas of the per-coda difference in $\log_2$ probability.
-  - Neural models average over 3 seeds per coda.
+  - Neural models average over their seeds per coda (5 for the residual LSTM, DEC-21).
 - **Uncertainty:**
-  - day-level bootstrap CI (resample the 14 days, never individual codas);
-  - the number of days, out of 14, with a positive contrast.
+  - day-level bootstrap CI (resample the 14 days, never individual codas; 10,000 replicates);
+  - the number of days, out of 14, with a positive contrast;
+  - the unweighted mean of the 14 day-level contrasts, next to the token-weighted mean. The token-weighted mean is the primary estimand; three days hold 58% of the targets, so the unweighted mean shows whether a result rests on a few days.
   - Note in the write-up that 14 days give rough CIs.
 
-**`[M4]` Models**
-- **Main model: LSTM.**
-  - Reported for all eight conditions.
-  - One LSTM encoder per coda-history input ($A$, $B$) and a small feed-forward encoder for $S$, concatenated into a shared output layer. An absent input means its encoder is removed.
-  - Settings as in the literature: 64-dim hidden, Adam (lr 1e-4, weight decay 1e-5), batch 32, early stopping on the validation day. They are fixed and identical across conditions.
-  - For comparability with Assayag et al., take their exact LSTM spec from their paper and match it where it applies.
-- **Reference and debug model: multinomial logistic regression, run first.**
-  - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, and the two timing values (standardised, plus `log1p`).
-  - Fixed L2 penalty, the same for every condition.
-  - Why run it first:
-    - It can't fail to train, so it tests the evaluation pipeline end-to-end before any neural model.
-    - It later serves as the reference the LSTM must not fall below (`[U1]`).
-- **Reproduction check:** condition (iv) (partner history only) should roughly reproduce Assayag et al.'s reported cross-whale result. A large mismatch means we investigate before interpreting anything.
-- **Later:**
-  - a small Transformer with the same per-input structure;
-  - Kneser-Ney/VLMC models (`docs/LATER.md`).
+**`[M4]` Models** (DEC-12, DEC-16, DEC-17, DEC-20, DEC-21)
+- **Shared copy weights, in every model that uses $A$ or $B$.** For each candidate coda type $c$:
+  $$\text{score}(c) = \text{usual per-type terms} + \beta\,\mathbb{1}[c = \text{own last coda}] + \gamma\,\mathbb{1}[c = \text{partner's last coda}]$$
+  - $\beta$ exists only in conditions with $A$, $\gamma$ only in conditions with $B$. Each is one number shared across all coda types.
+  - Why: without it, a model has to learn "repeat the last coda" separately for every type, and rare types never learn it (DEC-16). It adds no new information, only a cheaper way to use what $A$ or $B$ already contain.
+- **Separate penalties for history and timing (DEC-20).** Every model with $S$ splits its regularisation in two: one for the history blocks ($A$/$B$'s features plus $\beta$/$\gamma$), one for $S$. Both are chosen jointly on the validation day from the same grid; conditions without $S$ keep a single penalty. Why: a single shared penalty cannot suit both a small, possibly-uninformative block and a large, informative one, so the model may be unable to switch $S$ off even when it should (violating the optional-ignorance assumption behind conditional 𝒱-information).
+- **Reference model: multinomial logistic regression**, run first; it is the `[U1]` reference.
+  - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, the two timing values (standardised, plus `log1p`), and the copy weights.
+  - L2 for the history blocks and, where $S$ is present, a separate L2 for $S$, both chosen per fold and condition on the validation day from {0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0}, by validation log-likelihood; ties go to the larger value on each axis. The model trained on training days only is scored on the test day.
+- **Neural model: residual LSTM on top of logistic v4 (DEC-21)**, all eight conditions, 5 seeds (42–46). It is the enlarged-family check; logistic v4 gives the headline lattice.
+  - Per fold and condition $c$: $z(x) = z^{\mathrm{LR}}_c(x) + \sum_{s\in c} U_s\,h_s(x)$. Logistic v4's logits are a fixed offset, precomputed from its committed fits. One 1-layer LSTM encoder per coda history (up to 10 codas) and a small feed-forward encoder for $S$; bias-free output projections $U_s$ initialised at 0; no separate output bias or copy weights (both are in the offset).
+  - Each block on or absent (absent = not built); with every block absent the model is logistic v4 exactly.
+  - AdamW (decoupled weight decay 0.1), learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch; epoch 0 (= logistic v4) is a candidate.
+  - Candidates: hidden size {16, 32, 64} × dropout {0, 0.2, 0.4} × each block on or absent, plus logistic v4. Selection: per-target validation log-likelihood averaged over the seeds; take the simplest candidate within one standard error of the best (SE of the per-target paired differences, target level); simplicity order: fewer blocks on, smaller hidden size, more dropout.
+  - **Checks before the full run** (training and validation days only):
+    1. epoch 0 reproduces logistic v4's validation log-likelihood to float precision, and the precomputed offsets reproduce v4's stored test probabilities;
+    2. every block absent reproduces v4 exactly (unit test);
+    3. learnability: with blocks on and no early stopping, training loss falls well below logistic regression's;
+    4. planted signal on one fold: relabel some targets (labels only, histories unchanged) as the own coda at lag 6, only where it differs from lags 1–3 and the target has at least 6 own codas; on training and validation days; refit logistic regression on the planted data; the $A$ residual should switch on and recover the signal. Several fractions give a rough detectable effect size.
+    Time a pilot before the full run.
+- **LSTM v2 (DEC-17, DEC-20) — superseded by DEC-21**, kept as a record: reliably below logistic v4 on 5 of 7 conditions; likely causes in DEC-21.
+- **Stop rules (log-likelihood only).** Stop and investigate before writing conclusions if any of these has a day-bootstrap CI entirely below zero: an $A$-condition against repeat-own-last; an add-one-input contrast; (residual LSTM) its residual gain over logistic v4 on a condition, which now signals selection overfitting to validation days rather than a training failure (DEC-21). Accuracy and macro-F1 are reported but not used to stop. A residual gain of zero is acceptable.
+- **Context check against Assayag et al.** Their split is random, ours holds out whole days, so their accuracies are optimistic next to ours. Compare like with like, without retraining: condition (iv) on switch/overlap targets only against the majority class on that subset, and condition (iii) against their single-whale results.
+- **Later:** a small Transformer with the same per-input structure; Kneser-Ney/VLMC models (`docs/LATER.md`).
 
 **`[M5]` Metrics**
 - Report held-out log-likelihood **per coda, in bits**, never summed.
@@ -165,14 +184,14 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 | `[V1]` | Can turn category be predicted from coda types alone? Report $H(S \mid C)/H(S)$ | If yes, conditioning on $S$ is nearly meaningless |
 | `[V2]` | Does timing help predict the next coda given the previous one? | This is where persistence and composition diverge |
 | `[V3]` | Are the information estimates stable across bout thresholds? (secondary) | Assayag et al. only checked correlations |
-| `[U1]` | The LSTM must not do worse than logistic regression on the same condition (beyond seed spread) | Otherwise it is undertrained |
+| `[U1]` | The residual LSTM must not do worse than logistic v4 on the same condition (paired CI entirely below zero) | It can't on validation days by construction (DEC-21); below on test days means selection overfitting to the validation days |
 | `[U2]` | For the 12 "add one input" pairs, the larger model should score at least as well; count violations | Violations signal fitting problems |
-| `[U3]` | Hidden size 32/64/128: contrasts should plateau | Capacity limits |
+| `[U3]` | Hidden size is selected from 16/32/64 per fold (`[M4]`); optionally check 128 afterwards. Contrasts should plateau | Capacity limits |
 | `[U4]` | Retrain on 25–100% of training days; contrasts should stabilise | Data limits |
 | `[U5]` | Variance across seeds | |
 | `[U6]` | Train–test gap per condition | |
 
-A negative contrast means a model failed to train, not a finding.
+An add-one-input contrast with a CI entirely below zero signals a fitting problem (optimisation or regularisation), not a finding: investigate before interpreting it.
 
 ---
 
@@ -196,74 +215,117 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 ---
 
-## 7. RQ2 — labelling robustness
+## 7. RQ2 — robustness to the token inventory (DEC-22)
 
-- **`[R2-1]` Primary:** run the full lattice with `guy_coda_type` and with `decision_tree_coda_type`, on identical codas and folds. Only the labels differ. This is a small perturbation (265 disagreements), so say so.
-- **`[R2-1b]` Secondary:** relabel the `[D1]` codas that match `[D2]` with Sharma's rhythm × tempo types.
-  - Only use exchanges where every coda matched, and compare against the `[D1]` labels on the same subset.
-  - If the tempo file can't be fetched, reconstruct tempo from duration; see `DECISIONS.md` DEC-15.
-  - Rhythm alone is too coarse to count as a second scheme.
-- **`[R2-3]`:** report each contrast as a share of total predictability, [LL(viii) − LL(rest)] / [LL(viii) − LL(i)]. Never compare raw bits or perplexity across labellings.
-- **`[R2-4]`:** compare the *pattern* (sign and relative size of contrasts) across labellings.
-- **`[R2-5]` / `[R2-6]`:** the same unknown-type policy for both labellings, with `UNK` rates reported per labelling.
-- **Sharma pipeline:** the standalone Sharma pipeline differs in too many ways (targets, segmentation, splits) to test labelling. It only checks robustness to the whole preprocessing chain.
+A coda becomes a token by discretising its click intervals, and which discretisation to use is the analyst's choice: whale data come with no given units. RQ2 asks whether RQ1's conclusions depend on that choice. The design follows discrete-unit spoken language modelling, which crosses unit encoders with codebook sizes and keeps the rest of the system fixed (Lakhotia et al. 2021). Claims stay within interval-based discretisations; RQ2 says nothing about whether codas are the right units (Andreas et al. 2022).
+
+**Only the labels change.** Targets (1,547), exchanges, history IDs, $S$, the 14 folds, the UNK policy (`[M6]`, *k* = 2 per fold), logistic v4 and its selection rule are RQ1's. Each inventory labels every retained `[D1]` coda from that coda's own intervals and duration.
+
+**`[R2-0]` Inventories.** Counts on the 1,547 comparison targets, computed before any fit: labels in use, the most common label's share, targets equal to the whale's own last label, and test targets mapped to UNK over the 14 folds. The fold harness reports the exact UNK counts.
+
+| ID | Inventory | Labels | Top label | Repeats | UNK |
+|---|---|---:|---:|---:|---:|
+| A | `guy_coda_type` (RQ1; existing run) | 21 | 57.2% | 1,277 | 31 |
+| B | `decision_tree_coda_type` | 25 | 56.9% | 1,280 | 57 |
+| C | Sharma rhythm `[R2-1]` | 16 | 61.9% | 1,215 | 25 |
+| D | Sharma rhythm × tempo `[R2-1]`, `[R2-2]` | 42 | 39.9% | 1,142 | 73 |
+| E | `guy_coda_type` × tempo `[R2-2]` | 39 | 39.9% | 1,204 | 67 |
+| D′ | D with `tempos-dict.p` tempo classes | 47 | 39.5% | 1,147 | 74 |
+| E′ | E with `tempos-dict.p` tempo classes | 41 | 39.4% | 1,210 | 66 |
+
+- **Grid:** scheme (named types: A, E; Sharma rhythm: C, D) × resolution (without tempo: A, C; with tempo: E, D).
+- **D is the main test:** an independently published scheme, and the one that changes the task most.
+- **B is a sanity check:** 75 targets change label and 17 flip between repeat and switch; one sentence in the report.
+
+**`[R2-1]` Rhythm** (Sharma et al. 2024a; their 18 rhythm types come from Gero et al. 2016b):
+- click positions = the cumulative sums of `ICI1`…`ICI(n−1)` divided by their total, with *n* = `nClicks`;
+- label = the template in `data/raw/mean_codas.p` with the same number of clicks that is nearest by mean squared difference; *n* < 3 or *n* > 10 → rhythm 17;
+- verified: this rule reproduces `rhythms.p` on all 3,840 `[D2]` rows. On `[D1]`'s own intervals it agrees with `rhythms.p` on 2,743 of the 2,769 codas matched between `[D1]` and `[D2]` on (`REC`, `TsTo`, `Duration`); the rest differ in their intervals between the two releases.
+
+**`[R2-2]` Tempo:**
+- label = `Duration` cut at 0.45, 0.61, 0.93 and 1.08 s, giving 5 classes;
+- the cuts are the minima of a Gaussian kernel density estimate (bandwidth 0.035 s, evaluated from 0.10 to 1.75 s in 0.01 s steps) of the EC1 durations between 0.1 and 1.75 s in `[D6]`, as in Sharma et al.'s notebook `code/2-tempo.ipynb`. The pipeline recomputes them from `data/raw/CarribeanCodas.csv` and must reproduce these cuts and the five modes (0.33, 0.51, 0.80, 1.02, 1.26 s; their Fig. 2A and 3);
+- sensitivity (D′, E′): the classes in Sharma et al.'s `tempos-dict.p`, cut midway between adjacent classes' extreme durations (0.392, 0.594, 0.907, 1.091 s). The notebook doesn't document how these classes were made; they agree with the KDE classes on 1,511 of the 1,547 targets;
+- label format: rhythm `r<k>`, tempo `t<j>`, combined with `|` (`r2|t4`, `1+1+3|t4`).
+
+**`[R2-3]` Comparing inventories**
+- Never compare raw log-likelihood or perplexity across inventories. They keep different information about the same codas, so there is no common string to score per character as text NLP does; Lakhotia et al. (2021, p. 1337) make the same point for discrete speech units.
+- Per inventory: the lattice, the three `[M2]` contrasts (token-weighted and unweighted means, CI, positive days), the repeat-own-last baseline, and the total predictability $T = \mathrm{LL(viii)} - \mathrm{LL(i)}$.
+- **Shares:** each contrast divided by $T$, with a day-bootstrap CI (ratio of token-weighted means within each replicate).
+- **Share differences against A:** paired day bootstrap, with the same resampled days for both inventories.
+- **Pattern:** for each contrast and inventory, the sign and whether the CI excludes zero.
+
+**`[R2-4]` Tempo decomposition** (exploratory; nested pairs A → E and C → D only):
+$$\log_2 p(\text{type}, \text{tempo}) = \log_2 p(\text{type}) + \log_2 p(\text{tempo} \mid \text{type})$$
+- Computed from E's (D's) stored probability vectors: $p(\text{type})$ sums E's in-vocabulary labels with that type (D: that rhythm).
+- The type term is compared with A's (C's) log-likelihood on the same targets, paired: does the finer model still predict the type as well?
+- The tempo term gets the three `[M2]` contrasts: do own history, the partner or timing predict a coda's tempo once its type is known?
+- Targets whose E (D) label maps to UNK are left out and counted. UNK mass is left out of the type marginal, so the type term is a lower bound.
+
+**`[R2-5]` UNK:** the same policy for every inventory. Report, per inventory and fold, the share of comparison targets mapped to UNK: a closed vocabulary can look easier by predicting UNK (Mielke et al. 2019).
+
+**`[R2-6]` Sensitivities:** D′ and E′ (tempo boundaries); every inventory without day 2016-04-12 (`[D1]` facts).
+
+**`[R2-7]` Stop rules:** DEC-16's rules apply to every inventory's run. If one fires, report it and draw no conclusion from that inventory. No setting changes before the freeze.
+
+**Not in RQ2** (`docs/LATER.md`): segmentation proper (a coda as two tokens, rhythm then tempo; clicks as tokens), ornaments, rubato as a continuous input, the residual LSTM on the new inventories. The standalone Sharma pipeline stays a whole-chain check; `reports/rq2.md` is its preprocessing report, not RQ2 results.
 
 ---
 
 ## 8. RQ3 — cross-clan transfer
 
-- **`[R3-0]` Input eligibility and grouping:** retain 3–10-click codas from the accepted clans only when every required ICI is in [0.005, 1.0) s. Preserve excluded rows and their reasons in the audit artifact.
-  - Caribbean `Date` is parsed day-first into canonical ISO `recording_date`; folds must use this field, never the raw date string. A Caribbean group is one `recording_date`; a Pacific group is one `grpvar` repertoire (stored as `source_repertoire_id`).
-  - Write this grouping explicitly as `group_id` in the processed RQ3 tables: `recording_date` for Caribbean codas and `grpvar`/`source_repertoire_id` for Pacific codas.
-  - Construct deterministic, group-disjoint folds: five folds per clan, except six folds for EC2 (one recording day per fold). Sort groups by decreasing coda count, breaking ties with SHA-256 of `42:<clan>:<group_id>`, then assign each whole group to the currently smallest fold. A group must never span folds.
-  - Save the resulting assignments and per-fold counts in `data/processed/rq3/rq3_folds.csv`.
-- **`[R3-1]`:** model structure *within* codas, as sequences of discretised inter-click intervals (following Leitão et al.). This needs no speaker IDs.
-  - Use the fixed, global `fixed-50ms-v1` tokenizer: 20 ICI symbols for 50 ms-wide bins over [0, 1.0) s, plus `BOS` and `EOS`.
-  - Token boundaries are predefined and are never fitted on a source or target clan.
-- **`[R3-2]` Transfer tests:**
-  - first implement EC1 ↔ EC2 as the initial Caribbean comparison. This is a valid sympatric pair, but it is one asymmetric, relatively low-overlap case: EC2 is only rarely recorded in the Caribbean study area and the clans are socially segregated. Do not use this pair alone to support a general geographic-overlap claim;
-  - then complete the directed 9 × 9 clan matrix: nine own-clan cells and 72 cross-clan cells, comprising EC1/EC2 ↔ Pacific and every Pacific ↔ Pacific direction.
-  - Choose model family, order, smoothing, and every other model-setting using source-clan training/validation folds only. Target-clan codas are never used to select or tune a model.
-  - Measure held-out base-2 log-likelihood on every target clan. Report both bits per coda and bits per predicted symbol (ICI symbols plus EOS); use bits per symbol as the primary cross-clan metric, since it does not mechanically give longer codas more weight.
-  - Use one shared aggregation function for bits per coda, bits per symbol, paired transfer loss, coverage strata, and bootstrap draws. Do not duplicate or redefine these calculations across experiments.
-  - For a source clan, train one otherwise-identical model per source fold, each excluding that fold. Score every target coda with every source-fold model and average those scores. This cross-validation ensemble avoids making a transfer result depend on one particular source-data subset.
-  - Score every target coda with both its averaged transfer score and an own-clan score from a model that did not train on that coda's group. Calculate transfer loss only from these paired scores on the same token sequence.
-  - Form an uncertainty interval (an error bar on the final estimate) with 1,000 bootstrap resamples of whole target groups (Caribbean recording days or Pacific repertoires), never individual codas. Recalculate the paired aggregate transfer loss for each draw. This happens after scoring: it neither retrains models nor changes the primary estimate, and can wait until the core matrix works.
-  - Save coda-level paired scores and model/fold identifiers, and generate `reports/rq3_transfer.md` with the transfer matrix, coverage breakdown, and heatmap.
-- **`[R3-3]` Hypothesis** (from Leitão et al.): transfer degrades less between sympatric clans, and only for non-identity codas.
-  - Test it as the interaction (sympatric vs allopatric) × (identity vs non-identity). The Caribbean and Pacific data come from different recording programmes, and the identity contrast is what separates the clan effect from that.
-  - For Pacific codas, derive `identity_status` from the clan-specific numeric coda-type mapping in Hersh et al. (2022), Supplementary Table S2: PALI = 48, 411, 412, 73, 711, 82, 94, 95, 102; FP = 611, 614; SI = 39, 413, 69; RI = 45, 715; SH = 313; PO = 515, 68, 613, 79, 712, 89; REG = 51, 512, 62, 71, 74, 81, 92, 96, 108. A listed numeric type is `identity`; every other numeric Pacific type is `non_identity`. Missing/non-numeric source types are `unmapped` and excluded from identity-stratified analyses. Caribbean codas remain unmapped until an authoritative equivalent mapping is available.
-  - `identity_status` is an analysis label only, never a predictive input to the timing model.
-  - Train the primary own-clan and transfer models on all eligible codas, irrespective of identity status. Test the interaction by partitioning the resulting paired target-coda scores into identity and non-identity strata; do not train separate identity-only or non-identity-only primary models.
-  - Treat EC1 ↔ EC2 as an initial Caribbean comparison within this design. The broader, continuous test of whether geographical co-occurrence predicts transfer is the exploratory Pacific overlap analysis `[R3-6]`, not the EC1–EC2 result alone.
-  - Assumption: recording differences affect both coda kinds equally.
-- **`[R3-4]`:** compare coda-type distributions across clans within each dataset only, as a diagnostic (clan identification is solved). Never treat Caribbean textual labels and Pacific numeric labels as a shared type vocabulary.
-- **`[R3-5]` Coverage diagnostic:** for each source-to-target score, count occurrences of the target coda's complete fixed-token sequence in that specific source model's training data.
-  - A target coda is *covered* when its sequence occurs at least five times; otherwise it is *uncovered*.
-  - Calculate coverage and paired transfer loss separately for every source-fold model, then aggregate them with the same rule used for the transfer score. Do not call a sequence covered because it appears in a source fold excluded from that particular model's training data.
-  - Report coverage share and paired transfer loss separately for covered and uncovered target codas. This distinguishes patterns absent from the source training inventory from poor transfer on patterns the source does produce.
-- **`[R3-6]` Exploratory Pacific overlap analysis:** use Hersh et al.'s Supplementary Table S4 directional spatial-overlap values recorded in `config/rq3_spatial_overlap.json`. For each of the 21 unordered Pacific clan pairs, use the mean of its two directions.
-  - For pair \(a,b\), average the two directed transfer losses \(G(a,b)\) and \(G(b,a)\), then test whether greater mean overlap is associated with lower average transfer loss.
-  - Run the association separately for identity and non-identity codas. Use a predeclared exact permutation test over all \(7! = 5,040\) Pacific-clan label permutations.
-  - Label the result exploratory: the pairs share clans and the published overlap measure has no temporal component.
-- **`[R3-7]` Model sensitivity:** retain the fixed-50ms-v1 representation for the primary analysis. If time permits, repeat the matrix with a VLMC using 20 ms bins, reporting likelihood in bits per second rather than comparing its raw scores directly with the primary representation. This checks whether the primary conclusion depends on the model family and timing resolution.
-- **Rules:**
-  - No multi-whale conditions on `[D6]` or `[D4]`.
-  - Day-level coda order is never "own history".
-  - Don't redo Leitão et al.'s descriptive VLMC/KL analysis; `[R3-7]` is instead a held-out transfer-loss sensitivity analysis.
+RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown and one exploratory overlap test (DEC-19). Every RQ3 model uses the building blocks `[R3-0]`–`[R3-3]`, including any later pooled model (`docs/LATER.md`).
+
+**Building blocks**
+- **`[R3-0]` Processed codas** (`data/processed/rq3/`, Vlad's pipeline):
+  - eligible: 3–10 clicks, an assigned clan (EC1, EC2 or one of the seven Pacific clans), finite positive intervals, no non-zero padding;
+  - excluded with a recorded reason: any interval under 0.005 s (double-marked clicks) or of 1 s or more;
+  - `recording_date` (ISO), with `[D6]` dates parsed day first from both formats; `group_id` = the recording date for `[D6]`, the repertoire (`grpvar`) for `[D4]`;
+  - flags, not filters: `noise_type` (`[D6]` `N-NOISE` classes), `unidentified_unit` (`[D6]` unit `ZZZ`);
+  - identity status for `[D4]` codas: identity if the coda's type is on its own clan's list in Hersh et al.'s SI Table S2 (a sourced config file), otherwise non-identity. `[D6]` codas get none: no comparable list exists.
+- **`[R3-1]` Tokeniser:** one shared function. Symbol = floor(interval / 0.05 s), 0–19, the same for every clan and model and fitted on no data (Leitão et al. 2024). A coda is `BOS s1 … sn EOS`; models predict every interval symbol and the `EOS`. Its ID (`fixed-50ms-v1`) is stored with every score. Sensitivity, if time: 0.02 s bins; scores at different widths are compared per second (subtract log2 of the bin width in seconds per interval symbol).
+- **`[R3-2]` Held-out groups:** one committed fold file (`clan, group_id, fold, n_codas`). Per clan, groups are sorted by size (largest first; ties by `sha256("42:<clan>:<group_id>")`) and each goes to the fold with the fewest codas so far: 5 folds per clan, 6 for EC2 (one day each). Own-clan models then train on about 80% of their clan (EC2: 62–93%, set by its day sizes).
+- **`[R3-3]` Scores:** one row per scored coda: `run_id, model, tokeniser, train_clans, train_folds, target_clan, rq3_coda_id, target_fold, n_symbols` (intervals + `EOS`), `ll_bits` (log2, whole coda), `ll_eos_bits`; plus a run manifest (config, SHA-256 of the data and the fold file, commit). One shared function aggregates: bits per symbol = Σ ll / Σ n_symbols, bits per coda = mean ll, CIs by bootstrap over the target's groups (1,000 draws).
+
+**Analyses**
+- **`[R3-4]` Transfer matrix:** all 9 × 9 source–target pairs.
+  - Own-clan score of a coda in fold k: the model trained on its clan's other folds (the diagonal of the matrix).
+  - Transfer score from source s: the mean of the log-likelihoods from s's fold models (each trained on s minus one fold), so both scores come from models trained on about 80% of a clan.
+  - Transfer loss G(s,t) = own-clan score − transfer score, on the same codas; per symbol and per coda, with CIs.
+  - Settings (n-gram order, smoothing) chosen by cross-validation over the training clan's own folds; the target clan is only ever scored.
+  - Models: smoothed n-gram (main); VLMC (sensitivity, if time).
+  - Report each source's training size beside its row: sources differ up to about 8.6× in size, and there are no size-matched reruns (`docs/LATER.md`).
+- **`[R3-5]` Coverage:** for each pair, the share of the target's codas whose full symbol string occurs at least 5 times in the source's data; G reported separately for covered and uncovered codas (after Aycock et al. 2025).
+- **`[R3-6]` Exploratory overlap test, Pacific only:** separate models for identity and for non-identity codas (same building blocks). Per clan pair, G averaged over both directions and related to the pair's mean spatial overlap (Hersh et al. SI Table S4); permutation test over the 7 clan labels (5,040 orders), separately for identity and non-identity codas. The prediction (Leitão et al. 2024): overlap lowers G for non-identity codas only. With 21 pairs this is exploratory.
+- **`[R3-7]` Coda-type distributions** per clan: diagnostic, within one dataset only.
+- **Sensitivity:** the matrix without the `ZZZ` codas. `N-NOISE` codas stay in `[R3-4]` and `[R3-5]` (symbol strings, no types) and are left out of `[R3-6]` and `[R3-7]`.
+
+**Rules**
+- No multi-whale conditions on `[D6]` or `[D4]`; day-level coda order is never own history.
+- Tuning and model choice use the training clan only.
+- Don't repeat Leitão et al.'s VLMC/KL comparison as a result; their bins and VLMC may be used as tools.
+- Claims: how well clans' within-coda timing predicts each other's, and how much of that is coverage. No claim that sharing waters causes convergence, nothing about meaning, no "dialects".
 
 ---
 
 ## 9. Reporting and interpretation
 
 **Report for every contrast**
-- sign, day-bootstrap CI and positive-day count;
+- sign, token-weighted and unweighted day means, day-bootstrap CI and positive-day count;
 - repeat/switch parts;
 - baselines alongside;
 - the sensitivity run with the old delay;
 - the 82.5% repetition rate.
 
 **Caution about nulls:** limited data and capacity push contrasts toward zero. A positive contrast is robust; a null might just mean too little data. Say so whenever reporting a null.
+
+**The residual LSTM (DEC-21)**
+- Headline numbers come from logistic v4. The residual network's lattice and each condition's residual gain are reported next to them as the enlarged-family check.
+- A near-zero residual reads "no further structure detectable in the enlarged family at this data size", not "none exists".
+- A positive residual means structure in that block that logistic regression can't express: for $A$ and $B$, lags 4–10 or non-additive patterns within lags 1–3; for $S$, nonlinear timing effects. We don't separate these; don't call it "long-range".
+- A contrast is v4's contrast plus the difference between the two conditions' residual gains; don't call the contrasts monotone.
+- On validation days the residual network and logistic regression agree by construction, so their agreement isn't evidence against an optimisation failure; that evidence is the learnability checks in `[M4]`.
+- Course framing: "Logistic regression is a softmax network without hidden layers; the residual LSTM's family contains v4 exactly, as the member whose residual is switched off."
 
 **How to read the outcomes**
 
@@ -289,11 +351,8 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 ## 11. Open questions
 
-- Do the tempo/ornament pickles align with `sperm-whale-dialogues.csv` by row, like `rhythms.p`?
-- How many `[D1]` exchanges fully match `[D2]` (RQ2 secondary)?
-- Is `[D6]` Leitão et al.'s dataset, and how many EC2 codas does it have?
-- Is an authoritative Caribbean identity-coda mapping available (`[R3-3]`)?
-- Per-clan coda counts in `[D4]` after filtering.
+- How were the tempo classes in Sharma et al.'s `tempos-dict.p` made? They don't match the KDE minima in their notebook; only the authors can say. RQ2 uses the KDE minima and keeps `tempos-dict.p` as a sensitivity (`[R2-2]`).
+- Why is the `[D6]` unit `ZZZ` labelled EC2? Only the DSWP can say.
 - Is the switch part of `[P1]` (~270 codas) big enough to show anything? Check after the first numbers.
 - Should partner-coda content heard before the target's onset ever enter $S$? Current answer: no.
 
@@ -301,23 +360,23 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 ## 12. Order of work
 
-1. **Phase 1 — preprocessing fixes:**
+1. **Phase 1 — preprocessing fixes: done.**
    - new $S$ (DEC-1) — **done**;
-   - shared unknown-type module (DEC-7, DEC-10);
-   - record the `pair_category` missingness finding in the data dictionary;
-   - flag long codas.
-2. **Phase 2 — evaluation and folds:** the shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
+   - shared unknown-type module (DEC-7, DEC-10) — **done**, fitted on the current training split; fold-specific fitting follows in Phase 2;
+   - record the `pair_category` missingness finding in the data dictionary — **done**, source counts verified;
+   - flag long codas — **done**, 153 Sharma source codas flagged without filtering.
+2. **Phase 2 — evaluation and folds: done.** The shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
-   - Logistic regression on all eight conditions, plus the baselines. This is the debug step.
-   - Then the LSTM on all eight conditions, 3 seeds each.
-   - The Assayag reproduction check on (iv), and checks `[U1]`, `[U2]`.
+   - Logistic regression v1 (fixed L2), v2 (copy weights, validation-chosen L2, DEC-16) and v3 (extended grid) — done, superseded. v4 with separate history and $S$ penalties (DEC-20) — done; the reference.
+   - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
+   - LSTM v2 (DEC-17) — done, superseded (DEC-21).
+   - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
-5. **RQ2 primary:** swap the label column.
-6. **RQ3 initial Caribbean comparison:** EC1 ↔ EC2.
-7. **RQ2 secondary, then the remaining RQ3 9 × 9 matrix.**
+5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]`.
+6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
 
 ---
 
 ## References
 
-Assayag et al. 2026, *Bioacoustics* 35(4) · Bermant et al. 2019, *Sci. Rep.* · Gubnitsky et al. 2025, *Sci. Rep.* · Hersh et al. 2022, *PNAS* · Leitão et al. 2024, *eLife* · O'Connor & Andreas 2021, *ACL* · Schulz et al. 2008, *Anim. Behav.* · Sharma et al. 2024a, *Nat. Commun.* · Sharma et al. 2024b, *bioRxiv* (WhaleLM) · Sinha & Chavan 2026, *arXiv:2606.16084* · Terwilliger et al. 2025, *NeurIPS workshop* · Xu et al. 2020, *ICLR*
+Andreas et al. 2022, *iScience* 25 · Assayag et al. 2026, *Bioacoustics* 35(4) · Aycock et al. 2025, *ICLR* · Bermant et al. 2019, *Sci. Rep.* · Gero et al. 2016a, *R. Soc. Open Sci.* · Gero, Whitehead & Rendell 2016b, *R. Soc. Open Sci.* · Gubnitsky et al. 2025, *Sci. Rep.* · Hersh et al. 2022, *PNAS* · Lakhotia et al. 2021, *TACL* 9 · Leitão et al. 2024, *eLife* · Mielke et al. 2019, *ACL* · O'Connor & Andreas 2021, *ACL* · Schulz et al. 2008, *Anim. Behav.* · Sharma et al. 2024a, *Nat. Commun.* · Sharma et al. 2024b, *bioRxiv* (WhaleLM) · Sinha & Chavan 2026, *arXiv:2606.16084* · Terwilliger et al. 2025, *NeurIPS workshop* · Xu et al. 2020, *ICLR*

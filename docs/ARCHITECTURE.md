@@ -1,8 +1,8 @@
 # Architecture — preprocessing pipeline and repo conventions
 
-Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status: RQ1/RQ2 preparation plus RQ3 preprocessing and all primary RQ3 transfer analyses are implemented; coda-type diagnostics and optional VLMC sensitivity remain.
+Reference for anyone changing `src/` or `config/`. Rules and scope live in `CLAUDE.md` and `docs/PLAN.md`; this file describes how the code is built. Status as of 2026-09-28: preprocessing, the leave-one-day-out folds and the shared evaluation are complete. Model code lives in `src/whale_coda_dynamics/`: `evaluation.py` (shared metrics and contrasts), `logistic.py` (reference model), `neural.py` (LSTM v1/v2, superseded), `residual.py` (residual LSTM on a frozen logistic v4, DEC-21: model, checks, device measurement and full run); their design is PLAN `[M4]`. This file covers preprocessing and repo conventions.
 
-## RQ1/RQ2 stages
+## Stages
 
 Four stages, each a module with `run(config_path)`, each runnable alone with `--config`:
 
@@ -29,32 +29,16 @@ Chain by reference, not merged: `config/rq1.json` → `config/exchanges.json` �
 ## Sharma pipeline (`prepare_rq2.py`, `audit_rq2.py`)
 
 - Reuses `group_exchanges`, `build_features`, `assign_splits`/`validate`/`write_table` **unchanged**; RQ1 outputs must be unaffected by work here. `run_exchanges_rq2()` exists because `exchanges.py` hardcodes `from .audit import run` — deliberate glue, don't refactor away.
-- Role since DEC-3: whole-preprocessing-chain robustness only. Tokenisation tests (primary `guy_coda_type` vs `decision_tree_coda_type`; secondary Sharma rhythm × tempo on matched exchanges) run inside the RQ1 pipeline as label-column swaps.
-- Explicit differences from the Assayag release (also in `reports/rq2.md`): no Tag/Bout/Date/Focal → `tag_id = recording_id`, REC is the only hard boundary, `strict_focal_subset` always False; `recording_date` holds the deployment prefix `^sw\d+` (schema parity, no chronological meaning); `rhythms.p` joined by row index; unseen types → `UNK` via `apply_unk_policy` (preserves `Ct_raw`), moving to the shared module per DEC-7.
+- Role since DEC-3: whole-preprocessing-chain robustness only. RQ2's token inventories (DEC-22) are computed from `[D1]`'s own intervals and run inside the RQ1 pipeline; see "RQ2 token inventories" below.
+- Explicit differences from the Assayag release (also in `reports/rq2.md`): no Tag/Bout/Date/Focal → `tag_id = recording_id`, REC is the only hard boundary, `strict_focal_subset` always False; `recording_date` holds the deployment prefix `^sw\d+` (schema parity, no chronological meaning); `rhythms.p` joined by row index; rare/unseen types → `UNK` via shared `vocabulary.py` (preserves `Ct_raw`), per DEC-7/10.
 - One `Duration=0` row excludes all of `sw061b003` (731 rows) — expected conservative behaviour, not a bug.
-
-## RQ3 preprocessing (`src/rq3/preprocessing/`)
-
-- `prepare.py` reads `CarribeanCodas.csv` and `PacificCodas.csv`, preserves every source row in an interim audit JSONL, and writes two continuous-ICI tables for accepted 3–10-click codas whose required ICIs are in [0.005, 1.0) s. Caribbean `recording_date` is canonical ISO, while raw `source_date` remains preserved. `tokenize.py` defines the global `fixed-50ms-v1` tokenizer (20 ICI symbols plus `BOS`/`EOS`); it does not fit bin edges to data.
-- `folds.py` assigns `group_id` values (Caribbean canonical `recording_date`; Pacific `grpvar`) to deterministic, group-disjoint clan folds in `rq3_folds.csv`.
-- `config/rq3_identity_mapping.json` records Hersh et al.'s Table S2 Pacific identity-type mapping. `prepare.py` writes its derived `identity_status` to the interim audit and metadata table; it is never a model input.
-- `config/rq3_spatial_overlap.json` records Hersh et al.'s Table S4 directional Pacific repertoire-overlap matrix. It is experiment metadata for the exploratory overlap analysis, not a model input or preprocessing field.
-- `validate.py` is read-only. It independently checks raw-source coverage, eligibility, ICI sequences, deterministic group/fold assignment, and agreement between the interim, core, metadata, and fold artifacts.
-- Run from the repository root with `PYTHONPATH=src python3 -m rq3.preprocessing.prepare --config config/preprocessing_rq3.json`, then `PYTHONPATH=src python3 -m rq3.preprocessing.validate --config config/preprocessing_rq3.json`.
-
-## RQ3 experiments (`src/rq3/experiments/`)
-
-- `data.py` loads and validates the prepared core, metadata, folds, identity mapping, and spatial-overlap metadata. `models.py` implements additive-smoothed unigram/n-gram models; `scoring.py` records base-2 coda and per-symbol scores; `evaluation.py` owns all shared aggregation and later transfer-loss/bootstrap helpers.
-- `runner.py --stage calibration` selects one candidate model per clan using only that clan's held-out folds, then writes one cross-fitted own score per eligible coda. `runner.py --stage initial-transfer` runs only EC1 <-> EC2. `runner.py --stage matrix` fits each selected source clan's fold models, scores every other clan, pairs every averaged transfer score with its existing own-clan score, and counts each target token sequence in each source fold's actual training data for the coverage diagnostic. `runner.py --stage bootstrap` resamples whole target groups 1,000 times without retraining. `runner.py --stage identity` adds the Pacific Table S2 identity/non-identity labels to existing paired scores and reruns that bootstrap by stratum. `runner.py --stage overlap` runs the exploratory Table S4 Pacific association with all 5,040 clan-label permutations. `transfer.py`, `uncertainty.py`, `identity.py`, and `overlap.py` hold this logic; `report.py` generates the reports.
-- `runner.py --stage summaries` generates `README.md` files at the RQ3 results root and every analysis subfolder. Each is a navigable, data-derived description of its direct artifacts and child analyses.
-- Run calibration from the repository root with `PYTHONPATH=src python3 -m rq3.experiments.runner --config config/rq3_experiments.json`. Run the initial comparison with `PYTHONPATH=src python3 -m rq3.experiments.runner --stage initial-transfer --config config/rq3_experiments.json`, the full matrix with `PYTHONPATH=src python3 -m rq3.experiments.runner --stage matrix --config config/rq3_experiments.json`, or uncertainty intervals with `PYTHONPATH=src python3 -m rq3.experiments.runner --stage bootstrap --config config/rq3_experiments.json`.
 
 ## Conventions
 
 - **`io_utils.py`** for all text I/O (`read_text/write_text/read_json/read_jsonl/write_jsonl`): UTF-8 (configs contain Hebrew month aliases) and `\n` newlines, because checksums are reported output. `.gitattributes` pins LF.
-- **Reports:** `reports/rq1.md`, `reports/rq2.md`, and `reports/rq3_preprocessing.md` are generated; `reports/data_dictionary.md` is hand-written — the reference for field semantics, provenance, and questions open with source authors.
+- **Reports:** `reports/rq1.md`, `reports/rq2.md` generated; `reports/data_dictionary.md` hand-written — the reference for field semantics, provenance, and questions open with source authors.
 - **Data:** `data/raw/`, `data/interim/`, `data/processed/` all committed; raw never modified.
-- **RQ1/RQ2 exchange identity:** `local_caller_id`, `identity_status: provisional_local_code`, exchange IDs like `provisional:g7:row0`. This convention does not apply to RQ3's coda-type-derived `identity` / `non_identity` / `unmapped` labels. `coda_id`s are not stable across source versions.
+- **Identity:** `local_caller_id`, `identity_status: provisional_local_code`, exchange IDs like `provisional:g7:row0`. `coda_id`s are not stable across source versions.
 - **Failing loudly:** unparseable → `None` + audit flag; ambiguous segments excluded with a reason; unestablished facts (absolute timestamps, individual identity, Bout scope) stay unresolved.
 
 ## Data files at a glance
@@ -64,25 +48,64 @@ Detail and verified counts: PLAN §2.
 | File | Role |
 |---|---|
 | `data/raw/dswp-2014-2016-retagged-maor-2025.csv` | Assayag et al. 2026; RQ1 + both RQ2 labellings |
-| `data/raw/sperm-whale-dialogues.csv`, `rhythms.p` | Sharma et al. 2024; secondary RQ2 labels, standalone pipeline. `tempos-dict.p`, `ornaments.p` still to fetch |
-| `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3 sympatric transfer source |
-| `data/raw/PacificCodas.csv` | Hersh et al. 2022 Pacific data; RQ3 allopatric extension |
-| `data/interim/rq3/rq3_codas_normalized.jsonl` | All-row RQ3 normalization and audit artifact |
-| `data/processed/rq3/rq3_codas.csv` | Core RQ3 model-ready continuous-ICI table |
-| `data/processed/rq3/rq3_codas_metadata.csv` | RQ3 core rows plus provenance and diagnostic metadata |
-| `data/processed/rq3/rq3_folds.csv` | Deterministic, group-disjoint RQ3 fold assignments |
-| `data/results/rq3/calibration/self_scores.csv` | One cross-fitted own-clan likelihood score per eligible RQ3 coda |
-| `data/results/rq3/calibration/self_calibration.csv` | Held-out model-candidate scores and selected settings per clan |
-| `data/results/rq3/initial_caribbean/` | Per-source-fold, paired-score, and summary outputs for EC1 <-> EC2 |
-| `data/results/rq3/transfer_matrix/fold_scores.csv` | Per-source-fold scores for all 72 cross-clan transfer cells |
-| `data/results/rq3/transfer_matrix/scores.csv` | Paired own/transfer scores for all 81 matrix cells |
-| `data/results/rq3/transfer_matrix/summary.csv` | Aggregate primary 9 x 9 transfer matrix |
-| `data/results/rq3/transfer_matrix/coverage/summary.csv` | Covered/uncovered fold-specific transfer-loss strata |
-| `data/results/rq3/transfer_matrix/uncertainty/` | All bootstrap draws and 95% interval summary |
-| `data/results/rq3/transfer_matrix/identity/` | Pacific-target identity/non-identity scores, draws, and summary |
-| `data/results/rq3/transfer_matrix/pacific_overlap/` | Table S4 pair values and exact permutation results |
+| `data/raw/sperm-whale-dialogues.csv`, `rhythms.p` | Sharma et al. 2024a; standalone pipeline; `rhythms.p` checks the RQ2 rhythm rule |
+| `data/raw/mean_codas.p`, `tempos-dict.p` | Sharma et al. 2024a, copied unchanged from `github.com/pratyushasharma/sw-combinatoriality` (commit `7228c8e`): the 18 rhythm templates and the tempo classes (RQ2, PLAN `[R2-1]`, `[R2-2]`). `ornaments.p` not used |
+| `data/raw/CarribeanCodas.csv` | EC1 + EC2; RQ3; its EC1 durations fix the RQ2 tempo cuts |
+| Hersh et al. 2022 (not in repo) | RQ3 allopatric extension |
+
+## RQ2 token inventories (DEC-22; planned, to be implemented)
+
+Interfaces fixed so that PLAN, the prompt and the code agree; the implementing PR fills in the rest of this section.
+
+- **`sharma_inventory.py`** (needs NumPy to unpickle; not under `preprocessing/`): reads `data/raw/mean_codas.p` and `data/raw/tempos-dict.p`, writes `data/interim/sharma_inventory.json` (the 18 templates as plain lists, the `tempos-dict.p` class extremes and cuts, SHA-256 of both inputs). Run once; its output is committed so that preprocessing stays standard-library only.
+
+## RQ3 pipeline
+
+The RQ3 preprocessing pipeline in `src/rq3/preprocessing/` normalizes the Caribbean and Pacific coda sources, applies the fixed eligibility rules and tokenizer, and writes the processed tables and deterministic group-disjoint folds. Its read-only validator independently checks the source coverage, derived coda fields, and fold assignments. RQ3 experiment stages in `src/rq3/experiments/` perform source-clan calibration, cross-clan transfer scoring, bootstrap uncertainty, identity strata, and the exploratory overlap analysis.
+- **`preprocessing/inventories.py`** (standard library), config `config/rq2_inventories.json`: recomputes the KDE tempo cuts from `CarribeanCodas.csv` and checks them; checks the rhythm rule against `rhythms.p` on all `[D2]` rows; labels every row of `data/processed/rq1_targets.jsonl` and writes one targets file per inventory, `data/processed/rq2_<name>_targets.jsonl`, identical to `rq1_targets.jsonl` except `Ct`, `Ct_raw`, `A_history`, `B_history` (and an `inventory` field); writes `reports/rq2_inventories.md`. Names: `b_dtree`, `c_rhythm`, `d_rhythm_tempo`, `e_type_tempo`, `d_rhythm_tempo_tdict`, `e_type_tempo_tdict`.
+- **Per inventory, unchanged code:** `preprocessing.folds` with `config/rq2_<name>_folds.json` (preparation config `config/rq1.json`), then `logistic` with `config/rq2_<name>_logistic_v4.json` and `config/rq2_<name>_evaluation_v4.json`, writing `data/results/rq2_<name>_logistic_v4/` and `reports/rq2_<name>_logistic_v4.md`. Inventory A is RQ1's existing `rq1_logistic_v4` run.
+- **`rq2_compare.py`**, config `config/rq2_compare.json`: reads every inventory's evaluation outputs and stored probabilities; writes `data/results/rq2_compare/summary.json` (with `input_sha256`) and `reports/rq2_inventories_v4.md` (PLAN `[R2-3]`–`[R2-6]`).
+- The inventories stage and each inventory's folds run join `PREPROCESSING` in `tests/test_committed_artifacts.py`.
 
 ## Known gotchas
 
 - DEC-1 changed the $S$ fields (and renamed `response_delay_s` → `retrospective_delay_s`) — say so in the commit.
 - Old `retrospective_delay_s` for continuations runs to 50 s while switches are capped at 6.76 s by the 7 s gap, so the old delay identifies turn category. Why it isn't the primary $S$.
+
+## Shared vocabulary and completed audit items
+
+`vocabulary.py` is used by both preparation orchestrators after original feature validation. `fit_vocabulary` receives unique retained training events, counts each coda once (including context-only codas), and retains types with frequency at least `unk_min_count` (default 2). `apply_vocabulary` maps targets and both histories in every split; `validate_mapping` independently checks labels against original events. `Ct_raw` and history IDs preserve recoverability for future folds. Priors count mapped training comparison targets with additive smoothing over the same vocabulary. Both pipelines export a label-prior JSON and mapping counts in their generated reports. Current splits are unchanged; refitting per leave-one-day-out fold remains Phase 2.
+
+The hand-written data dictionary records source-verified pair-category missingness (1,597/2,425 unlabelled versus 756/1,508 labelled codas non-focal; all 157 missing-Focal codas unlabelled).
+
+Sharma normalization exports `long_coda` (`nClicks > 10`, null if invalid/missing). The RQ2 orchestrator independently checks it against raw click counts and copies it into both prepared tables without changing the shared grouping or feature core. It is diagnostic metadata, not an input or exclusion rule. The generated report counts flagged source, retained, and comparison rows.
+
+## RQ1 leave-one-day-out harness
+
+Run `PYTHONPATH=src python3 -m whale_coda_dynamics.preprocessing.folds` with `config/rq1_folds.json`. It reads the complete prepared targets table, restores original target/history labels, and assigns 14 folds. The next day in cyclic SHA-256(seed:day) order is validation; the other 12 days train. Every day is test and validation once. No labels or outcomes choose the validation day.
+
+`prepare_fold(rows, fold, preparation)` returns fresh mapped rows and the fitted vocabulary/prior. It reruns the shared history/timing validator and independent mapping validator. Model consumers select comparison-eligible rows and only declared input columns; numerical transforms remain training-only work for the model encoder. The original fixed-split preparation tables are not rewritten.
+
+`data/processed/rq1_folds/manifest.json` records all fold assignments, comparison IDs shared by all conditions, training counts, vocabularies, priors, UNK statistics and input/config hashes. `reports/rq1_folds.md` summarizes sizes. Exactly-once coverage currently concerns test assignments; prediction coverage will be checked by the future evaluator. Shared evaluation is implemented; model code remains unimplemented.
+
+## Shared evaluation in bits
+
+`evaluation.py` exposes `evaluate(predictions, manifest, targets, seeds, ...)`, `log_likelihood_bits`, `repeat_switch_bits`, and `day_bootstrap_bits`. It fits no models. Run `PYTHONPATH=src python3 -m whale_coda_dynamics.evaluation --config config/rq1_evaluation.json` once actual predictions exist; the default prediction file is not generated yet.
+
+Prediction JSONL schema: `coda_id`, `fold_id`, `condition`, integer `seed`, and `probabilities` (label-to-probability object containing exactly the fold vocabulary). Every comparison target must appear once for every condition and configured seed. Use one seed for deterministic reference models, three for neural models. Predictor metadata cannot override the target, day or own-last label, which are recovered from the manifest and prepared rows. The CLI rejects stale target hashes, missing/extra/duplicate predictions, mismatched vocabularies, non-normalized distributions, and zero/nonfinite probabilities. Zero is rejected rather than silently clipped; models must provide finite positive probabilities. Majority-class hard predictions are evaluated separately through `classification_metrics`, not given artificial likelihoods.
+
+Likelihoods are averaged across seeds per coda before pairing conditions. Accuracy and macro-F1 are computed per seed and averaged; macro-F1 uses the union of observed true/predicted labels for that seed. Argmax ties use sorted labels. The 2,000-replicate seeded percentile bootstrap samples complete days with replacement, recomputing token-weighted means. Reports include positive-day counts, three primary contrasts, all 12 add-one-input pairs and negative-contrast flags. The additional A_B versus better A/B comparison is descriptive: its interval conditions on the selected single-history reference.
+
+Repeat/switch decomposition uses the fold's mapped vocabulary so the algebra matches the scored likelihood; raw and mapped repeat counts are both reported. Switch-choice contributions are averaged over all eligible targets, not just switches. Targets lacking own history retain their total likelihood but are excluded from decomposition. Prepared RQ1 comparison targets all have own history. CIs with 14 days remain approximate.
+
+Outputs: `scored_predictions.jsonl`, `paired_contrasts.jsonl`, and `summary.json`, with configuration and input hashes. The original prediction JSONL retains full probability vectors. No synthetic validation predictions are saved as research outputs. Tests include mathematical identities, seed log-averaging, bootstrap weighting, and invalid/missing predictions; the complete 14-fold manifest was also exercised with 12,376 synthetic uniform predictions.
+
+## Logistic-regression reference runner
+
+Install the optional modeling dependencies with `python -m pip install '.[modeling]'` in a virtual environment. Run `PYTHONPATH=src .venv/bin/python -m whale_coda_dynamics.logistic` using `config/rq1_logistic.json`. NumPy and SciPy are modeling-only dependencies; preparation and evaluation remain standard-library code.
+
+The runner reconstructs each fold with `prepare_fold`, verifies its policy against the manifest, and trains seven contextual multinomial models plus the unigram condition. It minimizes mean cross-entropy plus fixed L2 (0.01/2 times squared coefficients, including intercepts) with L-BFGS-B. Penalizing intercepts keeps probabilities finite for full-vocabulary classes absent from training targets, without adding synthetic targets. It checks solver success and gradient magnitude, and fails on nonconvergence. The last three history lags use one-hot labels; missing lags are zero vectors only within enabled streams. Timing includes raw and log1p features, each standardized using training comparison targets. Turn categories are fitted on training only; unseen categories yield zero vectors. Validation days remain excluded because no hyperparameter tuning or early stopping is performed.
+
+The repeat baseline estimates mapped-label repetition frequency from training comparison targets, then allocates the remaining mass by the fold's add-1 prior excluding own-last. Degenerate repeat rates fail explicitly. Majority-class predictions get accuracy/macro-F1 only. Saved models include feature names, vocabulary, scaling, categories and weights; convergence diagnostics are saved per fit.
+
+`data/results/rq1/` holds probabilities, baseline predictions, models and convergence records; `evaluation/` holds shared-evaluator outputs with versions/configuration/input hashes. `reports/rq1_logistic.md` is generated. All 98 contextual fits converged in the first run, but five add-input contrasts were negative and the full model fell slightly below repeat-own-last in LL. These diagnostics remain unresolved research/model-capacity checks, not evidence that partner content or timing is harmful. No settings were changed after inspecting test results. Retrospective-delay sensitivity and neural models remain pending.

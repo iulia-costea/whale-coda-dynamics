@@ -1,0 +1,22 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "evaluation_config": "config/rq1_evaluation_lstm_residual.json",
+  "checks_summary": "data/results/rq1_lstm_residual_checks/summary.json",
+  "throughput_summary": "data/results/rq1_lstm_residual_throughput/summary.json",
+  "logistic_models": "data/results/rq1_logistic_v4/models.jsonl",
+  "logistic_predictions": "data/results/rq1_logistic_v4/predictions.jsonl",
+  "logistic_scored": "data/results/rq1_logistic_v4/evaluation/scored_predictions.jsonl",
+  "logistic_summary": "data/results/rq1_logistic_v4/evaluation/summary.json",
+  "output_directory": "data/results/rq1_lstm_residual",
+  "report": "reports/rq1_lstm_residual.md",
+  "offset_tolerance": 1e-9,
+  "seeds": [42, 43, 44, 45, 46],
+  "embedding_dim": 32,
+  "learning_rate": 0.001,
+  "weight_decay": 0.1,
+  "batch_size": 32,
+  "max_epochs": 300,
+  "patience": 20,
+  "hidden_grid": [16, 32, 64],
+  "dropout_grid": [0.0, 0.2, 0.4]
+}

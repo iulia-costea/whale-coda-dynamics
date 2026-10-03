@@ -1,0 +1,17 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "logistic_models": "data/results/rq1_logistic_v4/models.jsonl",
+  "output_directory": "data/results/rq1_lstm_residual_throughput",
+  "report": "reports/rq1_lstm_residual_throughput.md",
+  "seeds": [42, 43, 44, 45, 46],
+  "embedding_dim": 32,
+  "learning_rate": 0.001,
+  "weight_decay": 0.1,
+  "batch_size": 32,
+  "max_epochs": 300,
+  "patience": 20,
+  "hidden_grid": [16, 32, 64],
+  "dropout_grid": [0.0, 0.2, 0.4],
+  "throughput": {"test_day": "2015-03-02", "condition": "A_B_S", "hidden": 64, "dropout": 0.0, "seeds": [42, 43, 44],
+                 "cpu_workers": 18, "gpu_processes": [1, 2, 4], "tie_tolerance": 0.05}
+}

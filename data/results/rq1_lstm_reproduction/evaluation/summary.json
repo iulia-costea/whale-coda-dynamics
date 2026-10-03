@@ -1,0 +1,104 @@
+{
+  "units": "bits per coda",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "metrics": {
+    "none": {
+      "accuracy": 0.5720749838396897,
+      "macro_f1": 0.03638980263157895,
+      "mean_log_likelihood_bits": -2.6025399070492883
+    },
+    "B": {
+      "accuracy": 0.5921137685843568,
+      "macro_f1": 0.06099851495300457,
+      "mean_log_likelihood_bits": -2.6061587693669437
+    }
+  },
+  "baseline_metrics": {
+    "majority": {
+      "accuracy": 0.5720749838396897,
+      "macro_f1": 0.03638980263157895,
+      "macro_f1_labels": [
+        "1+1+3",
+        "1+31",
+        "10R",
+        "10i",
+        "2+3",
+        "3D",
+        "4R1",
+        "4R2",
+        "5R1",
+        "5R2",
+        "5R3",
+        "6R",
+        "6i",
+        "7D2",
+        "7i",
+        "8D",
+        "8R",
+        "9R",
+        "9i",
+        "UNK"
+      ]
+    },
+    "repeat_own_last": {
+      "accuracy": 0.8254686489980607,
+      "macro_f1": 0.40701173372763194,
+      "macro_f1_labels": [
+        "1+1+3",
+        "1+31",
+        "10R",
+        "10i",
+        "2+3",
+        "3D",
+        "4R1",
+        "4R2",
+        "5R1",
+        "5R2",
+        "5R3",
+        "6R",
+        "6i",
+        "7C",
+        "7D2",
+        "7i",
+        "8D",
+        "8R",
+        "9R",
+        "9i",
+        "UNK"
+      ],
+      "mean_log_likelihood_bits": -1.3927589165588812
+    }
+  },
+  "configuration": {
+    "manifest": "data/processed/rq1_folds/manifest.json",
+    "evaluation_config": "config/rq1_evaluation_lstm.json",
+    "output_directory": "data/results/rq1_lstm_reproduction",
+    "report": "reports/rq1_lstm_reproduction.md",
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "embedding_dim": 32,
+    "hidden_dim": 64,
+    "num_layers": 2,
+    "dropout_rate": 0.05,
+    "learning_rate": 0.001,
+    "batch_size": 16,
+    "max_epochs": 300,
+    "patience": 10
+  },
+  "versions": {
+    "numpy": "2.4.2",
+    "torch": "2.5.1+cpu"
+  },
+  "input_sha256": {
+    "data\\processed\\rq1_targets.jsonl": "5fbf54dae03b3e290e1622599cc5ed644e4740f303c77dda33f3e6a7185fcae2",
+    "data\\processed\\rq1_folds\\manifest.json": "2ab9020a195437766a38c02f66f426f6778b83d7916462270e9c554522c012ef",
+    "config\\rq1_lstm_reproduction.json": "13281d91c631bd7b327b36bdc5b73557abf388bc69711a283b81555d6df3db84"
+  }
+}

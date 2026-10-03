@@ -233,3 +233,13 @@ above remain unresolved. Hard boundaries may truncate real exchanges; local
 caller codes may not track identities perfectly. Claims must be conditional on
 these assumptions and evaluated with the provided threshold and focal-subset
 sensitivity analyses. No author message has been sent.
+
+## Pair-category missingness audit
+
+Recomputed from all 3,933 Assayag source rows on 2026-09-23, using the configured missing tokens: 2,425 have no `pair_category`, and 1,508 are labelled. Among unlabelled codas, 1,597/2,425 (65.9%, approximately 66%) are non-focal; among labelled codas, 756/1,508 (50.1%, approximately 50%) are non-focal. All 157 rows with missing `Focal` are unlabelled.
+
+Missing pair labels are therefore associated with focal status. Turn category is derived from event timing and caller order; missing `pair_category` alone is not grounds for removing codas. Existing dyadic-exchange and timing eligibility rules still apply.
+
+## Sharma long-coda flag
+
+`long_coda` records whether source `nClicks > 10`; null means the count is missing or invalid. It is present in `codas_normalized_rq2.jsonl`, `rq2_targets`, and `rq2_comparison`. This diagnostic flag does not filter rows or enter model inputs. The generated RQ2 report gives source, retained, and comparison-target counts so later sensitivity analyses can distinguish their populations.

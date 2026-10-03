@@ -45,5 +45,8 @@
       "gap_s",
       "overlap_elapsed_s"
     ]
-  }
+  },
+  "unk_min_count": 2,
+  "unk_token": "UNK",
+  "unk_smoothing_alpha": 1.0
 }

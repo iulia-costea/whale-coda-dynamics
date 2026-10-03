@@ -1,0 +1,9 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "predictions": "data/results/rq1_lstm_residual/predictions.jsonl",
+  "output_directory": "data/results/rq1_lstm_residual/evaluation",
+  "seeds": [42, 43, 44, 45, 46],
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95
+}

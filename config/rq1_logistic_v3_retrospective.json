@@ -1,0 +1,14 @@
+{
+  "manifest": "data/processed/rq1_folds_retrospective/manifest.json",
+  "evaluation_config": "config/rq1_evaluation_v3_retrospective.json",
+  "output_directory": "data/results/rq1_logistic_v3_retrospective",
+  "report": "reports/rq1_retrospective_sensitivity_v3.md",
+  "compare_against": "data/results/rq1_logistic_v3/evaluation/summary.json",
+  "sensitivity": "retrospective_delay",
+  "version_label": "v3",
+  "history_order": 3,
+  "l2_grid": [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0],
+  "max_iterations": 2000,
+  "gradient_tolerance": 0.000001,
+  "seed": 42
+}

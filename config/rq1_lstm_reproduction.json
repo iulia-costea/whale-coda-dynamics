@@ -1,0 +1,15 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "evaluation_config": "config/rq1_evaluation_lstm.json",
+  "output_directory": "data/results/rq1_lstm_reproduction",
+  "report": "reports/rq1_lstm_reproduction.md",
+  "seeds": [42, 43, 44],
+  "embedding_dim": 32,
+  "hidden_dim": 64,
+  "num_layers": 2,
+  "dropout_rate": 0.05,
+  "learning_rate": 0.001,
+  "batch_size": 16,
+  "max_epochs": 300,
+  "patience": 10
+}
