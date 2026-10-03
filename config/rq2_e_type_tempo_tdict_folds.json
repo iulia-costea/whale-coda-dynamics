@@ -1,0 +1,9 @@
+{
+  "input": "data/processed/rq2_e_type_tempo_tdict_targets.jsonl",
+  "preparation_config": "config/rq1.json",
+  "expected_days": 14,
+  "validation_seed": 42,
+  "output": "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json",
+  "report": "reports/rq2_e_type_tempo_tdict_folds.md",
+  "title": "RQ2 inventory E′, guy_coda_type × tempo (tempos-dict.p cuts): leave-one-day-out folds"
+}

@@ -1,0 +1,10 @@
+{
+  "v4_config": "config/rq1_logistic_v4.json",
+  "output_directory": "data/results/rq1_logistic_v5",
+  "report": "reports/rq1_logistic_v5.md",
+  "report_title": "RQ1 logistic regression v5 (DEC-23)",
+  "headline_note": "Logistic v4 remains RQ1's headline (DEC-23; reports/rq1_logistic_v4.md). This report is the robustness line.",
+  "governing_model": "v4",
+  "reproduction_tolerance_bits": 1e-09,
+  "alpha": 0.05
+}

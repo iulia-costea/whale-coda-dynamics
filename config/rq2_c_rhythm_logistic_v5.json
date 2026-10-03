@@ -1,0 +1,10 @@
+{
+  "v4_config": "config/rq2_c_rhythm_logistic_v4.json",
+  "output_directory": "data/results/rq2_c_rhythm_logistic_v5",
+  "report": "reports/rq2_c_rhythm_logistic_v5.md",
+  "report_title": "RQ2 logistic regression v5, inventory C (DEC-23)",
+  "report_note": "Inventory C: Sharma rhythm (PLAN §7, DEC-22). Only the labels differ from RQ1: targets, folds, S, the UNK policy and the model are RQ1's. The log-likelihoods, accuracies and macro-F1 values in this report are not comparable with any other inventory's (PLAN [R2-3]); the comparison across inventories is reports/rq2_inventories_v5.md.",
+  "governing_model": "v5",
+  "reproduction_tolerance_bits": 1e-09,
+  "alpha": 0.05
+}

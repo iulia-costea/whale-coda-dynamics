@@ -3,7 +3,7 @@ import math
 import unittest
 
 from whale_coda_dynamics.evaluation import (
-    evaluate, log_likelihood_bits, repeat_switch_bits, day_bootstrap_bits, classification_metrics,
+    evaluate, log_likelihood_bits, repeat_switch_bits, day_bootstrap_bits, classification_metrics, sign_flip_p, holm,
 )
 
 
@@ -71,3 +71,101 @@ class EvaluationTests(unittest.TestCase):
         result = classification_metrics(['a', 'a', 'b'], ['a', 'b', 'b'])
         self.assertAlmostEqual(result['macro_f1'], 2/3)
         self.assertAlmostEqual(result['accuracy'], 2/3)
+
+
+class SignFlipTests(unittest.TestCase):
+    """Exact sign-flip p-values (DEC-23), every case enumerated by hand in the comments."""
+
+    def test_two_days_each_alternative(self):
+        # Sums a: +1 (1 token), b: -3 (3 tokens); T = (s_a*1 + s_b*(-3)) / 4.
+        # (+,+) -0.5 observed; (+,-) +1.0; (-,+) -1.0; (-,-) +0.5.
+        sums, n = {'a': 1.0, 'b': -3.0}, {'a': 1, 'b': 3}
+        self.assertEqual(sign_flip_p(sums, n, 'less'), 2 / 4)       # -0.5, -1.0
+        self.assertEqual(sign_flip_p(sums, n, 'greater'), 3 / 4)    # -0.5, +1.0, +0.5
+        self.assertEqual(sign_flip_p(sums, n, 'two-sided'), 4 / 4)  # every |T| >= 0.5
+        self.assertEqual(sign_flip_p(sums, n), sign_flip_p(sums, n, 'less'))
+
+    def test_ties_at_the_observed_value_count_as_extreme(self):
+        # c's sum is exactly zero, so flipping c reproduces every statistic: each value occurs twice.
+        # Values: (+,+) 4/N twice (observed), (+,-) and (-,+) 0 four times, (-,-) -4/N twice.
+        sums, n = {'a': 2.0, 'b': 2.0, 'c': 0.0}, {'a': 2, 'b': 3, 'c': 5}
+        self.assertEqual(sign_flip_p(sums, n, 'less'), 8 / 8)
+        self.assertEqual(sign_flip_p(sums, n, 'greater'), 2 / 8)
+        self.assertEqual(sign_flip_p(sums, n, 'two-sided'), 4 / 8)  # +4/N twice and -4/N twice
+        # Two equal day sums: (+,+) and (-,-) tie in absolute value with the observed +2/N.
+        self.assertEqual(sign_flip_p({'a': 1.0, 'b': 1.0}, {'a': 1, 'b': 1}, 'two-sided'), 2 / 4)
+        # A contrast that is exactly zero on every day: every assignment ties, p = 1 both ways.
+        zero = {d: 0.0 for d in 'abcd'}
+        self.assertEqual(sign_flip_p(zero, dict.fromkeys('abcd', 3), 'less'), 1.0)
+        self.assertEqual(sign_flip_p(zero, dict.fromkeys('abcd', 3), 'two-sided'), 1.0)
+
+    def test_ties_survive_floating_point_summation_order(self):
+        # Sums 0.1, 0.2, -0.3, 0.3. The observed (+,+,+,+) and (+,+,-,-) both equal 0.1 + 0.2 exactly, but
+        # left-to-right float addition gives 0.30000000000000004 and 0.3000000000000001. fsum ties them.
+        # Exact values of the doubles: c,d contribute 0 (two ways), -0.6 or +0.6; a,b contribute 0.3, -0.1, 0.1 or
+        # -0.3. At or above the observed 0.1+0.2: the two ties, then 0.6+0.3, 0.6-0.1 and 0.6+0.1 (0.6-0.3 is
+        # 0.2999999999999999611 in exact double arithmetic, below the observed 0.3000000000000000166).
+        sums, n = {'a': 0.1, 'b': 0.2, 'c': -0.3, 'd': 0.3}, dict.fromkeys('abcd', 1)
+        self.assertNotEqual(((0.1 + 0.2) - 0.3) + 0.3, ((0.1 + 0.2) + 0.3) - 0.3)
+        self.assertEqual(sign_flip_p(sums, n, 'greater'), 5 / 16)
+        self.assertEqual(sign_flip_p(sums, n, 'less'), 13 / 16)  # 16 - 5 + the 2 ties
+
+    def test_matches_exact_rational_enumeration(self):
+        # Independent check: enumerate with Fractions (the exact values of the doubles), with zero days and
+        # repeated magnitudes so that exact ties occur.
+        import itertools
+        from fractions import Fraction
+        cases = [{'a': 0.1, 'b': -0.1, 'c': 0.0, 'd': 0.7, 'e': -0.3, 'f': 0.3},
+                 {'a': -1e-17, 'b': 1e-17, 'c': 0.25, 'd': -0.25, 'e': 0.0},
+                 {'a': 0.123, 'b': -0.456, 'c': 0.789, 'd': -0.333, 'e': 0.333, 'f': -0.123, 'g': 0.0}]
+        for sums in cases:
+            n = {d: 1 + i for i, d in enumerate(sorted(sums))}
+            days = sorted(sums)
+            exact = [Fraction(sums[d]) for d in days]
+            observed = sum(exact)
+            values = [sum(s * v for s, v in zip(signs, exact)) for signs in itertools.product((1, -1), repeat=len(days))]
+            expected = {'less': sum(v <= observed for v in values), 'greater': sum(v >= observed for v in values),
+                        'two-sided': sum(abs(v) >= abs(observed) for v in values)}
+            for alternative, count in expected.items():
+                self.assertEqual(sign_flip_p(sums, n, alternative), count / len(values), (sums, alternative))
+
+    def test_all_days_negative_gives_the_smallest_p(self):
+        days = [f'd{i:02d}' for i in range(14)]
+        sums = {d: -1.0 - i for i, d in enumerate(days)}
+        n = {d: 10 + i for i, d in enumerate(days)}
+        self.assertEqual(sign_flip_p(sums, n, 'less'), 1 / 2 ** 14)
+        self.assertEqual(sign_flip_p(sums, n, 'two-sided'), 2 / 2 ** 14)
+        self.assertEqual(sign_flip_p(sums, n, 'greater'), 1.0)
+
+    def test_token_counts_only_scale_the_statistic(self):
+        sums = {'a': 0.5, 'b': -1.5, 'c': 0.7, 'd': -0.2}
+        p = sign_flip_p(sums, {'a': 1, 'b': 1, 'c': 1, 'd': 1}, 'less')
+        self.assertEqual(p, sign_flip_p(sums, {'a': 50, 'b': 3, 'c': 9, 'd': 200}, 'less'))
+        # Observed -0.5: assignments with sum <= -0.5 among the 16 (enumerated): 7.
+        self.assertEqual(p, 7 / 16)
+
+    def test_invalid_input(self):
+        for sums, n, alternative in (({}, {}, 'less'), ({'a': 1.0}, {'b': 1}, 'less'), ({'a': 1.0}, {'a': 0}, 'less'),
+                                     ({'a': float('nan')}, {'a': 1}, 'less'), ({'a': 1.0}, {'a': 1.5}, 'less'),
+                                     ({'a': 1.0}, {'a': 1}, 'smaller'),
+                                     ({str(i): 1.0 for i in range(21)}, {str(i): 1 for i in range(21)}, 'less')):
+            with self.assertRaises(ValueError):
+                sign_flip_p(sums, n, alternative)
+
+
+class HolmTests(unittest.TestCase):
+    def test_step_down_in_input_order(self):
+        # Sorted 0.005, 0.01, 0.03, 0.04 times 4, 3, 2, 1 = 0.02, 0.03, 0.06, 0.04 -> running max 0.02, 0.03, 0.06, 0.06.
+        adjusted = holm([0.01, 0.04, 0.03, 0.005])
+        for got, expected in zip(adjusted, [0.03, 0.06, 0.06, 0.02]):
+            self.assertAlmostEqual(got, expected, places=15)
+
+    def test_cap_at_one_and_ties(self):
+        self.assertEqual(holm([0.6, 0.5]), [1.0, 1.0])  # 0.5*2 = 1.0, then max(1.0, 0.6)
+        tied = holm([0.01, 0.2, 0.01])                   # 0.03, max(0.03, 0.02), max(0.03, 0.2)
+        for got, expected in zip(tied, [0.03, 0.2, 0.03]):
+            self.assertAlmostEqual(got, expected, places=15)
+        self.assertEqual(holm([]), [])
+        self.assertEqual(holm([0.04]), [0.04])
+        with self.assertRaises(ValueError):
+            holm([0.5, 1.2])

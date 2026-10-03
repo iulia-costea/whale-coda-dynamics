@@ -1,9 +1,12 @@
 import unittest
+from unittest import mock
 import numpy as np
 from scipy.optimize import check_grad
 
+from whale_coda_dynamics import logistic
 from whale_coda_dynamics.logistic import (
     Encoder, objective, fit, probabilities, repeat_distribution, last_label_index, select_l2_and_fit,
+    NonConvergenceError, nonconvergence_lines,
     is_timing_feature,
 )
 
@@ -171,3 +174,52 @@ class LogisticTests(unittest.TestCase):
         self.assertAlmostEqual(p['b'],.12)
         with self.assertRaises(ValueError):
             repeat_distribution('a',1,{'a':.5,'b':.5})
+
+
+class NonConvergedCandidateTests(unittest.TestCase):
+    """DEC-22: skip_nonconverged_candidates is opt-in; without it a failed fit stops the run as before."""
+    def setUp(self):
+        self.vocab=vocab=['a','b','UNK']
+        self.rows=[dict(coda_id=f'r{i}',Ct=vocab[(i+1)%2],A_history=[vocab[i%2]],B_history=[vocab[i%2]],
+                        turn_category='switch',gap_s=float(i%3),overlap_elapsed_s=0.0,split='train') for i in range(10)]
+        self.config=dict(history_order=1,l2_grid=[.01,.1,1.0],max_iterations=500,gradient_tolerance=1e-6)
+
+    def failing_at(self,*failing):
+        real=logistic.fit
+        def fit_or_fail(x,y,classes,config,*args,**kwargs):
+            if config['l2'] in failing:
+                raise NonConvergenceError('Optimizer did not converge: forced in test')
+            return real(x,y,classes,config,*args,**kwargs)
+        return mock.patch.object(logistic,'fit',side_effect=fit_or_fail)
+
+    def test_fit_raises_the_value_error_subclass(self):
+        x=np.array([[1.,1.],[-1.,1.],[.5,1.],[.2,-.3]]);y=np.array([0,1,0,2])
+        with self.assertRaises(NonConvergenceError):
+            fit(x,y,3,dict(l2=1e-4,max_iterations=1,gradient_tolerance=1e-12))
+        self.assertTrue(issubclass(NonConvergenceError,ValueError))
+
+    def test_default_stops_on_a_failed_candidate(self):
+        with self.failing_at(.1), self.assertRaises(NonConvergenceError):
+            select_l2_and_fit(self.rows,self.rows,self.vocab,['A_history'],self.config)
+
+    def test_opt_in_leaves_failed_candidates_out_of_selection(self):
+        config=dict(self.config,skip_nonconverged_candidates=True)
+        _,expected,_=select_l2_and_fit(self.rows,self.rows,self.vocab,['A_history'],dict(config,l2_grid=[.01,1.0]))
+        with self.failing_at(.1):
+            _,chosen,grid=select_l2_and_fit(self.rows,self.rows,self.vocab,['A_history'],config)
+        self.assertEqual([g['l2'] for g in grid],[.01,.1,1.0])
+        self.assertEqual([('nonconverged' in g) for g in grid],[False,True,False])
+        self.assertEqual(chosen['l2'],expected['l2'])
+        np.testing.assert_array_equal(chosen['w'],expected['w'])
+        with self.failing_at(.01,.1,1.0), self.assertRaises(NonConvergenceError):
+            select_l2_and_fit(self.rows,self.rows,self.vocab,['A_history'],config)
+
+    def test_report_counts_left_out_candidates_per_fold_and_condition(self):
+        ok=dict(l2=1.0,l2_s=None,validation_log_likelihood_bits=-1.0,convergence={})
+        bad=dict(l2=.01,l2_s=None,nonconverged='forced')
+        selections=[dict(fold_id='test-1',condition='A',grid=[ok,bad,bad]),dict(fold_id='test-2',condition='A',grid=[ok,ok,ok])]
+        text='\n'.join(nonconvergence_lines(selections,3,2))
+        self.assertIn('2 of the 6 did',text)
+        self.assertIn('| test-1 | A | 3 | 2 |',text)
+        self.assertNotIn('| test-2 |',text)
+        self.assertIn('No candidate failed','\n'.join(nonconvergence_lines(selections[1:],3,1)))

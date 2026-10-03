@@ -105,6 +105,145 @@ class LogisticSmokeTests(unittest.TestCase):
             box.check_outputs(self, 'out/v2_retro', 'out/v2_retro.md')
 
 
+RQ2_D = 'data/processed/rq2_d_rhythm_tempo_folds/manifest.json'
+# The RQ2 runs use one BLAS thread: OpenBLAS's default thread count is far slower on these small matrices.
+# The own-history length sweep requires one BLAS thread in every fitting process (DEC-25 runs).
+ONE_BLAS_THREAD = {'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
+
+
+@unittest.skipUnless(HAS_SCIPY, 'needs numpy and scipy (pip install ".[modeling]")')
+class Rq2SmokeTests(unittest.TestCase):
+    def test_inventory_logistic_runner(self):
+        """DEC-22: logistic v4 on an inventory's manifest, with the RQ2 report settings and no comparison run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy('data/processed/rq2_d_rhythm_tempo_targets.jsonl', RQ2_D)
+            box.evaluation('eval.json', RQ2_D, [42])
+            config = box.config('rq2.json', manifest=RQ2_D, evaluation_config='config/eval.json',
+                                output_directory='out/rq2', report='out/rq2.md', version_label='v4, inventory D',
+                                report_title='RQ2 logistic-regression reference results', report_note='Smoke note.',
+                                skip_nonconverged_candidates=True, **LOGISTIC_V2)
+            box.run('logistic', config, env=ONE_BLAS_THREAD)
+            box.check_outputs(self, 'out/rq2', 'out/rq2.md')
+            text = (box.root / 'out/rq2.md').read_text(encoding='utf-8')
+            self.assertTrue(text.startswith('# RQ2 logistic-regression reference results, v4, inventory D\n'))
+            self.assertIn('Smoke note.', text)
+            self.assertIn('| Condition | LL bits/coda | Accuracy | Macro-F1 |', text)  # no comparison columns
+            self.assertNotIn('Same fourteen leave-one-day-out folds as', text)
+            self.assertIn('rests on about 405 non-repeat codas', text)  # 1,547 targets - 1,142 repeats (PLAN [R2-0])
+            self.assertIn('reports/rq2_d_rhythm_tempo_folds.md reports UNK rates per fold', text)
+            self.assertIn('No candidate failed the convergence check', text)
+
+    def test_compare_runner(self):
+        """rq2_compare on the committed config, every inventory standing in as RQ1's logistic v4 run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(V4 + 'evaluation/summary.json', V4 + 'evaluation/scored_predictions.jsonl',
+                     V4 + 'l2_selection.jsonl', V4 + 'predictions.jsonl')
+            values = json.loads((ROOT / 'config' / 'rq2_compare.json').read_text(encoding='utf-8'))
+            for inventory in values['inventories']:
+                inventory.update(manifest=PRIMARY, results_directory=V4.rstrip('/'))
+            values.update(output_directory='out/compare', report='out/compare.md')
+            box.run('rq2_compare', box.config('compare.json', **values), env=ONE_BLAS_THREAD)
+            summary = json.loads((box.root / 'out/compare/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(len(summary['inventories']), 7)
+            for ident, inventory in summary['inventories'].items():
+                if ident != summary['reference']:
+                    for difference in inventory['share_differences_vs_reference'].values():
+                        self.assertEqual(difference['estimate'], 0.0)
+            self.assertEqual([p['excluded_targets']['both'] for p in summary['tempo_decomposition']], [31, 31])
+            self.assertIn('exploratory', (box.root / 'out/compare.md').read_text(encoding='utf-8'))
+
+    def test_partner_tempo_runner(self):
+        """DEC-24 on the committed config with one L2 value and 50 replicates: both runs and the report."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(*(f'data/processed/{name}' for name in (
+                'rq2_c_rhythm_targets.jsonl', 'rq2_c_rhythm_folds/manifest.json', 'rq2_d_rhythm_tempo_targets.jsonl',
+                RQ2_D.split('data/processed/')[1], 'rq2_e_type_tempo_targets.jsonl', 'rq2_e_type_tempo_folds/manifest.json')))
+            values = json.loads((ROOT / 'config' / 'rq2_partner_tempo.json').read_text(encoding='utf-8'))
+            for run in values['runs']:
+                run['output_directory'] = 'out/' + run['name']
+            values.update(l2_grid=[0.01], bootstrap_replicates=50, report='out/partner_tempo.md')
+            box.run('tempo_factor', box.config('partner_tempo.json', **values), env=ONE_BLAS_THREAD)
+            for name in ('rhythm', 'type'):
+                out = box.root / 'out' / name
+                summary = json.loads((out / 'evaluation/summary.json').read_text(encoding='utf-8'))
+                self.assertEqual(summary['conditions'], ['floor', 'own', 'own_T', 'own_P', 'own_S', 'own_T_P', 'own_T_S',
+                                                         'own_P_S', 'own_T_P_S'])
+                self.assertEqual(summary['comparison_targets'], 1547)
+                self.assertEqual(summary['governing_stop_rule']['model'], 'v5')
+                for model in ('own_fit', 'v5', 'v5_one_se'):
+                    self.assertEqual(len(summary['models'][model]['stop_rules']['new']['checks']), 13)
+                    self.assertEqual(set(summary['models'][model]['contrasts']),
+                                     {'partner_tempo', 'partner_pattern', 'tempo_beyond_pattern', 'pattern_beyond_tempo'})
+                self.assertGreaterEqual(summary['gates']['validation_monotonicity']['min_add_block_validation_contrast_bits'], 0.0)
+                self.assertEqual(summary['turn_category_counts'], {'overlap': 441, 'self_continuation': 461, 'switch': 645})
+                lines = (out / 'selection.jsonl').read_text(encoding='utf-8').splitlines()
+                self.assertEqual(len(lines), 14 * 8 * 2)
+                self.assertEqual(len((out / 'models.jsonl').read_text(encoding='utf-8').splitlines()), 14 * 9)
+                self.assertIn('data/processed/rq2_c_rhythm_targets.jsonl', summary['input_sha256'])
+            text = (box.root / 'out/partner_tempo.md').read_text(encoding='utf-8')
+            self.assertTrue(text.startswith('# RQ2 partner-tempo ablation (DEC-24)\n'))
+            self.assertIn('| partner type alone | own_P_S − own_S | v5 (max) |', text)
+            self.assertIn('By turn category (v5, descriptive)', text)
+
+
+V4_RUN_FILES = ('models.jsonl', 'l2_selection.jsonl', 'predictions.jsonl', 'baseline_predictions.jsonl',
+                'evaluation/summary.json', 'evaluation/scored_predictions.jsonl')
+
+
+@unittest.skipUnless(HAS_SCIPY, 'needs numpy and scipy (pip install ".[modeling]")')
+class LogisticV5SmokeTests(unittest.TestCase):
+    def test_v5_runner_retrospective_run_and_compare(self):
+        """DEC-23 on the committed RQ1 v4 runs with the committed v5 configs (no fits: v5 only reads v4's outputs),
+        then rq2_compare in v5 mode with every inventory standing in as RQ1's v5 run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy('config/rq1_logistic_v4.json', 'config/rq1_evaluation_v4.json', 'config/rq1_logistic_v5.json',
+                     'config/rq1_logistic_v4_retrospective.json', 'config/rq1_evaluation_v4_retrospective.json',
+                     'config/rq1_logistic_v5_retrospective.json',
+                     *(f'data/results/{run}/{name}' for run in ('rq1_logistic_v4', 'rq1_logistic_v4_retrospective')
+                       for name in V4_RUN_FILES))
+            box.run('logistic_v5', box.root / 'config/rq1_logistic_v5.json', env=ONE_BLAS_THREAD)
+            out = box.root / 'data/results/rq1_logistic_v5'
+            summary = box.check_outputs(self, 'data/results/rq1_logistic_v5', 'reports/rq1_logistic_v5.md')
+            self.assertFalse((out / 'predictions.jsonl').exists())  # rebuilt from selection.jsonl, never written
+            selection = [json.loads(line) for line in (out / 'selection.jsonl').read_text(encoding='utf-8').splitlines()]
+            self.assertEqual(len(selection), 14 * 8 * 2)
+            self.assertEqual(summary['gates']['reproduction']['fits'], 14 * 8)
+            self.assertLessEqual(summary['gates']['reproduction']['max_abs_validation_difference_bits'], 1e-9)
+            self.assertGreaterEqual(summary['gates']['validation_monotonicity']['min_add_input_validation_contrast_bits'], 0.0)
+            self.assertEqual(summary['governing_stop_rule']['model'], 'v4')
+            self.assertEqual({len(summary['stop_rules'][m]['new']['checks']) for m in ('v4', 'v5', 'v5_one_se')}, {16})
+            # Condition none has one candidate, the prior, so v5's none is v4's none exactly.
+            v4 = json.loads((box.root / V4 / 'evaluation/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(summary['metrics']['none'], v4['metrics']['none'])
+            text = (box.root / 'reports/rq1_logistic_v5.md').read_text(encoding='utf-8')
+            self.assertTrue(text.startswith("# RQ1 logistic regression v5 (DEC-23)\n\n**Logistic v4 remains RQ1's headline"))
+            self.assertIn('Two-sided sign-flip p', text)
+            # The old-delay run checks that its conditions without S equal the primary v5 run's.
+            box.run('logistic_v5', box.root / 'config/rq1_logistic_v5_retrospective.json', env=ONE_BLAS_THREAD)
+            self.assertIn('Primary timing vs the old delay, v5',
+                          (box.root / 'reports/rq1_retrospective_sensitivity_v5.md').read_text(encoding='utf-8'))
+            values = json.loads((ROOT / 'config' / 'rq2_compare_v5.json').read_text(encoding='utf-8'))
+            for inventory in values['inventories']:
+                inventory.update(manifest=PRIMARY, results_directory='data/results/rq1_logistic_v5',
+                                 v4_results_directory=V4.rstrip('/'))
+            values.update(output_directory='out/compare_v5', report='out/compare_v5.md')
+            box.run('rq2_compare', box.config('compare_v5.json', **values), env=ONE_BLAS_THREAD)
+            compared = json.loads((box.root / 'out/compare_v5/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(compared['model'], 'logistic v5 (DEC-23)')
+            for ident, inventory in compared['inventories'].items():
+                if ident != compared['reference']:
+                    for difference in inventory['share_differences_vs_reference'].values():
+                        self.assertEqual(difference['estimate'], 0.0)
+            self.assertEqual([p['excluded_targets']['both'] for p in compared['tempo_decomposition']], [31, 31, 31])
+            report = (box.root / 'out/compare_v5.md').read_text(encoding='utf-8')
+            self.assertIn('logistic v5 (DEC-22, DEC-23)', report)
+            self.assertIn('tempo-boundary sensitivity', report)
+
+
 @unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
 class NeuralSmokeTests(unittest.TestCase):
     def test_lstm_runner(self):
@@ -246,8 +385,6 @@ class ResidualSmokeTests(unittest.TestCase):
             self.assertTrue((box.root / 'out/planted.md').read_text(encoding='utf-8').strip())
 
 
-# The own-history length sweep requires one BLAS thread in every fitting process (DEC-25 runs).
-ONE_BLAS_THREAD = {'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
 PLANTED_SCORES = 'data/results/rq1_lstm_residual_planted/scores.jsonl'
 
 

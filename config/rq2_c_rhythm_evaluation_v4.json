@@ -1,0 +1,11 @@
+{
+  "manifest": "data/processed/rq2_c_rhythm_folds/manifest.json",
+  "predictions": "data/results/rq2_c_rhythm_logistic_v4/predictions.jsonl",
+  "output_directory": "data/results/rq2_c_rhythm_logistic_v4/evaluation",
+  "seeds": [
+    42
+  ],
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95
+}

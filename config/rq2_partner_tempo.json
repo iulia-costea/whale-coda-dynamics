@@ -1,0 +1,50 @@
+{
+  "report": "reports/rq2_partner_tempo.md",
+  "report_title": "RQ2 partner-tempo ablation (DEC-24)",
+  "reference_manifest": "data/processed/rq1_folds/manifest.json",
+  "tempo_classes": [
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4"
+  ],
+  "runs": [
+    {
+      "name": "rhythm",
+      "role": "primary",
+      "pattern_label": "rhythm",
+      "manifest": "data/processed/rq2_d_rhythm_tempo_folds/manifest.json",
+      "pattern_manifest": "data/processed/rq2_c_rhythm_folds/manifest.json",
+      "output_directory": "data/results/rq2_partner_tempo"
+    },
+    {
+      "name": "type",
+      "role": "secondary",
+      "pattern_label": "type",
+      "manifest": "data/processed/rq2_e_type_tempo_folds/manifest.json",
+      "pattern_manifest": "data/processed/rq1_folds/manifest.json",
+      "output_directory": "data/results/rq2_partner_tempo_type"
+    }
+  ],
+  "skip_nonconverged_candidates": true,
+  "history_order": 3,
+  "l2_grid": [
+    0.0001,
+    0.0003,
+    0.001,
+    0.003,
+    0.01,
+    0.03,
+    0.1,
+    0.3,
+    1.0
+  ],
+  "max_iterations": 2000,
+  "gradient_tolerance": 1e-06,
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95,
+  "alpha": 0.05,
+  "governing_model": "v5"
+}

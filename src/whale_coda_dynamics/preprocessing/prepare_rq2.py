@@ -165,6 +165,10 @@ def run(config_path):
     write_table(output / "rq2_comparison", comparison)
     write_table(output / "rq2_day_splits", [{"recording_date": day, "split": splits[day]} for day in sorted(splits)])
     write_text(output / "rq2_label_prior.json", json.dumps(unk, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
+    # This pipeline's own files only: the RQ2 token inventories (DEC-22) also write rq2_* files to data/processed.
+    artifacts = [output / f"rq2_{stem}.{ext}" for stem in ("targets", "comparison", "day_splits") for ext in ("csv", "jsonl")]
+    artifacts += [output / "rq2_label_prior.json"]
+    artifacts += [root / ec["output_directory"] / f"rq2_exchange_{kind}.jsonl" for kind in ("assignments", "segments")]
     report = {"configuration": config, "exchange_configuration": ec,
               "source_sha256": exchange_report["source_sha256"], "raw_codas": exchange_report["audit"]["row_count"],
               "retained_target_rows": len(features), "comparison_targets": len(comparison),
@@ -172,7 +176,7 @@ def run(config_path):
               "strict_focal_comparison_targets": sum(r["strict_focal_subset"] for r in comparison),
               "splits": stats, "unk": unk,
               "validation": "passed: coverage, history timing/identity/order, target alignment, deployment/recording/exchange separation",
-              "artifact_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(output.glob("rq2_*")) if p.is_file()}}
+              "artifact_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(artifacts, key=lambda p: p.name)}}
     lines = ["# RQ2 preparation (Sharma, Gero, Payne, et al. rhythm/tempo labeling)", "",
              "Mirrors reports/rq1.md's structure and reuses RQ1's exchange grouping, feature construction, split",
              "assignment, and validation logic unchanged. See the Deviations section below before comparing counts",

@@ -15,6 +15,23 @@ from .preprocessing.folds import prepare_fold
 from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 
 
+def feature_names(fields, vocabulary, categories, order, history_orders=None):
+    """Encoder's column names, in column order (the intercept, appended by transform, is unnamed).
+    `order` lags per history field, unless `history_orders` gives that field its own count (as in Encoder)."""
+    history_orders = history_orders or {}
+    names = []
+    for f in fields:
+        if f.endswith('_history'):
+            names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, history_orders.get(f, order)+1) for label in vocabulary)
+        elif f == 'turn_category':
+            names.extend('turn:'+c for c in categories)
+        elif f == 'retrospective_delay_s':
+            names.append(f)
+        else:
+            names.extend([f, 'log1p:'+f])
+    return names
+
+
 class Encoder:
     """Lag one-hot vectors; raw and log1p timing, each standardized on train.
 
@@ -30,22 +47,32 @@ class Encoder:
             raise ValueError('Invalid per-field history order')
         self.vocabulary, self.fields, self.order = vocabulary, fields, order
         self.history_orders = history_orders
-        self.names = []
         self.categories = sorted({r['turn_category'] for r in train}) if 'turn_category' in fields else []
-        for f in fields:
-            if f.endswith('_history'):
-                self.names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, self.lags(f)+1) for label in vocabulary)
-            elif f == 'turn_category':
-                self.names.extend('turn:'+c for c in self.categories)
-            elif f == 'retrospective_delay_s':
-                self.names.append(f)
-            else:
-                self.names.extend([f, 'log1p:'+f])
+        self.names = feature_names(fields, vocabulary, self.categories, order, history_orders)
         x = self.raw(train)
         self.mean, self.scale = np.zeros(x.shape[1]), np.ones(x.shape[1])
         for j, name in enumerate(self.names):
             if name in ('gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s'):
                 self.mean[j], self.scale[j] = x[:, j].mean(), x[:, j].std() or 1.0
+
+    @classmethod
+    def from_record(cls, record):
+        """The encoder of a stored fit (a models.jsonl row of v2-v4), from its stored vocabulary, fields,
+        order, per-field orders (DEC-25; absent in rows that predate them), turn categories and
+        standardisation; nothing is refitted. The stored feature names must be exactly the names those
+        settings produce."""
+        encoder = cls.__new__(cls)
+        encoder.vocabulary, encoder.fields, encoder.order = record['vocabulary'], record['fields'], record['order']
+        encoder.history_orders = dict(record.get('history_orders', {}))
+        encoder.categories = record['categories']
+        encoder.names = feature_names(encoder.fields, encoder.vocabulary, encoder.categories, encoder.order,
+                                      encoder.history_orders)
+        encoder.mean = np.asarray(record['mean'], dtype=float)
+        encoder.scale = np.asarray(record['scale'], dtype=float)
+        if (encoder.names + ['intercept'] != record['feature_names'] or encoder.mean.shape != (len(encoder.names),)
+                or encoder.scale.shape != (len(encoder.names),)):
+            raise ValueError(f"Stored encoder is inconsistent ({record.get('fold_id')}, {record.get('condition')})")
+        return encoder
 
     def lags(self, field):
         return self.history_orders.get(field, self.order)
@@ -138,6 +165,11 @@ def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=No
     return loss, np.concatenate(grad)
 
 
+class NonConvergenceError(ValueError):
+    """fit()'s convergence check failed. A ValueError, so callers that do not opt in to skipping
+    non-converged candidates (`skip_nonconverged_candidates`, DEC-22) stop exactly as before."""
+
+
 def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None, l2_vector=None):
     # Penalize intercepts too, making absent target classes (including UNK)
     # well-defined and finite without synthetic targets or post-hoc clipping.
@@ -151,7 +183,7 @@ def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None, l2_vect
                       'gtol': config['gradient_tolerance'], 'ftol': 1e-14})
     gradient = float(np.max(np.abs(result.jac)))
     if not result.success or gradient > 10*config['gradient_tolerance']:
-        raise ValueError(f'Optimizer did not converge: {result.message}; gradient={gradient}')
+        raise NonConvergenceError(f'Optimizer did not converge: {result.message}; gradient={gradient}')
     w, beta, gamma = _unpack(result.x, n_features, classes, own_last_idx, partner_last_idx)
     return w, beta, gamma, {'iterations': int(result.nit), 'max_gradient': gradient}
 
@@ -174,7 +206,9 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     here, so it is structurally impossible for test data to influence selection.
     DEC-20: when the condition includes S, history and S get separate penalties,
     chosen jointly from the same grid (a 2D search); conditions without S keep
-    the original single-penalty 1D search, unchanged."""
+    the original single-penalty 1D search, unchanged. With `skip_nonconverged_candidates` set (off by
+    default; on only in the RQ2 inventory runs, DEC-22), a candidate whose fit fails the convergence check
+    is recorded and left out of the selection; if every candidate fails, NonConvergenceError is raised."""
     encoder = Encoder(train, vocab, fields, config['history_order'], config.get('history_orders'))
     x_train, x_val = encoder.transform(train), encoder.transform(validation)
     y_train = np.array([vocab.index(r['Ct']) for r in train])
@@ -184,20 +218,41 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     own_val = last_label_index(validation, 'A_history', vocab) if 'A_history' in fields else None
     partner_val = last_label_index(validation, 'B_history', vocab) if 'B_history' in fields else None
     timing_mask = np.array([is_timing_feature(name) for name in encoder.names] + [False])  # intercept -> history
+    chosen, grid = grid_search_l2(x_train, y_train, x_val, y_val, len(vocab), timing_mask, config,
+                                  own_train, partner_train, own_val, partner_val)
+    return encoder, chosen, grid
+
+
+def grid_search_l2(x_train, y_train, x_val, y_val, classes, timing_mask, config,
+                   own_train=None, partner_train=None, own_val=None, partner_val=None):
+    """select_l2_and_fit's validation-day penalty search on encoded matrices, shared with other model
+    families that keep v4's rule (DEC-24). `timing_mask` marks the S columns (the intercept is history):
+    with any S column, history and S penalties are searched jointly over the grid (DEC-20), otherwise one
+    penalty. Ties go to the larger value on each axis. Returns the chosen candidate and the whole grid."""
+    skip_nonconverged = config.get('skip_nonconverged_candidates', False)
     has_timing = bool(timing_mask.any())
     s_axis = config['l2_grid'] if has_timing else [None]
     grid = []
     for l2_history in config['l2_grid']:
         for l2_s in s_axis:
             l2_vector = np.where(timing_mask, l2_s, l2_history) if has_timing else None
-            w, beta, gamma, convergence = fit(x_train, y_train, len(vocab), dict(config, l2=l2_history),
-                                              own_train, partner_train, l2_vector=l2_vector)
+            try:
+                w, beta, gamma, convergence = fit(x_train, y_train, classes, dict(config, l2=l2_history),
+                                                  own_train, partner_train, l2_vector=l2_vector)
+            except NonConvergenceError as error:
+                if not skip_nonconverged:
+                    raise
+                grid.append(dict(l2=l2_history, l2_s=l2_s, nonconverged=str(error)))
+                continue
             p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
-            val_ll = float(np.mean(np.log2(p_val[np.arange(len(validation)), y_val])))
+            val_ll = float(np.mean(np.log2(p_val[np.arange(len(y_val)), y_val])))
             grid.append(dict(l2=l2_history, l2_s=l2_s, validation_log_likelihood_bits=val_ll,
                             w=w, beta=beta, gamma=gamma, convergence=convergence))
-    chosen = max(grid, key=lambda g: (g['validation_log_likelihood_bits'], g['l2'], g['l2_s'] or 0))
-    return encoder, chosen, grid
+    converged = [g for g in grid if 'nonconverged' not in g]
+    if not converged:
+        raise NonConvergenceError(f'All {len(grid)} L2 candidates failed the convergence check')
+    chosen = max(converged, key=lambda g: (g['validation_log_likelihood_bits'], g['l2'], g['l2_s'] or 0))
+    return chosen, grid
 
 
 def repeat_distribution(last, rate, prior):
@@ -438,7 +493,12 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config):
             if condition == 'none':
                 p = np.array([[prior[t] for t in vocab]]*len(test))
             else:
-                encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config)
+                try:
+                    encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config)
+                except NonConvergenceError as error:
+                    if not config.get('skip_nonconverged_candidates', False):
+                        raise
+                    raise NonConvergenceError(f"{fold['fold_id']}, condition {condition}: {error}") from error
                 own_test = last_label_index(test, 'A_history', vocab) if 'A_history' in fields else None
                 partner_test = last_label_index(test, 'B_history', vocab) if 'B_history' in fields else None
                 p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test)
@@ -453,8 +513,9 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config):
                                    chosen_l2_s=chosen['l2_s']))
                 selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
                                        chosen_l2_s=chosen['l2_s'],
-                                       grid=[dict(l2=g['l2'],l2_s=g['l2_s'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
-                                                 convergence=g['convergence']) for g in grid]))
+                                       grid=[dict(l2=g['l2'],l2_s=g['l2_s'],nonconverged=g['nonconverged']) if 'nonconverged' in g else
+                                             dict(l2=g['l2'],l2_s=g['l2_s'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
+                                                  convergence=g['convergence']) for g in grid]))
             for row, probs in zip(test,p):
                 predictions.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],condition=condition,
                                         seed=config['seed'],probabilities=dict(zip(vocab,map(float,probs)))))
@@ -537,35 +598,79 @@ def run_v2_sensitivity(config_path):
     return summary, stop_reasons
 
 
+def nonconvergence_lines(selections, grid_n, selected):
+    """DEC-22's opt-in skip_nonconverged_candidates: how many L2 candidates failed fit()'s convergence
+    check and were left out of the validation-day selection, per fold and condition."""
+    total = sum(len(s['grid']) for s in selections)
+    failed = [(s['fold_id'], s['condition'], len(s['grid']), sum('nonconverged' in g for g in s['grid'])) for s in selections]
+    failed = [f for f in failed if f[3]]
+    lines = [f"{total} fits were run, across {len({s['fold_id'] for s in selections})} folds and "
+             f"{len({s['condition'] for s in selections})} non-unigram conditions: conditions without S search "
+             f"{grid_n} history L2 values, conditions with S jointly search {grid_n} history values times {grid_n} "
+             "S values (DEC-20). With skip_nonconverged_candidates on (DEC-22), a candidate that fails fit()'s "
+             "convergence check is left out of the validation-day selection; "
+             f"{sum(f[3] for f in failed)} of the {total} did, and every selected model converged. Full "
+             "per-grid-value convergence is in l2_selection.jsonl; the "
+             f"{selected} selected models' convergence is in convergence.jsonl."]
+    if failed:
+        lines += ['', '| Fold | Condition | Candidates | Not converged, left out |', '|---|---|---:|---:|']
+        lines += [f"| {fold} | {condition} | {n} | {k} |" for fold, condition, n, k in failed]
+    else:
+        lines += ['', 'No candidate failed the convergence check in any fold or condition.']
+    return lines
+
+
 def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, models, selections, diagnostics,
                     stop_reasons, v1_summary, version_label='v2', compare_label='v1'):
+    """Without compare_against (v1_summary is None, as in the RQ2 inventory runs, whose log-likelihoods
+    are comparable with no other run's) the comparison columns and sentences are left out. Optional
+    config keys: report_title, report_note (appended to the opening paragraph when nothing is compared)."""
     conditions = list(summary['metrics'])
-    lines = [f'# RQ1 logistic-regression reference results, {version_label}', '',
-             f"Same fourteen leave-one-day-out folds as {compare_label}. Conditions containing A get a shared "
+    compare = v1_summary is not None
+    title = config.get('report_title', 'RQ1 logistic-regression reference results')
+    folds_report = read_json(root / config['manifest'])['configuration']['report']
+    non_repeats = summary['comparison_targets'] - summary['raw_repeats']
+    model = ("Conditions containing A get a shared "
              "scalar added to the logit of the class matching the whale's own last coda, and conditions containing "
              "B get a shared scalar added to the logit of the class matching the partner's last coda, both "
              "penalized by the same L2 as every other weight. L2 itself is chosen per fold and condition from "
              f"{config['l2_grid']} by the highest mean log-likelihood on that fold's validation day (ties go to "
              "the larger value), then the model trained on the training days only is scored on the test day, with "
-             f"no refit on train plus validation. Bootstrap replicates are 10,000. Preprocessing, folds, the UNK "
-             f"policy and the S definition are unchanged; {compare_label} results are kept for comparison, not "
-             "overwritten.", '']
+             "no refit on train plus validation. Bootstrap replicates are 10,000.")
+    if compare:
+        intro = (f"Same fourteen leave-one-day-out folds as {compare_label}. {model} Preprocessing, folds, the UNK "
+                 f"policy and the S definition are unchanged; {compare_label} results are kept for comparison, not "
+                 "overwritten.")
+    else:
+        intro = f"Fourteen leave-one-day-out folds (`{config['manifest']}`). {model}"
+        if config.get('report_note'):
+            intro += f" {config['report_note']}"
+    lines = [f'# {title}, {version_label}', '', intro, '']
 
-    lines += [f'## Metrics, {compare_label} vs {version_label}', '',
-             f'| Condition | {compare_label} LL bits/coda | {version_label} LL bits/coda | {compare_label} Accuracy '
-             f'| {version_label} Accuracy | {compare_label} Macro-F1 | {version_label} Macro-F1 |',
-             '|---|---:|---:|---:|---:|---:|---:|']
-    for c in conditions:
-        v1m = v1_summary['metrics'][c] if v1_summary else None
-        v2m = summary['metrics'][c]
-        v1ll = f"{v1m['mean_log_likelihood_bits']:.5f}" if v1m else 'n/a'
-        v1acc = f"{v1m['accuracy']:.3%}" if v1m else 'n/a'
-        v1f1 = f"{v1m['macro_f1']:.4f}" if v1m else 'n/a'
-        lines.append(f"| {c} | {v1ll} | {v2m['mean_log_likelihood_bits']:.5f} | {v1acc} | {v2m['accuracy']:.3%} | "
-                     f"{v1f1} | {v2m['macro_f1']:.4f} |")
-    for c, m in baseline_metrics.items():
-        ll = f"{m['mean_log_likelihood_bits']:.5f}" if 'mean_log_likelihood_bits' in m else 'n/a'
-        lines.append(f"| {c} | {ll} | {ll} | {m['accuracy']:.3%} | {m['accuracy']:.3%} | {m['macro_f1']:.4f} | {m['macro_f1']:.4f} |")
+    if not compare:
+        lines += [f'## Metrics, {version_label}', '', '| Condition | LL bits/coda | Accuracy | Macro-F1 |', '|---|---:|---:|---:|']
+        for c in conditions:
+            m = summary['metrics'][c]
+            lines.append(f"| {c} | {m['mean_log_likelihood_bits']:.5f} | {m['accuracy']:.3%} | {m['macro_f1']:.4f} |")
+        for c, m in baseline_metrics.items():
+            ll = f"{m['mean_log_likelihood_bits']:.5f}" if 'mean_log_likelihood_bits' in m else 'n/a'
+            lines.append(f"| {c} | {ll} | {m['accuracy']:.3%} | {m['macro_f1']:.4f} |")
+    else:
+        lines += [f'## Metrics, {compare_label} vs {version_label}', '',
+                 f'| Condition | {compare_label} LL bits/coda | {version_label} LL bits/coda | {compare_label} Accuracy '
+                 f'| {version_label} Accuracy | {compare_label} Macro-F1 | {version_label} Macro-F1 |',
+                 '|---|---:|---:|---:|---:|---:|---:|']
+        for c in conditions:
+            v1m = v1_summary['metrics'][c] if v1_summary else None
+            v2m = summary['metrics'][c]
+            v1ll = f"{v1m['mean_log_likelihood_bits']:.5f}" if v1m else 'n/a'
+            v1acc = f"{v1m['accuracy']:.3%}" if v1m else 'n/a'
+            v1f1 = f"{v1m['macro_f1']:.4f}" if v1m else 'n/a'
+            lines.append(f"| {c} | {v1ll} | {v2m['mean_log_likelihood_bits']:.5f} | {v1acc} | {v2m['accuracy']:.3%} | "
+                         f"{v1f1} | {v2m['macro_f1']:.4f} |")
+        for c, m in baseline_metrics.items():
+            ll = f"{m['mean_log_likelihood_bits']:.5f}" if 'mean_log_likelihood_bits' in m else 'n/a'
+            lines.append(f"| {c} | {ll} | {ll} | {m['accuracy']:.3%} | {m['accuracy']:.3%} | {m['macro_f1']:.4f} | {m['macro_f1']:.4f} |")
 
     lines += ['', '## Chosen L2 per condition (DEC-20: history and S penalties chosen separately)', '',
              '| Condition | History min | History median | History max | History at grid edge | S min | S median | S max | S at grid edge |',
@@ -604,23 +709,33 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
         gmin, gmax = (f"{min(gammas):.4f}", f"{max(gammas):.4f}") if gammas else ('n/a', 'n/a')
         lines.append(f"| {c} | {bmin} | {bmax} | {gmin} | {gmax} |")
 
-    lines += ['', f'## A-conditions vs repeat-own-last, {compare_label} vs {version_label}', '',
-             f"Repeat-own-last: {baseline_metrics['repeat_own_last']['accuracy']:.3%} accuracy, "
-             f"{baseline_metrics['repeat_own_last']['macro_f1']:.4f} macro-F1, "
-             f"{baseline_metrics['repeat_own_last']['mean_log_likelihood_bits']:.5f} bits/coda.", '',
-             f'| Condition | {compare_label} LL contrast | {compare_label} CI | {compare_label} +days | '
-             f'{version_label} LL contrast | {version_label} CI | {version_label} +days | {version_label} Accuracy '
-             f'| {version_label} Macro-F1 |',
-             '|---|---:|---|---:|---:|---|---:|---:|---:|']
-    for c in ('A', 'A_B', 'A_S', 'A_B_S'):
-        v1c = v1_summary['repeat_baseline_checks'][c] if v1_summary else None
-        v2c = baseline_checks[c]
-        v1mean = f"{v1c['mean_bits_per_coda']:.5f}" if v1c else 'n/a'
-        v1ci = format_ci(v1c['ci_bits_per_coda']) if v1c else 'n/a'
-        v1days = f"{v1c['positive_days']}/{v1c['days']}" if v1c else 'n/a'
-        lines.append(f"| {c} | {v1mean} | {v1ci} | {v1days} | {v2c['mean_bits_per_coda']:.5f} | {format_ci(v2c['ci_bits_per_coda'])} | "
-                     f"{v2c['positive_days']}/{v2c['days']} | {summary['metrics'][c]['accuracy']:.3%} | "
-                     f"{summary['metrics'][c]['macro_f1']:.4f} |")
+    repeat = (f"Repeat-own-last: {baseline_metrics['repeat_own_last']['accuracy']:.3%} accuracy, "
+              f"{baseline_metrics['repeat_own_last']['macro_f1']:.4f} macro-F1, "
+              f"{baseline_metrics['repeat_own_last']['mean_log_likelihood_bits']:.5f} bits/coda.")
+    if not compare:
+        lines += ['', f'## A-conditions vs repeat-own-last, {version_label}', '', repeat, '',
+                 '| Condition | LL contrast | CI | +days | Accuracy | Macro-F1 |', '|---|---:|---|---:|---:|---:|']
+        for c in ('A', 'A_B', 'A_S', 'A_B_S'):
+            check = baseline_checks[c]
+            lines.append(f"| {c} | {check['mean_bits_per_coda']:.5f} | {format_ci(check['ci_bits_per_coda'])} | "
+                         f"{check['positive_days']}/{check['days']} | {summary['metrics'][c]['accuracy']:.3%} | "
+                         f"{summary['metrics'][c]['macro_f1']:.4f} |")
+    else:
+        lines += ['', f'## A-conditions vs repeat-own-last, {compare_label} vs {version_label}', '',
+                 repeat, '',
+                 f'| Condition | {compare_label} LL contrast | {compare_label} CI | {compare_label} +days | '
+                 f'{version_label} LL contrast | {version_label} CI | {version_label} +days | {version_label} Accuracy '
+                 f'| {version_label} Macro-F1 |',
+                 '|---|---:|---|---:|---:|---|---:|---:|---:|']
+        for c in ('A', 'A_B', 'A_S', 'A_B_S'):
+            v1c = v1_summary['repeat_baseline_checks'][c] if v1_summary else None
+            v2c = baseline_checks[c]
+            v1mean = f"{v1c['mean_bits_per_coda']:.5f}" if v1c else 'n/a'
+            v1ci = format_ci(v1c['ci_bits_per_coda']) if v1c else 'n/a'
+            v1days = f"{v1c['positive_days']}/{v1c['days']}" if v1c else 'n/a'
+            lines.append(f"| {c} | {v1mean} | {v1ci} | {v1days} | {v2c['mean_bits_per_coda']:.5f} | {format_ci(v2c['ci_bits_per_coda'])} | "
+                         f"{v2c['positive_days']}/{v2c['days']} | {summary['metrics'][c]['accuracy']:.3%} | "
+                         f"{summary['metrics'][c]['macro_f1']:.4f} |")
 
     lines += ['', f'## All twelve add-one-input contrasts ({version_label})', '',
              '| Pair | Weighted mean | Unweighted day mean | 95% CI | Positive days |', '|---|---:|---:|---|---:|']
@@ -628,26 +743,39 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
         lines.append(f"| adding {d['added']} to {describe(d['base'])} | {d['mean']:.5f} | {d['unweighted_mean']:.5f} | "
                      f"{format_ci([d['low'], d['high']])} | {d['positive_days']}/{d['days']} |")
 
-    lines += ['', f'## Main contrasts, {compare_label} vs {version_label}', '',
-             f'| Contrast | {compare_label} bits/coda | {version_label} bits/coda | {version_label} unweighted | '
-             f'{version_label} CI | {version_label} +days | {version_label} Repeat part | {version_label} Switch part |',
-             '|---|---:|---:|---:|---|---:|---:|---:|']
-    for name in ('own_history', 'partner_content', 'timing'):
-        v1a = v1_summary['contrasts'][name]['components']['log_likelihood_bits'] if v1_summary else None
-        comp = summary['contrasts'][name]['components']; a = comp['log_likelihood_bits']
-        v1txt = f"{v1a['mean_bits_per_coda']:.5f}" if v1a else 'n/a'
-        lines.append(f"| {name} | {v1txt} | {a['mean_bits_per_coda']:.5f} | {a['unweighted_mean_bits_per_coda']:.5f} | "
-                     f"{format_ci(a['ci_bits_per_coda'])} | {a['positive_days']}/{a['days']} | "
-                     f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
+    if not compare:
+        lines += ['', f'## Main contrasts, {version_label}', '',
+                 '| Contrast | bits/coda | Unweighted | CI | +days | Repeat part | Switch part |',
+                 '|---|---:|---:|---|---:|---:|---:|']
+        for name in ('own_history', 'partner_content', 'timing'):
+            comp = summary['contrasts'][name]['components']; a = comp['log_likelihood_bits']
+            lines.append(f"| {name} | {a['mean_bits_per_coda']:.5f} | {a['unweighted_mean_bits_per_coda']:.5f} | "
+                         f"{format_ci(a['ci_bits_per_coda'])} | {a['positive_days']}/{a['days']} | "
+                         f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
+    else:
+        lines += ['', f'## Main contrasts, {compare_label} vs {version_label}', '',
+                 f'| Contrast | {compare_label} bits/coda | {version_label} bits/coda | {version_label} unweighted | '
+                 f'{version_label} CI | {version_label} +days | {version_label} Repeat part | {version_label} Switch part |',
+                 '|---|---:|---:|---:|---|---:|---:|---:|']
+        for name in ('own_history', 'partner_content', 'timing'):
+            v1a = v1_summary['contrasts'][name]['components']['log_likelihood_bits'] if v1_summary else None
+            comp = summary['contrasts'][name]['components']; a = comp['log_likelihood_bits']
+            v1txt = f"{v1a['mean_bits_per_coda']:.5f}" if v1a else 'n/a'
+            lines.append(f"| {name} | {v1txt} | {a['mean_bits_per_coda']:.5f} | {a['unweighted_mean_bits_per_coda']:.5f} | "
+                         f"{format_ci(a['ci_bits_per_coda'])} | {a['positive_days']}/{a['days']} | "
+                         f"{comp['repeat_bits']['mean_bits_per_coda']:.5f} | {comp['switch_choice_bits']['mean_bits_per_coda']:.5f} |")
 
     total_fits = sum(len(s['grid']) for s in selections)
     grid_n = len(config['l2_grid'])
-    lines += ['', f"All {total_fits} fits converged, across {len({s['fold_id'] for s in selections})} folds and "
-             f"{len({s['condition'] for s in selections})} non-unigram conditions: conditions without S search "
-             f"{grid_n} history L2 values, conditions with S jointly search {grid_n} history values times {grid_n} "
-             "S values (DEC-20). fit() raises immediately on non-convergence, so reaching this report already "
-             "confirms it. Full per-grid-value convergence is in l2_selection.jsonl; the "
-             f"{len(diagnostics)} selected models' convergence is in convergence.jsonl.", '']
+    if config.get('skip_nonconverged_candidates', False):
+        lines += [''] + nonconvergence_lines(selections, grid_n, len(diagnostics)) + ['']
+    else:
+        lines += ['', f"All {total_fits} fits converged, across {len({s['fold_id'] for s in selections})} folds and "
+                 f"{len({s['condition'] for s in selections})} non-unigram conditions: conditions without S search "
+                 f"{grid_n} history L2 values, conditions with S jointly search {grid_n} history values times {grid_n} "
+                 "S values (DEC-20). fit() raises immediately on non-convergence, so reaching this report already "
+                 "confirms it. Full per-grid-value convergence is in l2_selection.jsonl; the "
+                 f"{len(diagnostics)} selected models' convergence is in convergence.jsonl.", '']
 
     if stop_reasons:
         lines += ['## Stop: results need review before interpretation', '',
@@ -663,10 +791,10 @@ def write_v2_report(root, config, summary, baseline_metrics, baseline_checks, mo
     lines += ['Statistical uncertainty and restricted feature capacity limit inference from this reference model; '
              'this report does not establish grammar or causal mechanisms. Day-bootstrap intervals use 10,000 '
              'replicates and are approximate with only 14 days. The switch-choice component of every contrast '
-             'rests on about 270 non-repeat codas and is exploratory. Source, fold-manifest and configuration '
+             f'rests on about {non_repeats} non-repeat codas and is exploratory. Source, fold-manifest and configuration '
              'SHA-256 hashes, per-fold vocabulary sizes and UNK counts, and full model settings are recorded in '
              'evaluation/summary.json, models.jsonl and l2_selection.jsonl alongside this report; '
-             'reports/rq1_folds.md reports UNK rates per fold.', '']
+             f'{folds_report} reports UNK rates per fold.', '']
 
     report = root / config['report']
     report.parent.mkdir(parents=True, exist_ok=True)

@@ -28,6 +28,13 @@ PREPROCESSING = [
     ('preprocessing.prepare_rq2', 'config/rq2.json'),
     ('preprocessing.folds', 'config/rq1_folds.json'),
     ('preprocessing.folds', 'config/rq1_folds_retrospective.json'),
+    ('preprocessing.inventories', 'config/rq2_inventories.json'),
+    ('preprocessing.folds', 'config/rq2_b_dtree_folds.json'),
+    ('preprocessing.folds', 'config/rq2_c_rhythm_folds.json'),
+    ('preprocessing.folds', 'config/rq2_d_rhythm_tempo_folds.json'),
+    ('preprocessing.folds', 'config/rq2_e_type_tempo_folds.json'),
+    ('preprocessing.folds', 'config/rq2_d_rhythm_tempo_tdict_folds.json'),
+    ('preprocessing.folds', 'config/rq2_e_type_tempo_tdict_folds.json'),
 ]
 
 # Result summaries fitted before the CRLF provenance fix (2026-09-28). Their inputs were the

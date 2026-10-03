@@ -1,0 +1,25 @@
+{
+  "manifest": "data/processed/rq2_e_type_tempo_folds/manifest.json",
+  "evaluation_config": "config/rq2_e_type_tempo_evaluation_v4.json",
+  "output_directory": "data/results/rq2_e_type_tempo_logistic_v4",
+  "report": "reports/rq2_e_type_tempo_logistic_v4.md",
+  "report_title": "RQ2 logistic-regression reference results",
+  "version_label": "v4, inventory E",
+  "report_note": "Inventory E: guy_coda_type × tempo (KDE cuts) (PLAN §7, DEC-22). Only the labels differ from RQ1: targets, folds, S, the UNK policy, the model and its selection rule are RQ1's. The log-likelihoods, accuracies and macro-F1 values in this report are not comparable with any other inventory's (PLAN [R2-3]); the comparison across inventories is reports/rq2_inventories_v4.md. With skip_nonconverged_candidates on, an L2 candidate that fails the convergence check is left out of the validation-day selection and counted below (DEC-22).",
+  "skip_nonconverged_candidates": true,
+  "history_order": 3,
+  "l2_grid": [
+    0.0001,
+    0.0003,
+    0.001,
+    0.003,
+    0.01,
+    0.03,
+    0.1,
+    0.3,
+    1.0
+  ],
+  "max_iterations": 2000,
+  "gradient_tolerance": 1e-06,
+  "seed": 42
+}

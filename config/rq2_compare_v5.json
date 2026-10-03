@@ -1,0 +1,83 @@
+{
+  "model": "v5",
+  "inventories": [
+    {
+      "id": "A",
+      "description": "guy_coda_type (RQ1)",
+      "manifest": "data/processed/rq1_folds/manifest.json",
+      "results_directory": "data/results/rq1_logistic_v5",
+      "v4_results_directory": "data/results/rq1_logistic_v4",
+      "report": "reports/rq1_logistic_v5.md"
+    },
+    {
+      "id": "B",
+      "description": "decision_tree_coda_type",
+      "manifest": "data/processed/rq2_b_dtree_folds/manifest.json",
+      "results_directory": "data/results/rq2_b_dtree_logistic_v5",
+      "v4_results_directory": "data/results/rq2_b_dtree_logistic_v4",
+      "report": "reports/rq2_b_dtree_logistic_v5.md"
+    },
+    {
+      "id": "C",
+      "description": "Sharma rhythm",
+      "manifest": "data/processed/rq2_c_rhythm_folds/manifest.json",
+      "results_directory": "data/results/rq2_c_rhythm_logistic_v5",
+      "v4_results_directory": "data/results/rq2_c_rhythm_logistic_v4",
+      "report": "reports/rq2_c_rhythm_logistic_v5.md"
+    },
+    {
+      "id": "D",
+      "description": "Sharma rhythm × tempo (KDE cuts)",
+      "manifest": "data/processed/rq2_d_rhythm_tempo_folds/manifest.json",
+      "results_directory": "data/results/rq2_d_rhythm_tempo_logistic_v5",
+      "v4_results_directory": "data/results/rq2_d_rhythm_tempo_logistic_v4",
+      "report": "reports/rq2_d_rhythm_tempo_logistic_v5.md"
+    },
+    {
+      "id": "E",
+      "description": "guy_coda_type × tempo (KDE cuts)",
+      "manifest": "data/processed/rq2_e_type_tempo_folds/manifest.json",
+      "results_directory": "data/results/rq2_e_type_tempo_logistic_v5",
+      "v4_results_directory": "data/results/rq2_e_type_tempo_logistic_v4",
+      "report": "reports/rq2_e_type_tempo_logistic_v5.md"
+    },
+    {
+      "id": "D′",
+      "description": "Sharma rhythm × tempo (tempos-dict.p cuts)",
+      "manifest": "data/processed/rq2_d_rhythm_tempo_tdict_folds/manifest.json",
+      "results_directory": "data/results/rq2_d_rhythm_tempo_tdict_logistic_v5",
+      "v4_results_directory": "data/results/rq2_d_rhythm_tempo_tdict_logistic_v4",
+      "report": "reports/rq2_d_rhythm_tempo_tdict_logistic_v5.md"
+    },
+    {
+      "id": "E′",
+      "description": "guy_coda_type × tempo (tempos-dict.p cuts)",
+      "manifest": "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json",
+      "results_directory": "data/results/rq2_e_type_tempo_tdict_logistic_v5",
+      "v4_results_directory": "data/results/rq2_e_type_tempo_tdict_logistic_v4",
+      "report": "reports/rq2_e_type_tempo_tdict_logistic_v5.md"
+    }
+  ],
+  "reference": "A",
+  "nested_pairs": [
+    {
+      "coarse": "A",
+      "fine": "E"
+    },
+    {
+      "coarse": "C",
+      "fine": "D"
+    },
+    {
+      "coarse": "A",
+      "fine": "E′",
+      "note": "A → E′ is a tempo-boundary sensitivity of the A → E split (E′ uses the tempo classes of Sharma et al.'s tempos-dict.p, PLAN [R2-2]), added after the v4 results (PLAN [R2-4])."
+    }
+  ],
+  "leave_out_day": "2016-04-12",
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95,
+  "output_directory": "data/results/rq2_compare_v5",
+  "report": "reports/rq2_inventories_v5.md"
+}

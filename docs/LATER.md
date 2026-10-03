@@ -3,9 +3,6 @@
 Deferred to keep stage 1 simple. Nothing here is required before the first logistic-regression results exist. Each item says when it becomes relevant and why it was raised.
 
 ## Inference (revisit once first contrasts exist)
-- **Exact day-level sign-flip test.**
-  - Method: randomly flip the sign of each held-out day's summed contrast (2¹⁴ = 16,384 flips) and compare the observed mean to that distribution.
-  - Why: valid with 14 clusters, whereas bootstrap CIs with few clusters are too narrow.
 - **Leave-one-day-out jackknife:** the range of the estimate with each day dropped.
 
 ## Model selection (now done per DEC-16/17; options for later)

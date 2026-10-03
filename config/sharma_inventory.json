@@ -1,0 +1,7 @@
+{
+  "mean_codas": "data/raw/mean_codas.p",
+  "tempos_dict": "data/raw/tempos-dict.p",
+  "output": "data/interim/sharma_inventory.json",
+  "source_repository": "github.com/pratyushasharma/sw-combinatoriality",
+  "source_commit": "7228c8e"
+}
