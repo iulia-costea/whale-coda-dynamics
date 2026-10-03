@@ -404,7 +404,7 @@ def unk_lines(inventories, mark):
 
 def decomposition_lines(pair, mark):
     coarse, fine, excluded = pair['coarse'], pair['fine'], pair['excluded_targets']
-    lines = ['', f"## Tempo decomposition, {coarse} → {fine} (`[R2-4]`, exploratory)", '',
+    lines = ['', f"## Tempo decomposition, {mark(coarse)} → {mark(fine)} (`[R2-4]`, exploratory)", '',
              f"log2 p({fine} label) = type term + tempo term. The type term is log2 of the summed probability of {fine}'s "
              f"in-vocabulary labels whose part before `|` is the target's {coarse} label; UNK mass is left out, so it is a "
              f"lower bound. It is compared with {coarse}'s log-likelihood of the same label under the same condition "
