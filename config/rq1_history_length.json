@@ -1,0 +1,25 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "logistic_config": "config/rq1_logistic_v4.json",
+  "evaluation_config": "config/rq1_evaluation_v4.json",
+  "planted_config": "config/rq1_lstm_residual_planted.json",
+  "output_directory": "data/results/rq1_history_length",
+  "report": "reports/rq1_history_length.md",
+  "field": "A_history",
+  "orders": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "reference_order": 3,
+  "conditions": ["A", "A_B_S"],
+  "primary": {"condition": "A_B_S", "order": 9},
+  "secondary_order": 1,
+  "gate": {
+    "enforce": true,
+    "results_directory": "data/results/rq1_logistic_v4",
+    "probability_tolerance": 1e-05,
+    "maximum_penalty_differences": 1
+  },
+  "calibration": {
+    "condition": "A",
+    "order": 9,
+    "residual_planted_scores": "data/results/rq1_lstm_residual_planted/scores.jsonl"
+  }
+}
