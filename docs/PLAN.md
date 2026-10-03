@@ -116,7 +116,7 @@ $A$ = the whale's own preceding codas, $B$ = the partner's preceding codas, $S$ 
 - **Majority class:** reported for accuracy and macro-F1 only; it has no usable log-likelihood.
 - **Repeat-own-last:**
   - It predicts the whale's last coda with probability equal to the training repeat rate; the rest is spread by frequency.
-  - An $A$-model *below* it in log-likelihood (CI entirely below zero) has failed to train. Every $A$-model has the copy weight (`[M4]`), so it can express repetition with one number; *matching* the baseline is therefore a finding: own history carries nothing beyond repetition.
+  - An $A$-model *below* it in log-likelihood (the stop rule fires: DEC-23, Holm-adjusted one-sided sign-flip p < 0.05) has failed to train. Every $A$-model has the copy weight (`[M4]`), so it can express repetition with one number; *matching* the baseline is therefore a finding: own history carries nothing beyond repetition.
 
 **`[M2]` Contrasts**
 

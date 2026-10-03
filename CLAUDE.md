@@ -14,7 +14,7 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 - Contrasts = paired per-token differences; CIs by day-cluster bootstrap, never token bootstrap. A contrast that fires the stop rule (DEC-23: Holm-adjusted one-sided sign-flip test) signals a fitting problem (optimisation or regularisation): investigate before interpreting.
 - Never compare raw LL/perplexity across token inventories (PLAN §7 `[R2-3]`). RQ2 inventories change only the labels: targets, folds, $S$ and model stay RQ1's (DEC-22).
 - $S$ holds only information available at the target's onset and never mechanically includes a coda's duration or content. The retrospective end-to-start delay is a sensitivity run only.
-- 82.5% of targets repeat the whale's own last coda: models using $A$ or $B$ include the shared copy weights (PLAN `[M4]`). $A$-conditions below the repeat-own-last baseline in log-likelihood = fitting failure; matching it is a finding (nothing beyond repetition).
+- 82.5% of targets repeat the whale's own last coda: models using $A$ or $B$ include the shared copy weights (PLAN `[M4]`). $A$-conditions below the repeat-own-last baseline in log-likelihood (DEC-23 stop rule) = fitting failure; matching it is a finding (nothing beyond repetition).
 - One shared unseen-label (`UNK`) policy for all labelling schemes.
 - Never use `pair_category` as a feature. Caller codes (`Whale`, `local_caller_id`) are segment-local, not identified animals.
 - Pacific and `CarribeanCodas.csv` data: within-coda only; no multi-agent conditions; day-level order is never own history.
