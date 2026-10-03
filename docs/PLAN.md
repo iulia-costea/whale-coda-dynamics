@@ -13,6 +13,8 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Superseded:** LSTM v2 (DEC-17, DEC-20): reliably below logistic v4 on 5 of 7 conditions in its full run; kept as a record (DEC-21).
 - **Done:** the residual LSTM on top of logistic v4 (DEC-21): `reports/rq1_lstm_residual.md`, with its checks (`reports/rq1_lstm_residual_checks.md`: wiring, learnability and planted-signal gates pass) and device choice (`reports/rq1_lstm_residual_throughput.md`: CPU ×18). No `[M4]` stop rule fires. The residual gain over logistic v4 is below zero in point estimate on all seven fitted conditions (−0.010 to −0.122 bits/coda), with every day-bootstrap CI spanning zero; logistic v4 alone is chosen on 1–6 of 14 folds per condition.
 - **RQ2:** a token-inventory study (§7, DEC-22). **Done:** six inventories of the same codas (`reports/rq2_inventories.md`: the `[R2-1]`/`[R2-2]` checks and `[R2-0]` counts reproduce), their folds (UNK counts equal `[R2-0]`'s), logistic v4 on each and the comparison `reports/rq2_inventories_v4.md`. All fits converged. DEC-16 stop rules fire for B, C, D, E and D′ (add-one-input contrasts that add S, CIs just below zero); A and E′ have none. Per `[R2-7]` no conclusion is drawn from the five; no setting was changed.
+- **Pending:** logistic v5 (DEC-23): every input block can be absent, chosen on the validation day from v4's committed fits, and stop rules by exact sign-flip tests with Holm's correction; for RQ1 (primary and old-delay) and the six RQ2 inventories. RQ2's comparison uses v5 for every inventory; RQ1's headline stays v4, with v5 as a robustness line.
+- **Pending:** the partner-tempo ablation (DEC-24, `[R2-8]`).
 - **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
 
 See §12 for the order of work.
@@ -136,9 +138,10 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
   - day-level bootstrap CI (resample the 14 days, never individual codas; 10,000 replicates);
   - the number of days, out of 14, with a positive contrast;
   - the unweighted mean of the 14 day-level contrasts, next to the token-weighted mean. The token-weighted mean is the primary estimand; three days hold 58% of the targets, so the unweighted mean shows whether a result rests on a few days.
+  - the exact sign-flip $p$ (DEC-23): all $2^{d}$ sign assignments of the day-level sums over the $d$ test days, with the token-weighted mean as the statistic; two-sided for the three `[M2]` contrasts, one-sided for the stop rules (`[M4]`).
   - Note in the write-up that 14 days give rough CIs.
 
-**`[M4]` Models** (DEC-12, DEC-16, DEC-17, DEC-20, DEC-21)
+**`[M4]` Models** (DEC-12, DEC-16, DEC-17, DEC-20, DEC-21, DEC-23)
 - **Shared copy weights, in every model that uses $A$ or $B$.** For each candidate coda type $c$:
   $$\text{score}(c) = \text{usual per-type terms} + \beta\,\mathbb{1}[c = \text{own last coda}] + \gamma\,\mathbb{1}[c = \text{partner's last coda}]$$
   - $\beta$ exists only in conditions with $A$, $\gamma$ only in conditions with $B$. Each is one number shared across all coda types.
@@ -147,7 +150,11 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 - **Reference model: multinomial logistic regression**, run first; it is the `[U1]` reference.
   - Inputs: one-hot encodings of the last 3 codas of each available stream, the turn category, the two timing values (standardised, plus `log1p`), and the copy weights.
   - L2 for the history blocks and, where $S$ is present, a separate L2 for $S$, both chosen per fold and condition on the validation day from {0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0}, by validation log-likelihood; ties go to the larger value on each axis. The model trained on training days only is scored on the test day.
-- **Neural model: residual LSTM on top of logistic v4 (DEC-21)**, all eight conditions, 5 seeds (42–46). It is the enlarged-family check; logistic v4 gives the headline lattice.
+- **Logistic v5 (DEC-23): every input block can be absent, chosen on the validation day.** For each fold and condition $c$, the candidates are v4's chosen fits of every sub-condition $s \subseteq c$ ($A$, $B$, $S$ each on or absent; all absent = condition (i)). The candidate with the highest validation-day log-likelihood is chosen (exact ties: fewer blocks), and its test-day predictions are $c$'s.
+  - No new fits: computed from v4's committed `models.jsonl`, `l2_selection.jsonl` and `predictions.jsonl`; condition (i) is the fold's prior scored on the validation day.
+  - Every v4 run (RQ1 primary and old-delay, the six RQ2 inventories). RQ2's comparison uses v5 for all seven inventories; RQ1's headline lattice stays v4, with v5 as a robustness line.
+  - Sensitivity: DEC-21's one-SE rule instead of the maximum (simpler = fewer blocks).
+- **Neural model: residual LSTM on top of logistic v4 (DEC-21)**, all eight conditions, 5 seeds (42–46). It is the enlarged-family check; logistic v4 gives RQ1's headline lattice.
   - Per fold and condition $c$: $z(x) = z^{\mathrm{LR}}_c(x) + \sum_{s\in c} U_s\,h_s(x)$. Logistic v4's logits are a fixed offset, precomputed from its committed fits. One 1-layer LSTM encoder per coda history (up to 10 codas) and a small feed-forward encoder for $S$; bias-free output projections $U_s$ initialised at 0; no separate output bias or copy weights (both are in the offset).
   - Each block on or absent (absent = not built); with every block absent the model is logistic v4 exactly.
   - AdamW (decoupled weight decay 0.1), learning rate 1e-3, batch 32, up to 300 epochs, patience 20, restoring the best validation epoch; epoch 0 (= logistic v4) is a candidate.
@@ -159,7 +166,7 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
     4. planted signal on one fold: relabel some targets (labels only, histories unchanged) as the own coda at lag 6, only where it differs from lags 1–3 and the target has at least 6 own codas; on training and validation days; refit logistic regression on the planted data; the $A$ residual should switch on and recover the signal. Several fractions give a rough detectable effect size.
     Time a pilot before the full run.
 - **LSTM v2 (DEC-17, DEC-20) — superseded by DEC-21**, kept as a record: reliably below logistic v4 on 5 of 7 conditions; likely causes in DEC-21.
-- **Stop rules (log-likelihood only).** Stop and investigate before writing conclusions if any of these has a day-bootstrap CI entirely below zero: an $A$-condition against repeat-own-last; an add-one-input contrast; (residual LSTM) its residual gain over logistic v4 on a condition, which now signals selection overfitting to validation days rather than a training failure (DEC-21). Accuracy and macro-F1 are reported but not used to stop. A residual gain of zero is acceptable.
+- **Stop rules (log-likelihood only; DEC-23).** Per run, the 16 checks (the 12 add-one-input contrasts and the 4 $A$-conditions against repeat-own-last) each get an exact one-sided sign-flip test on the day-level sums of per-coda differences (alternative: mean below zero). Holm's correction across the 16 at $\alpha = 0.05$; a rule fires if its Holm-adjusted $p < 0.05$: stop and investigate before writing conclusions. Day-bootstrap CIs stay the reported intervals. Every run reports both this rule and DEC-16's old one (CI entirely below zero), for v4 and v5. (Residual LSTM) a residual gain over logistic v4 with a day-bootstrap CI entirely below zero on a condition signals selection overfitting to validation days rather than a training failure (DEC-21). Accuracy and macro-F1 are reported but not used to stop. A residual gain of zero is acceptable.
 - **Context check against Assayag et al.** Their split is random, ours holds out whole days, so their accuracies are optimistic next to ours. Compare like with like, without retraining: condition (iv) on switch/overlap targets only against the majority class on that subset, and condition (iii) against their single-whale results.
 - **Later:** a small Transformer with the same per-input structure; Kneser-Ney/VLMC models (`docs/LATER.md`).
 
@@ -185,13 +192,13 @@ Also compare (v) with the better of (iii) and (iv), to see whether the two histo
 | `[V2]` | Does timing help predict the next coda given the previous one? | This is where persistence and composition diverge |
 | `[V3]` | Are the information estimates stable across bout thresholds? (secondary) | Assayag et al. only checked correlations |
 | `[U1]` | The residual LSTM must not do worse than logistic v4 on the same condition (paired CI entirely below zero) | It can't on validation days by construction (DEC-21); below on test days means selection overfitting to the validation days |
-| `[U2]` | For the 12 "add one input" pairs, the larger model should score at least as well; count violations | Violations signal fitting problems |
+| `[U2]` | For the 12 "add one input" pairs, the larger model should score at least as well; count violations. Under logistic v5 they are ≥ 0 on validation days by construction (DEC-23) | Violations signal fitting problems |
 | `[U3]` | Hidden size is selected from 16/32/64 per fold (`[M4]`); optionally check 128 afterwards. Contrasts should plateau | Capacity limits |
 | `[U4]` | Retrain on 25–100% of training days; contrasts should stabilise | Data limits |
 | `[U5]` | Variance across seeds | |
 | `[U6]` | Train–test gap per condition | |
 
-An add-one-input contrast with a CI entirely below zero signals a fitting problem (optimisation or regularisation), not a finding: investigate before interpreting it.
+An add-one-input contrast that fires the stop rule (DEC-23: Holm-adjusted one-sided sign-flip p < 0.05) signals a fitting problem (optimisation or regularisation), not a finding: investigate before interpreting it.
 
 ---
 
@@ -266,7 +273,9 @@ $$\log_2 p(\text{type}, \text{tempo}) = \log_2 p(\text{type}) + \log_2 p(\text{t
 
 **`[R2-6]` Sensitivities:** D′ and E′ (tempo boundaries); every inventory without day 2016-04-12 (`[D1]` facts).
 
-**`[R2-7]` Stop rules:** DEC-16's rules apply to every inventory's run. If one fires, report it and draw no conclusion from that inventory. No setting changes before the freeze.
+**`[R2-7]` Stop rules:** DEC-23's rules apply to every inventory's run, for v4 and v5; the outcomes of DEC-16's old rule under v4 stay in the report. If one fires, report it and draw no conclusion from that inventory. No setting changes before the freeze.
+
+**`[R2-8]` Partner-tempo ablation (DEC-24):** `[R2-4]` found that the partner's codas predict a coda's tempo class beyond own history and timing (A → E: +0.039 bits/coda, CI [0.022, 0.061]); is that the partner's tempo or the partner's rhythm? A dedicated model for the chain rule's tempo factor: the target is the coda's KDE tempo class given its own Sharma rhythm, with own history always present (last 3 tempo classes and rhythms, own-tempo copy weight) and partner tempo (last 3 classes, partner-tempo copy weight), partner rhythm (last 3 rhythms) and $S$ as blocks, fitted with v4's procedure and v5's absent candidates. Contrasts in bits per coda of the tempo class, with day-bootstrap CI and DEC-23's sign-flip $p$: partner tempo alone, partner rhythm alone, tempo beyond rhythm, rhythm beyond tempo; a descriptive breakdown by turn category; secondary: `guy_coda_type` in place of rhythm. Same targets, folds and UNK policy. Conditions, readings and limits: DEC-24.
 
 **Not in RQ2** (`docs/LATER.md`): segmentation proper (a coda as two tokens, rhythm then tempo; clicks as tokens), ornaments, rubato as a continuous input, the residual LSTM on the new inventories. The standalone Sharma pipeline stays a whole-chain check; `reports/rq2.md` is its preprocessing report, not RQ2 results.
 
@@ -320,7 +329,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 **Caution about nulls:** limited data and capacity push contrasts toward zero. A positive contrast is robust; a null might just mean too little data. Say so whenever reporting a null.
 
 **The residual LSTM (DEC-21)**
-- Headline numbers come from logistic v4. The residual network's lattice and each condition's residual gain are reported next to them as the enlarged-family check.
+- RQ1's headline numbers come from logistic v4, with v5 as a robustness line (DEC-23); RQ2's comparison uses v5 for every inventory, with v4's comparison kept as the record. The residual LSTM stays the enlarged-family check of v4: its lattice and each condition's residual gain are reported next to v4's.
 - A near-zero residual reads "no further structure detectable in the enlarged family at this data size", not "none exists".
 - A positive residual means structure in that block that logistic regression can't express: for $A$ and $B$, lags 4–10 or non-additive patterns within lags 1–3; for $S$, nonlinear timing effects. We don't separate these; don't call it "long-range".
 - A contrast is v4's contrast plus the difference between the two conditions' residual gains; don't call the contrasts monotone.
@@ -368,11 +377,12 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
 2. **Phase 2 — evaluation and folds: done.** The shared evaluation module (metrics, paired contrasts, bootstrap, `[P1]` split) and the leave-one-day-out harness.
 3. **Phase 3 — first numbers:**
    - Logistic regression v1 (fixed L2), v2 (copy weights, validation-chosen L2, DEC-16) and v3 (extended grid) — done, superseded. v4 with separate history and $S$ penalties (DEC-20) — done; the reference.
+   - Logistic v5 (DEC-23): absent-block candidates chosen on the validation day from v4's fits, and the sign-flip stop rules with Holm's correction, for RQ1 (primary and old-delay) and the six RQ2 inventories — pending.
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
-5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`); stop rules fire for B, C, D, E and D′ (`[R2-7]`).
+5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`); stop rules fire for B, C, D, E and D′ (`[R2-7]`). Then v5 and DEC-23's stop rules on every inventory, and the partner-tempo ablation `[R2-8]` (DEC-24) — pending.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
 
 ---

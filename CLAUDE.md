@@ -11,7 +11,7 @@ Is apparent sequential structure in coda exchanges a whale's own sequencing, or 
 - Retrain per condition; never ablate by masking at evaluation. Absent sources get no representation (no masks, lengths, padding flags).
 - Identical architecture template, hyperparameter search space and selection rule, and splits across conditions. Hyperparameters are chosen on the validation day, never on test days. Day-held-out splits only; never random.
 - Per-token LL in bits, never summed, computed only via the shared evaluation module (units in function names).
-- Contrasts = paired per-token differences; CIs by day-cluster bootstrap, never token bootstrap. A contrast whose CI lies entirely below zero signals a fitting problem (optimisation or regularisation): investigate before interpreting.
+- Contrasts = paired per-token differences; CIs by day-cluster bootstrap, never token bootstrap. A contrast that fires the stop rule (DEC-23: Holm-adjusted one-sided sign-flip test) signals a fitting problem (optimisation or regularisation): investigate before interpreting.
 - Never compare raw LL/perplexity across token inventories (PLAN §7 `[R2-3]`). RQ2 inventories change only the labels: targets, folds, $S$ and model stay RQ1's (DEC-22).
 - $S$ holds only information available at the target's onset and never mechanically includes a coda's duration or content. The retrospective end-to-start delay is a sensitivity run only.
 - 82.5% of targets repeat the whale's own last coda: models using $A$ or $B$ include the shared copy weights (PLAN `[M4]`). $A$-conditions below the repeat-own-last baseline in log-likelihood = fitting failure; matching it is a finding (nothing beyond repetition).

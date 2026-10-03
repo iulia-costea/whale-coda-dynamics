@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -201,6 +201,54 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Segmentation proper (a coda as two tokens; clicks as tokens): a different question, in `docs/LATER.md`.
 - **Supersedes:** DEC-3's two tests (the standalone Sharma pipeline keeps its role as a whole-chain check); DEC-15.
 - **Addendum (2026-10-03, decided before any RQ2 fit):** the RQ2 logistic runs set `skip_nonconverged_candidates` (off by default, so RQ1 is unchanged): a grid candidate that fails `fit()`'s convergence check is left out of the validation-day selection and counted per fold and condition, and if every candidate for a fold and condition fails, that inventory's run fails and is reported as such. No candidate failed in any RQ2 run.
+
+## After RQ2's v4 runs (2026-10-03)
+
+**DEC-23 — Logistic v5: every input block can be absent, chosen on the validation day; stop rules use exact sign-flip tests with Holm's correction.**
+- **Decision:**
+  - v5 is v4 with optional ignorance by selection. For each fold and condition $c$, the candidates are v4's chosen fits of every sub-condition $s \subseteq c$ (each of $A$, $B$, $S$ on or absent; all absent = condition (i), the smoothed unigram). The candidate with the highest validation-day log-likelihood is chosen; each sub-condition's penalties were already chosen by v4's rule. Exact ties go to fewer blocks. The chosen candidate's test-day predictions become $c$'s v5 predictions.
+  - No new fits: v5 is computed from v4's committed `models.jsonl`, `l2_selection.jsonl` and `predictions.jsonl`; condition (i) is the fold's prior scored on the validation day.
+  - Computed for every v4 run: RQ1 (primary and old-delay sensitivity) and the six RQ2 inventories.
+  - RQ2's comparison uses v5 for all seven inventories, A included, so it compares like with like; v4's comparison stays reported as the record.
+  - RQ1's headline stays logistic v4 (no change to its reporting): it passed its stop rules, and nothing about RQ1 motivates a change. RQ1's v5 numbers are a robustness line. If RQ1's conclusions differ between v4 and v5, report both and say so. The residual LSTM (DEC-21) stays defined on v4 and remains the enlarged-family check.
+  - Sensitivity: DEC-21's one-SE rule instead of the maximum (the simplest candidate within one standard error of the best; SE of the per-target paired validation differences; simpler = fewer blocks).
+  - Stop rules, replacing the CI-below-zero criterion of DEC-16: per run, the 16 checks (12 add-one-input contrasts, 4 $A$-conditions against repeat-own-last) each get an exact one-sided sign-flip test on the day-level sums of per-coda differences (alternative: mean below zero; all $2^{d}$ sign assignments over the $d$ test days; statistic: token-weighted mean). Holm's correction across the 16 checks at $\alpha = 0.05$; a rule fires if its Holm-adjusted $p < 0.05$. Day-bootstrap CIs stay the reported intervals. The three `[M2]` contrasts also get an exact two-sided sign-flip $p$.
+  - Every run reports both rules (old and new), for v4 and v5.
+- **Why:**
+  - Under v4, stop rules fired for five of the six RQ2 inventories, all on contrasts that add $S$ and all within 0.1 bits of zero; RQ1's own timing CI ended at +0.0014. Conditional 𝒱-information assumes the model can ignore an input (Xu et al. 2020). A penalised $S$ block can be shrunk but not removed, and its penalty is chosen on one small validation day. DEC-21 solved this for the residual LSTM with absent blocks; v5 does the same for logistic regression. On validation days every add-one-input contrast is now ≥ 0 by construction, so a negative test-day contrast means selection noise between validation and test days, not an unusable input.
+  - Every sub-condition is already fitted under the same rule, so v5 needs no refit and leaves v4's fits untouched.
+  - The old rule had no multiplicity control (16 checks per run, 112 over seven runs) and used percentile bootstrap intervals, which are too narrow with 14 clusters. The exact sign-flip test has been in `docs/LATER.md` since 2026-09-22 and is valid with few clusters; Holm controls the family-wise error within each run.
+  - Both changes were decided after seeing v4's RQ2 stop rules. That is why both models and both rules are reported for every run.
+- **Known limits:**
+  - Conditions with $S$ choose among 81 penalty pairs, those without among 9, so comparing validation maxima slightly favours keeping $S$ (a larger grid gives a luckier best). The one-SE sensitivity counters this.
+  - The sign-flip test weights days by size, so the three March 2015 days (58% of targets) dominate it.
+- **Rejected:**
+  - Extending the $S$ penalty grid upward: a stronger penalty is still not absence, and the ceiling would move again with vocabulary size.
+  - Refitting with absent blocks inside the grid search: the same result at more compute, since every sub-condition is already fitted.
+  - Exempting add-$S$ contrasts from the stop rules (rejected in DEC-20).
+- **Supersedes:** DEC-16's CI-below-zero stop criterion (its log-likelihood-only principle stands); the sign-flip item in `docs/LATER.md`.
+
+**DEC-24 — Partner-tempo ablation: does the partner's tempo or the partner's rhythm predict a coda's tempo?**
+- **Question:** RQ2's exploratory split found that the partner's codas predict a coda's tempo class beyond the whale's own history and timing (A → E: +0.039 bits/coda, CI [0.022, 0.061]). Is that tempo matching (the partner's tempo), or does the partner's pattern carry information about the coda's tempo beyond the partner's own tempo?
+- **Decision:**
+  - A dedicated model for the second chain-rule factor: the target is the coda's tempo class (the 5 KDE classes, DEC-22), given the coda's own Sharma rhythm (one-hot, always present). Rhythm is normalised by duration, so the partner's rhythm and tempo are separable by construction; named types are not (5R1, 5R2 and 5R3 differ in tempo).
+  - Blocks:
+    - own history, always present: own last 3 tempo classes and last 3 rhythms (one-hot), plus a shared own-tempo copy weight $\beta$ on $\mathbb 1[\text{tempo} = \text{own last tempo}]$;
+    - partner tempo: the partner's last 3 tempo classes (one-hot) plus a shared copy weight $\gamma$ on $\mathbb 1[\text{tempo} = \text{partner's last tempo}]$;
+    - partner rhythm: the partner's last 3 rhythms (one-hot);
+    - $S$.
+  - Fitting: v4's procedure (every non-$S$ block shares one penalty, $S$ has its own, both from the same grid on the validation day) and v5's absent candidates for partner tempo, partner rhythm and $S$.
+  - Conditions: base (rhythm + own + $S$), + partner tempo, + partner rhythm, + both; the same four without $S$ (v5's candidates); rhythm alone as the floor.
+  - Contrasts, in bits per coda of the tempo class, paired, with day-bootstrap CI and DEC-23's sign-flip $p$: partner tempo alone (+tempo − base); partner rhythm alone (+rhythm − base); tempo beyond rhythm (both − +rhythm); rhythm beyond tempo (both − +tempo). Stop rules per DEC-23 on this family's add-one-block contrasts.
+  - Descriptive breakdown of the four contrasts by the target's turn category (overlap, switch, self-continuation); no tests.
+  - Secondary: the same with `guy_coda_type` in place of rhythm.
+  - Same 1,547 targets, folds and UNK policy (rhythms and types; tempo classes have no UNK). Partner codas are those completed before the target's onset, as in `[D5]`.
+- **Reading:**
+  - Tempo beyond rhythm > 0 with rhythm beyond tempo ≈ 0: tempo matching.
+  - Rhythm beyond tempo > 0: the partner's pattern carries information about the coda's speed beyond the partner's own speed, for instance through a shared behavioural context. No claim about meaning.
+  - Nulls read "not detectable at this data size" (14 days).
+- **Why:** RQ2's split can't separate the two. E's partner labels carry type and tempo jointly, and named types partly encode tempo. Modelling the chain rule's tempo factor directly, given the coda's rhythm, makes every contrast a difference in bits of the same five-class target, and the conditions nest.
+- **Not done:** continuous durations (rubato, `docs/LATER.md`); separate penalties per block.
 
 ## Differences from the submitted proposal
 
