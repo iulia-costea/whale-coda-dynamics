@@ -521,9 +521,9 @@ def reading_lines(result, config):
     else:
         bounds = [(f, p) for f, p in result['calibration']['per_fraction'].items() if p['bound_bits_per_coda'] is not None]
         cal = config['calibration']
-        bound_text = ('; '.join(f"at f = {f}, a lag-{result['calibration']['lag']} copy pattern worth more than "
-                                f"{p['bound_bits_per_coda']:.4f} bits/coda to the oracle would have been detected"
-                                for f, p in bounds) + f" (calibration in condition {cal['condition']})."
+        bound_text = (f"Calibration (condition {cal['condition']}): " + '; '.join(
+                          f"at f = {f}, a lag-{result['calibration']['lag']} copy pattern worth more than "
+                          f"{p['bound_bits_per_coda']:.4f} bits/coda to the oracle would have been detected" for f, p in bounds) + '.'
                       if bounds else 'The calibration gives no bound (see the calibration above).')
         lines.append(f"No detectable information beyond {reference} own codas for this model at this data size. "
                      f"{bound_text} A null may also mean too little data: limited data and capacity push contrasts "
@@ -604,7 +604,11 @@ def report_lines(result, config, loaded):
             p = result['curve'][c][str(k)]
             cells.append(f"{p['mean_log_likelihood_bits']:.5f} | {p['accuracy']:.3%} | {p['history_l2']['median']:g} "
                          f"({p['history_l2']['at_grid_edge']}/{p['history_l2']['folds']})")
-        lines.append(f"| {k} | " + ' | '.join(cells) + ' |')
+        lines.append(f"| {k}{' *' if result['stop_rules'][str(k)] else ''} | " + ' | '.join(cells) + ' |')
+    stopped = [str(k) for k in orders if result['stop_rules'][str(k)]]
+    stop_note = (f"Rows marked * are the k at which a DEC-16 stop rule fires (k = {', '.join(stopped)}; see the stop rules "
+                 "below); no conclusion is drawn from those k." if stopped else None)
+    lines += ['', stop_note] if stop_note else []
 
     lines += ['', f'## Contrasts LL(k) - LL({reference})', '',
               f"Primary (pre-specified): LL({config['primary']['order']}) - LL({reference}) in {config['primary']['condition']}. "
@@ -616,9 +620,11 @@ def report_lines(result, config, loaded):
         for k, contrast in result['contrasts'][c].items():
             comp = contrast['components']
             role = f"**{contrast['role']}**" if contrast['role'] != 'descriptive' else contrast['role']
+            role += ' *' if result['stop_rules'][k] else ''
             lines.append(f"| {c} | {k} | {role} | {_stat(comp['log_likelihood_bits'])} | {_part(comp['repeat_bits'])} | "
                          f"{_part(comp['switch_choice_bits'])} |")
     flagged = [f"{c}, k = {k}" for c in conditions for k, v in result['contrasts'][c].items() if v['fitting_flag']]
+    lines += ['', stop_note] if stop_note else []
     lines += ['', (f"Fitting flags: more own lags than {reference} with an interval entirely below zero ({'; '.join(flagged)}). "
                    'That signals a fitting problem (optimisation or regularisation), not a finding; investigate before '
                    'interpreting.') if flagged else
@@ -717,7 +723,8 @@ def main():
     parser.add_argument('--config', default='config/rq1_history_length.json')
     parser.add_argument('--stage', choices=('all', 'fit', 'calibrate', 'report'), default='all')
     parser.add_argument('--orders', type=int, nargs='+', help='fit stage: the k to fit now (default: every configured k)')
-    parser.add_argument('--workers', type=int, default=os.cpu_count(), help='processes for the fit and calibrate stages')
+    # Each process imports torch through residual.py (about 230 MB before any data), so the default stays small.
+    parser.add_argument('--workers', type=int, default=4, help='processes for the fit and calibrate stages (default 4)')
     args = parser.parse_args()
     if args.stage in ('all', 'fit'):
         run_fit(args.config, args.orders, args.workers)

@@ -122,7 +122,7 @@ class ContrastTests(unittest.TestCase):
             order_contrast(other[:-1], base, 'A', (200, 42, 0.95))
 
 
-def result_with(ci, gate=True, stops=()):
+def result_with(ci, gate=True, stops=(), bound=None):
     stats = lambda low, high: dict(mean_bits_per_coda=(low + high) / 2, unweighted_mean_bits_per_coda=0.0,  # noqa: E731
                                    ci_bits_per_coda=[low, high], positive_days=7, days=14)
     contrast = lambda low, high: dict(components=dict(log_likelihood_bits=stats(low, high), repeat_bits=stats(low, high),  # noqa: E731
@@ -131,7 +131,7 @@ def result_with(ci, gate=True, stops=()):
                 contrasts={'A': {'1': contrast(-0.3, -0.1), '9': contrast(-0.01, 0.02)},
                            'A_B_S': {'1': contrast(-0.3, -0.1), '9': contrast(*ci)}},
                 stop_rules={'1': [], '3': [], '9': list(stops)}, gate=dict(passed=gate),
-                calibration=dict(lag=6, per_fraction={'0.4': dict(bound_bits_per_coda=None)}))
+                calibration=dict(lag=6, per_fraction={'0.4': dict(bound_bits_per_coda=bound)}))
 
 
 class ReadingTests(unittest.TestCase):
@@ -143,6 +143,8 @@ class ReadingTests(unittest.TestCase):
         null = reading_lines(result_with((-0.01, 0.05)), self.config)[1]
         self.assertTrue(null.startswith('No detectable information beyond 3 own codas for this model at this data size.'))
         self.assertIn('The calibration gives no bound', null)
+        bounded = reading_lines(result_with((-0.01, 0.05), bound=0.3), self.config)[1]
+        self.assertIn('size. Calibration (condition A): at f = 0.4, a lag-6 copy pattern worth more than 0.3000 bits/coda', bounded)
         self.assertIn('fitting problem', reading_lines(result_with((-0.05, -0.01)), self.config)[1])
         self.assertTrue(reading_lines(result_with((0.01, 0.05), stops=['x']), self.config)[1].startswith('No reading: DEC-16'))
         self.assertTrue(reading_lines(result_with((0.01, 0.05), gate=False), self.config)[1].startswith('No reading: the reference'))
