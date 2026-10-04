@@ -1,0 +1,155 @@
+{
+  "chosen_at_epoch0": 0,
+  "commit": "35cb7f8964026bd60da72940e9a98fa6741b4225",
+  "config": {
+    "arm5": {
+      "draws": 3,
+      "learning_rates": [
+        0.001,
+        0.003
+      ],
+      "reduced_draws": 1,
+      "reduced_shares": [
+        0.05,
+        0.25,
+        1.0
+      ],
+      "shares": [
+        0.02,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0
+      ]
+    },
+    "bootstrap_draws": 1000,
+    "bootstrap_seed": 42,
+    "capacity_multiplier": 2,
+    "checkpoint_directory": "data/results/rq3_neural/checkpoints",
+    "clans": [
+      "EC1",
+      "EC2",
+      "FP",
+      "PALI",
+      "PO",
+      "REG",
+      "RI",
+      "SH",
+      "SI"
+    ],
+    "codas_input": "data/processed/rq3/rq3_codas.csv",
+    "device": "auto",
+    "figure_directory": "reports/rq3_neural_figures",
+    "folds_input": "data/processed/rq3/rq3_folds.csv",
+    "gate_rerun": {
+      "hidden_grid": [
+        32,
+        64,
+        128,
+        256
+      ],
+      "learning_rates": [
+        0.003,
+        0.001
+      ],
+      "patience": 10
+    },
+    "model": {
+      "batch_size": 64,
+      "dropout_grid": [
+        0.0,
+        0.2,
+        0.4
+      ],
+      "embedding_dim": 32,
+      "eval_batch_size": 4096,
+      "hidden_grid": [
+        32,
+        64,
+        128
+      ],
+      "learning_rate": 0.003,
+      "max_epochs": 100,
+      "patience": 5,
+      "refit_seeds": [
+        0,
+        1,
+        2
+      ],
+      "selection_seed": 0
+    },
+    "ngram_calibration_input": "data/results/rq3/calibration/self_calibration.csv",
+    "ngram_matrix_scores_input": "data/results/rq3/transfer_matrix/scores.csv",
+    "ngram_matrix_summary_input": "data/results/rq3/transfer_matrix/summary.csv",
+    "ngram_self_scores_input": "data/results/rq3/calibration/self_scores.csv",
+    "output_directory": "data/results/rq3_neural",
+    "pilot": {
+      "budget_hours": 6,
+      "cpu_workers": [
+        10,
+        18
+      ],
+      "cublas_workspace_config": ":4096:8",
+      "gpu_workers": [
+        1,
+        4
+      ],
+      "own_clan": "EC2",
+      "own_fold": 0,
+      "pooled_alpha": 0.7,
+      "pooled_run": 0,
+      "pooled_tagged": true,
+      "stop_hours": 12,
+      "tie_tolerance": 0.05,
+      "timing_epochs": 3
+    },
+    "pooled_alphas": [
+      1.0,
+      0.7,
+      0.5,
+      0.3
+    ],
+    "report_output": "reports/rq3_neural.md",
+    "require_clean_tree": true,
+    "smoke_test": false,
+    "tokenizer_id": "fixed-50ms-v1",
+    "workers": null
+  },
+  "device": "cuda",
+  "dirty_paths": [],
+  "draws": 3,
+  "finished": "2026-10-04T01:06:15+00:00",
+  "fit_seconds": 2908.8,
+  "fits": 3312,
+  "input_sha256": {
+    "config/rq3_neural.json": "59d9c0fc2747b1a4d0d2674701f2680cdc1c24e9e4801d8defcf58af0d77b2f7",
+    "data/processed/rq3/rq3_codas.csv": "82ab3cc2de8e0cd5e31ddc18e238bd1ab1a55776e5091cc75afbb1ae3e022ffa",
+    "data/processed/rq3/rq3_folds.csv": "272bb592515d6f11918a6914d2b087d4f530f0b2a60c98e6bb066248d52cb9ce",
+    "data/results/rq3/calibration/self_scores.csv": "b3fb74cb3f30635df0c74ae4ecc22ceb0850f162ca61c7a991f694a9c98e3df2",
+    "data/results/rq3_neural/arm4/summary.json": "28e17ff7a622515255e5f7ab69c75637ad84803f24480676b67a46e575b7d7a5",
+    "data/results/rq3_neural/pilot/summary.json": "26422fdda26f53597018ef352c457272f9d2d9fa0ca1b47d187b96d1d5b0299b"
+  },
+  "numpy": "2.2.6",
+  "python": "3.10.21",
+  "reduced": false,
+  "refit_reproducible": {
+    "identical": true,
+    "model": "arm5:EC1:0:0.02:0:finetuned:0.001",
+    "seed": 0,
+    "state_sha256": "165a7835a34b88c9008902283743247270ebbe8d83e47fbfbd986b80cfbb810f"
+  },
+  "shares": [
+    0.02,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1.0
+  ],
+  "stage": "arm5",
+  "started": "2026-10-04T00:53:58+00:00",
+  "torch": "2.14.0+cu130",
+  "wall_seconds": 736.8,
+  "workers": 4
+}
