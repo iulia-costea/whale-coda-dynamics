@@ -1,0 +1,25 @@
+model,candidate,kind,n_train,epochs,best_epoch,seconds,draws
+own,h32_d0.0_lr0.003_p5,selection,440,36,31,4.276,15840
+own,h32_d0.2_lr0.003_p5,selection,440,48,43,5.197,21120
+own,h32_d0.4_lr0.003_p5,selection,440,48,43,5.286,21120
+own,h64_d0.0_lr0.003_p5,selection,440,36,31,4.037,15840
+own,h64_d0.2_lr0.003_p5,selection,440,36,31,5.718,15840
+own,h64_d0.4_lr0.003_p5,selection,440,25,20,4.602,11000
+own,h128_d0.0_lr0.003_p5,selection,440,36,31,6.553,15840
+own,h128_d0.2_lr0.003_p5,selection,440,36,31,7.953,15840
+own,h128_d0.4_lr0.003_p5,selection,440,36,31,8.36,15840
+own,h128_d0.0_lr0.003_p5,refit seed 0,583,31,31,1.923,18073
+own,h128_d0.0_lr0.003_p5,refit seed 1,583,31,31,1.879,18073
+own,h128_d0.0_lr0.003_p5,refit seed 2,583,31,31,1.915,18073
+pooled,h32_d0.0_lr0.003_p5,selection,18512,26,21,34.905,481312
+pooled,h32_d0.2_lr0.003_p5,selection,18512,25,20,39.327,462800
+pooled,h32_d0.4_lr0.003_p5,selection,18512,32,27,46.424,592384
+pooled,h64_d0.0_lr0.003_p5,selection,18512,12,7,28.012,222144
+pooled,h64_d0.2_lr0.003_p5,selection,18512,35,30,63.966,647920
+pooled,h64_d0.4_lr0.003_p5,selection,18512,35,30,64.505,647920
+pooled,h128_d0.0_lr0.003_p5,selection,18512,11,6,42.352,203632
+pooled,h128_d0.2_lr0.003_p5,selection,18512,22,17,71.479,407264
+pooled,h128_d0.4_lr0.003_p5,selection,18512,18,13,64.052,333216
+pooled,h64_d0.2_lr0.003_p5,refit seed 0,24635,30,30,43.743,739050
+pooled,h64_d0.2_lr0.003_p5,refit seed 1,24635,30,30,43.912,739050
+pooled,h64_d0.2_lr0.003_p5,refit seed 2,24635,30,30,42.559,739050

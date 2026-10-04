@@ -428,5 +428,46 @@ class HistoryLengthSmokeTests(unittest.TestCase):
             self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
 
 
+RQ3_INPUTS = ('data/processed/rq3/rq3_codas.csv', 'data/processed/rq3/rq3_folds.csv',
+              'data/results/rq3/calibration/self_scores.csv', 'data/results/rq3/calibration/self_calibration.csv',
+              'data/results/rq3/transfer_matrix/scores.csv', 'data/results/rq3/transfer_matrix/summary.csv')
+
+
+@unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
+class Rq3NeuralSmokeTests(unittest.TestCase):
+    def test_pooled_runner_all_stages(self):
+        """Every [R3-8] stage on the full RQ3 data with one-epoch, hidden-4 models; the gate fails, so the
+        rerun path runs too (a smoke config records the gate instead of stopping)."""
+        config = json.loads((ROOT / 'config/rq3_neural.json').read_text(encoding='utf-8'))
+        config['model'].update(hidden_grid=[4], dropout_grid=[0.0], max_epochs=1, patience=1, refit_seeds=[0])
+        config['gate_rerun'].update(hidden_grid=[4, 8], patience=1)
+        config['arm5'].update(shares=[0.5, 1.0], draws=1, reduced_shares=[1.0], reduced_draws=1)
+        config['pilot'].update(cpu_workers=[2], gpu_workers=[], timing_epochs=1)
+        config.update(pooled_alphas=[1.0, 0.5], bootstrap_draws=20, device='cpu', workers=2,
+                      require_clean_tree=False, smoke_test=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(*RQ3_INPUTS)
+            path = box.config('rq3_neural_smoke.json', **config)
+            box.run('rq3_neural.runner', path, '--stage', 'all', env={'CUDA_VISIBLE_DEVICES': ''})
+            out = box.root / 'data/results/rq3_neural'
+            report = (box.root / 'reports/rq3_neural.md').read_text(encoding='utf-8')
+            self.assertTrue(report.startswith('# RQ3 pooled multi-clan LSTM'))
+            self.assertIn('SMOKE TEST', report)
+            summary = json.loads((out / 'report/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(len(summary['predictions']), 5)
+            self.assertFalse(summary['gate1_passed']['arm1'])
+            self.assertIn('arm1_rerun', summary['gate1_passed'])
+            for stage in ('pilot', 'arm1', 'arm1_rerun', 'arm23', 'capacity', 'arm4', 'arm5'):
+                stage_summary = json.loads((out / stage / 'summary.json').read_text(encoding='utf-8'))
+                self.assertIn('data/processed/rq3/rq3_codas.csv', stage_summary['input_sha256'])
+            pairs = (out / 'arm23/tag_pairs.csv').read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(pairs), 1 + 2 * 6 + sum(1 for line in pairs[1:] if line.startswith('refit')))
+            self.assertTrue(all(',True,' in line for line in pairs[1:]))
+            before = (box.root / 'reports/rq3_neural.md').read_bytes()
+            box.run('rq3_neural.runner', path, '--stage', 'report', env={'CUDA_VISIBLE_DEVICES': ''})
+            self.assertEqual((box.root / 'reports/rq3_neural.md').read_bytes(), before)
+
+
 if __name__ == '__main__':
     unittest.main()

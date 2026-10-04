@@ -1,0 +1,337 @@
+{
+  "alpha": 0.3,
+  "checkpoints": {
+    "EC1": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_EC1_seed0.pt",
+        "state_sha256": "40cd07e4cedecf47ea718f8af5ff394297bfa5974f4dbeb901d0ef0972e2fbad"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_EC1_seed1.pt",
+        "state_sha256": "9c59d6899fcae7d87f10c8d774641eb1dfc056dbe691f4b9c1fefdf4bc5ffd06"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_EC1_seed2.pt",
+        "state_sha256": "c8ba2da85a021789649456aa68f285ae44f2aec1b9978af177b73869f1453ea2"
+      }
+    },
+    "EC2": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_EC2_seed0.pt",
+        "state_sha256": "437509b29769602ec4e4b40ba76182e43b9a7c80f7b3dd9be4a364eb06b0554b"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_EC2_seed1.pt",
+        "state_sha256": "f9639962d79aa98518f9e3c8f2838732d7df420f5d8f1defa1f1148905d13417"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_EC2_seed2.pt",
+        "state_sha256": "ae516f057f28d3bb400470fbb49fce044dc1dc108edce91c480b19fcd572ffa7"
+      }
+    },
+    "FP": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_FP_seed0.pt",
+        "state_sha256": "f82e3c3ff1ba8fbe29971122b59dd9183c5ccc427890332da46c7a8c1ad09017"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_FP_seed1.pt",
+        "state_sha256": "925aaf21fa3cb5a7d54f780db09ab47d6b2aa1ab6659d3db431a66875f345bae"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_FP_seed2.pt",
+        "state_sha256": "c2cdaa441d912ef9e10d13f835e2d26035bb341fd304e268f1c3ede02f21a8b3"
+      }
+    },
+    "PALI": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_PALI_seed0.pt",
+        "state_sha256": "ad6a1ee2cd6426808c76adf46507478800ecb41247d114848ff4ea31c06bc5ad"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_PALI_seed1.pt",
+        "state_sha256": "48ddfb134d6168694f7d3ad0d2ef002afde5d7dc77ddb03fc2ce126e981957d7"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_PALI_seed2.pt",
+        "state_sha256": "5f48ea0c12e5a0fc2b058665b0703582a82cea1bb626a2dbb1aca623b780d026"
+      }
+    },
+    "PO": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_PO_seed0.pt",
+        "state_sha256": "8f38db0cbd6bab7dc55cefecad47ac54610a795c3ba755e105c4c73ad4972e35"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_PO_seed1.pt",
+        "state_sha256": "796da3ad7b127b4d69fca8c664ea415ce870e1c5b772feb0bd517086d44791f8"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_PO_seed2.pt",
+        "state_sha256": "6679217393450dc6585604aacec14a64f91a3519a283aeb77bb3c4d86bc7d2ba"
+      }
+    },
+    "REG": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_REG_seed0.pt",
+        "state_sha256": "07a8725db491749d7b3df5e62977ff65bd015a552978ba3f78afdce01cd67832"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_REG_seed1.pt",
+        "state_sha256": "381768ac0713108ca572f23dd1bc23874cb1e2c205db286a94694f71de1bcf69"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_REG_seed2.pt",
+        "state_sha256": "8cbab877ac9d411ea28823aa87bdbe42d2f744a32087024d907f9de1545fe3dd"
+      }
+    },
+    "RI": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_RI_seed0.pt",
+        "state_sha256": "b633e2c3c61d18754811309dd42cf890860cc50f58c5d05cdd9e13f88aca62b7"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_RI_seed1.pt",
+        "state_sha256": "2c230ded8a89c0d3039aacd08da755e982ef5b413d92d37976650d4ac5067bf1"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_RI_seed2.pt",
+        "state_sha256": "6704b168784d07e27ed0cfd02b0b7883cbe0377cdd958fc91707824170a64dd7"
+      }
+    },
+    "SH": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_SH_seed0.pt",
+        "state_sha256": "3fcd5902b2b75aa1cc1e53fcc9165583c94094a5161b9643d2d4609f2f17a464"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_SH_seed1.pt",
+        "state_sha256": "9eced132c6e6676afb3255209b9381e0725f9de05affa43a18ded65f88f1955f"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_SH_seed2.pt",
+        "state_sha256": "8d22bcfe3142b5bfd943cfa9d9f3ee15d58ded93d8f6a2d35cfb7db0d7f90044"
+      }
+    },
+    "SI": {
+      "0": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_SI_seed0.pt",
+        "state_sha256": "c7a8ce07d444aa7d28f6be49030f006692f2e00df9af664a8a1e856833420ce3"
+      },
+      "1": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_SI_seed1.pt",
+        "state_sha256": "a9b84a5e401644f3d510529d1aac7459cf946edebefe5f0d54b109941e63e711"
+      },
+      "2": {
+        "path": "data/results/rq3_neural/checkpoints/arm4_without_SI_seed2.pt",
+        "state_sha256": "a42a0afdc86a81f3704a31f11bb429e2c9a2b7557f35e93cebb23f6cddc7173d"
+      }
+    }
+  },
+  "chosen": {
+    "EC1": {
+      "best_epoch": 14,
+      "dropout": 0.2,
+      "hidden": 64,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "EC2": {
+      "best_epoch": 9,
+      "dropout": 0.2,
+      "hidden": 128,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "FP": {
+      "best_epoch": 14,
+      "dropout": 0.4,
+      "hidden": 128,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "PALI": {
+      "best_epoch": 10,
+      "dropout": 0.2,
+      "hidden": 64,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "PO": {
+      "best_epoch": 6,
+      "dropout": 0.2,
+      "hidden": 128,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "REG": {
+      "best_epoch": 15,
+      "dropout": 0.4,
+      "hidden": 64,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "RI": {
+      "best_epoch": 9,
+      "dropout": 0.2,
+      "hidden": 128,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "SH": {
+      "best_epoch": 18,
+      "dropout": 0.4,
+      "hidden": 64,
+      "learning_rate": 0.003,
+      "patience": 5
+    },
+    "SI": {
+      "best_epoch": 8,
+      "dropout": 0.2,
+      "hidden": 128,
+      "learning_rate": 0.003,
+      "patience": 5
+    }
+  },
+  "commit": "d1b7f981c98b89eae1b2a05a15ad088fbe8c531d",
+  "config": {
+    "arm5": {
+      "draws": 3,
+      "learning_rates": [
+        0.001,
+        0.003
+      ],
+      "reduced_draws": 1,
+      "reduced_shares": [
+        0.05,
+        0.25,
+        1.0
+      ],
+      "shares": [
+        0.02,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0
+      ]
+    },
+    "bootstrap_draws": 1000,
+    "bootstrap_seed": 42,
+    "capacity_multiplier": 2,
+    "checkpoint_directory": "data/results/rq3_neural/checkpoints",
+    "clans": [
+      "EC1",
+      "EC2",
+      "FP",
+      "PALI",
+      "PO",
+      "REG",
+      "RI",
+      "SH",
+      "SI"
+    ],
+    "codas_input": "data/processed/rq3/rq3_codas.csv",
+    "device": "auto",
+    "figure_directory": "reports/rq3_neural_figures",
+    "folds_input": "data/processed/rq3/rq3_folds.csv",
+    "gate_rerun": {
+      "hidden_grid": [
+        32,
+        64,
+        128,
+        256
+      ],
+      "learning_rates": [
+        0.003,
+        0.001
+      ],
+      "patience": 10
+    },
+    "model": {
+      "batch_size": 64,
+      "dropout_grid": [
+        0.0,
+        0.2,
+        0.4
+      ],
+      "embedding_dim": 32,
+      "eval_batch_size": 4096,
+      "hidden_grid": [
+        32,
+        64,
+        128
+      ],
+      "learning_rate": 0.003,
+      "max_epochs": 100,
+      "patience": 5,
+      "refit_seeds": [
+        0,
+        1,
+        2
+      ],
+      "selection_seed": 0
+    },
+    "ngram_calibration_input": "data/results/rq3/calibration/self_calibration.csv",
+    "ngram_matrix_scores_input": "data/results/rq3/transfer_matrix/scores.csv",
+    "ngram_matrix_summary_input": "data/results/rq3/transfer_matrix/summary.csv",
+    "ngram_self_scores_input": "data/results/rq3/calibration/self_scores.csv",
+    "output_directory": "data/results/rq3_neural",
+    "pilot": {
+      "budget_hours": 6,
+      "cpu_workers": [
+        10,
+        18
+      ],
+      "cublas_workspace_config": ":4096:8",
+      "gpu_workers": [
+        1,
+        4
+      ],
+      "own_clan": "EC2",
+      "own_fold": 0,
+      "pooled_alpha": 0.7,
+      "pooled_run": 0,
+      "pooled_tagged": true,
+      "stop_hours": 12,
+      "tie_tolerance": 0.05,
+      "timing_epochs": 3
+    },
+    "pooled_alphas": [
+      1.0,
+      0.7,
+      0.5,
+      0.3
+    ],
+    "report_output": "reports/rq3_neural.md",
+    "require_clean_tree": true,
+    "smoke_test": false,
+    "tokenizer_id": "fixed-50ms-v1",
+    "workers": null
+  },
+  "device": "cuda",
+  "dirty_paths": [],
+  "finished": "2026-10-04T00:53:42+00:00",
+  "fit_seconds": 1533.4,
+  "fits": 108,
+  "input_sha256": {
+    "config/rq3_neural.json": "59d9c0fc2747b1a4d0d2674701f2680cdc1c24e9e4801d8defcf58af0d77b2f7",
+    "data/processed/rq3/rq3_codas.csv": "82ab3cc2de8e0cd5e31ddc18e238bd1ab1a55776e5091cc75afbb1ae3e022ffa",
+    "data/processed/rq3/rq3_folds.csv": "272bb592515d6f11918a6914d2b087d4f530f0b2a60c98e6bb066248d52cb9ce",
+    "data/results/rq3/calibration/self_scores.csv": "b3fb74cb3f30635df0c74ae4ecc22ceb0850f162ca61c7a991f694a9c98e3df2",
+    "data/results/rq3_neural/arm23/summary.json": "1bb7800dc0dc83771e9c14407839bfc1f2c8850a56c67a58ffd84befc61469ff"
+  },
+  "numpy": "2.2.6",
+  "python": "3.10.21",
+  "refit_reproducible": {
+    "identical": true,
+    "model": "arm4:EC1:h64_d0.2_lr0.003_p5:refit",
+    "seed": 0,
+    "state_sha256": "40cd07e4cedecf47ea718f8af5ff394297bfa5974f4dbeb901d0ef0972e2fbad"
+  },
+  "stage": "arm4",
+  "started": "2026-10-04T00:46:49+00:00",
+  "torch": "2.14.0+cu130",
+  "wall_seconds": 413.0,
+  "workers": 4
+}

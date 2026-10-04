@@ -1,0 +1,3 @@
+device,seed,identical,cublas_workspace_config
+cpu,0,True,
+cuda,0,True,:4096:8
