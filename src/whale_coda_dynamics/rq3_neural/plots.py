@@ -87,9 +87,9 @@ def main(argv=None):
         rows = [contrasts['pooling_gain', str(alpha)][c] for c in clans]
         ax.errorbar([sizes[c] for c in clans], [r['value'] for r in rows], yerr=err(rows), color=ORDINAL[i % 4],
                     linewidth=2, marker='o', markersize=5, capsize=0, elinewidth=1, label=f'alpha {alpha}')
-    for c in clans:
+    for i, c in enumerate(clans):  # alternate above/below so neighbouring clans' labels don't collide
         ax.annotate(c, (sizes[c], contrasts['pooling_gain', str(alphas[0])][c]['value']), textcoords='offset points',
-                    xytext=(4, 6), fontsize=7, color=INK_2)
+                    xytext=(5, 7 if i % 2 == 0 else -13), fontsize=7, color=INK_2)
     ax.set_xscale('log')
     ax.set_xticks([1000, 2000, 4000, 8000], ['1,000', '2,000', '4,000', '8,000'])
     ax.minorticks_off()
