@@ -1,0 +1,4403 @@
+{
+  "units": "bits per coda",
+  "variants": {
+    "R": [],
+    "L": [
+      "run_length"
+    ],
+    "P": [
+      "run_length",
+      "repertoire"
+    ],
+    "D": [
+      "run_length",
+      "distinct_1",
+      "distinct_2"
+    ],
+    "PD": [
+      "run_length",
+      "repertoire",
+      "distinct_1",
+      "distinct_2"
+    ]
+  },
+  "reference_variant": "R",
+  "conditions": [
+    "A",
+    "A_B_S"
+  ],
+  "primary": {
+    "condition": "A_B_S",
+    "full": "PD",
+    "reduced": "P"
+  },
+  "secondary": {
+    "condition": "A_B_S",
+    "full": "PD",
+    "reduced": "R"
+  },
+  "repertoire_contrast": {
+    "condition": "A_B_S",
+    "full": "P",
+    "reduced": "L"
+  },
+  "comparison_targets": 1547,
+  "repeat_own_last_bits": -1.3927589165588812,
+  "bootstrap": {
+    "replicates": 10000,
+    "seed": 42,
+    "confidence": 0.95
+  },
+  "descriptive": {
+    "settings": {
+      "enforce": true,
+      "bootstrap_replicates": 10000,
+      "bootstrap_seed": 42,
+      "confidence": 0.95,
+      "interval_tolerance": 0.015,
+      "source": "computed independently in a Cowork session before this run, 2026-10-04"
+    },
+    "labels": "as stored in Ct",
+    "quantities": {
+      "targets": {
+        "count": 1547
+      },
+      "repeats_of_own_last": {
+        "count": 1277
+      },
+      "repeat_rate:self_continuation": {
+        "value": 0.8221258134490239,
+        "ci": [
+          0.7444394714407503,
+          0.8848268793972633
+        ],
+        "replicates_without_denominator": 0,
+        "count": 379,
+        "n": 461
+      },
+      "repeat_rate:switch": {
+        "value": 0.8248062015503876,
+        "ci": [
+          0.7708641565503288,
+          0.8713694825305189
+        ],
+        "replicates_without_denominator": 0,
+        "count": 532,
+        "n": 645
+      },
+      "repeat_rate:overlap": {
+        "value": 0.8299319727891157,
+        "ci": [
+          0.7748091603053435,
+          0.8741096789196552
+        ],
+        "replicates_without_denominator": 0,
+        "count": 366,
+        "n": 441
+      },
+      "own_last_equals_partner_last": {
+        "value": 0.5475113122171946,
+        "ci": [
+          0.4049938969051857,
+          0.6810675968150103
+        ],
+        "replicates_without_denominator": 0,
+        "count": 847,
+        "n": 1547
+      },
+      "agreement_chance": {
+        "value": 0.4878880140683321,
+        "ci": [
+          0.398753886257771,
+          0.5792115975323072
+        ],
+        "replicates_without_denominator": 0,
+        "n": 1547
+      },
+      "own_last_differs:repeats_own_last": {
+        "value": 0.7157142857142857,
+        "ci": [
+          0.6632106075974815,
+          0.7500072590011614
+        ],
+        "replicates_without_denominator": 0,
+        "count": 501,
+        "n": 700
+      },
+      "own_last_differs:takes_partner_last": {
+        "value": 0.10714285714285714,
+        "ci": [
+          0.0848121395073042,
+          0.14706065718057795
+        ],
+        "replicates_without_denominator": 0,
+        "count": 75,
+        "n": 700
+      },
+      "own_last_differs:other": {
+        "value": 0.17714285714285713,
+        "ci": [
+          0.12226993845302944,
+          0.21814111261872454
+        ],
+        "replicates_without_denominator": 0,
+        "count": 124,
+        "n": 700
+      },
+      "switch_own_last_differs:lands_on_partner_last": {
+        "value": 0.3768844221105528,
+        "ci": [
+          0.2980993860959018,
+          0.5289282857904558
+        ],
+        "replicates_without_denominator": 0,
+        "count": 75,
+        "n": 199
+      },
+      "switch_own_last_differs:chance": {
+        "value": 0.37524587715478913,
+        "ci": [
+          0.3074830434854391,
+          0.49920155448522774
+        ],
+        "replicates_without_denominator": 0,
+        "n": 199
+      },
+      "switch_own_last_differs:difference": {
+        "value": 0.001638544955763672,
+        "ci": [
+          -0.07088434498686057,
+          0.08491355951820663
+        ],
+        "replicates_without_denominator": 0,
+        "n": 199
+      },
+      "switches": {
+        "count": 270
+      },
+      "switches:own_last_differs_lands_on_partner_last": {
+        "count": 75
+      },
+      "switches:own_last_equals_partner_last": {
+        "count": 71
+      },
+      "switches:other": {
+        "count": 124
+      },
+      "switches_with_d1": {
+        "count": 168
+      },
+      "returns_to_d1": {
+        "value": 0.47619047619047616,
+        "ci": [
+          0.4065040650406504,
+          0.5666666666666667
+        ],
+        "replicates_without_denominator": 0,
+        "count": 80,
+        "n": 168
+      },
+      "returns_to_d1:chance": {
+        "value": 0.2680592639533502,
+        "ci": [
+          0.2238185320424553,
+          0.3441977640015732
+        ],
+        "replicates_without_denominator": 0,
+        "n": 168
+      },
+      "returns_to_d1:difference": {
+        "value": 0.20813121223712597,
+        "ci": [
+          0.14843455985968987,
+          0.2605180283894984
+        ],
+        "replicates_without_denominator": 0,
+        "n": 168
+      },
+      "returns_to_d1:other_types_1": {
+        "value": 0.5454545454545454,
+        "ci": [
+          0.4622592713077424,
+          0.6333396946564884
+        ],
+        "replicates_without_denominator": 0,
+        "count": 60,
+        "n": 110,
+        "chance": 0.2906146506717844,
+        "chance_ci": [
+          0.23580828850736502,
+          0.38226263768415103
+        ]
+      },
+      "returns_to_d1:other_types_2": {
+        "value": 0.37209302325581395,
+        "ci": [
+          0.27586206896551724,
+          0.5
+        ],
+        "replicates_without_denominator": 0,
+        "count": 16,
+        "n": 43,
+        "chance": 0.23749921363962512,
+        "chance_ci": [
+          0.14868557839953767,
+          0.32575205663753
+        ]
+      },
+      "returns_to_d1:other_types_3_or_more": {
+        "value": 0.26666666666666666,
+        "ci": [
+          0.1111111111111111,
+          0.5
+        ],
+        "replicates_without_denominator": 9,
+        "count": 4,
+        "n": 15,
+        "chance": 0.19025857225084522,
+        "chance_ci": [
+          0.07893986643986645,
+          0.30758445691390063
+        ]
+      },
+      "switches_with_d2": {
+        "count": 58
+      },
+      "switches_with_d2:returns_to_d2": {
+        "value": 0.20689655172413793,
+        "ci": [
+          0.06896551724137931,
+          0.3142857142857143
+        ],
+        "replicates_without_denominator": 0,
+        "count": 12,
+        "n": 58
+      },
+      "switches_with_d2:returns_to_d1": {
+        "value": 0.3448275862068966,
+        "ci": [
+          0.2631578947368421,
+          0.45902747009304373
+        ],
+        "replicates_without_denominator": 0,
+        "count": 20,
+        "n": 58
+      },
+      "run_length:at_least_3": {
+        "count": 808
+      },
+      "run_length:at_least_10": {
+        "count": 113
+      },
+      "run_length:max": {
+        "count": 21
+      },
+      "repeat_rate_by_run_in_A_history:1": {
+        "value": 0.6506550218340611,
+        "ci": [
+          0.5796178343949044,
+          0.7345368779432354
+        ],
+        "replicates_without_denominator": 0,
+        "count": 298,
+        "n": 458
+      },
+      "repeat_rate_by_run_in_A_history:2": {
+        "value": 0.8612099644128114,
+        "ci": [
+          0.8055555555555556,
+          0.9
+        ],
+        "replicates_without_denominator": 0,
+        "count": 242,
+        "n": 281
+      },
+      "repeat_rate_by_run_in_A_history:3": {
+        "value": 0.8811881188118812,
+        "ci": [
+          0.8307692307692308,
+          0.9137947178096345
+        ],
+        "replicates_without_denominator": 0,
+        "count": 178,
+        "n": 202
+      },
+      "repeat_rate_by_run_in_A_history:4-5": {
+        "value": 0.9003831417624522,
+        "ci": [
+          0.8579537692498758,
+          0.9323308270676691
+        ],
+        "replicates_without_denominator": 0,
+        "count": 235,
+        "n": 261
+      },
+      "repeat_rate_by_run_in_A_history:6-10": {
+        "value": 0.9391304347826087,
+        "ci": [
+          0.8944420556920557,
+          0.9870143864755934
+        ],
+        "replicates_without_denominator": 0,
+        "count": 324,
+        "n": 345
+      },
+      "within_whale_exchange:run_2_or_more_minus_run_1": {
+        "value": -0.006777339355865909,
+        "ci": [
+          -0.056339333147051904,
+          0.03980977916466442
+        ],
+        "replicates_without_denominator": 0,
+        "n": 206
+      }
+    },
+    "checks": [
+      {
+        "name": "targets",
+        "expected": {
+          "count": 1547
+        },
+        "computed": {
+          "count": 1547
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeats_of_own_last",
+        "expected": {
+          "count": 1277
+        },
+        "computed": {
+          "count": 1277
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate:self_continuation",
+        "expected": {
+          "value": 0.822,
+          "n": 461,
+          "ci": [
+            0.741,
+            0.884
+          ]
+        },
+        "computed": {
+          "value": 0.8221258134490239,
+          "n": 461,
+          "ci": [
+            0.7444394714407503,
+            0.8848268793972633
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate:switch",
+        "expected": {
+          "value": 0.825,
+          "n": 645,
+          "ci": [
+            0.77,
+            0.872
+          ]
+        },
+        "computed": {
+          "value": 0.8248062015503876,
+          "n": 645,
+          "ci": [
+            0.7708641565503288,
+            0.8713694825305189
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate:overlap",
+        "expected": {
+          "value": 0.83,
+          "n": 441,
+          "ci": [
+            0.773,
+            0.873
+          ]
+        },
+        "computed": {
+          "value": 0.8299319727891157,
+          "n": 441,
+          "ci": [
+            0.7748091603053435,
+            0.8741096789196552
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "own_last_equals_partner_last",
+        "expected": {
+          "value": 0.548,
+          "count": 847,
+          "ci": [
+            0.404,
+            0.681
+          ]
+        },
+        "computed": {
+          "value": 0.5475113122171946,
+          "count": 847,
+          "ci": [
+            0.4049938969051857,
+            0.6810675968150103
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "agreement_chance",
+        "expected": {
+          "value": 0.488,
+          "ci": [
+            0.399,
+            0.578
+          ]
+        },
+        "computed": {
+          "value": 0.4878880140683321,
+          "ci": [
+            0.398753886257771,
+            0.5792115975323072
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "own_last_differs:repeats_own_last",
+        "expected": {
+          "value": 0.716,
+          "n": 700,
+          "ci": [
+            0.663,
+            0.75
+          ]
+        },
+        "computed": {
+          "value": 0.7157142857142857,
+          "n": 700,
+          "ci": [
+            0.6632106075974815,
+            0.7500072590011614
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "own_last_differs:takes_partner_last",
+        "expected": {
+          "value": 0.107,
+          "n": 700,
+          "ci": [
+            0.085,
+            0.148
+          ]
+        },
+        "computed": {
+          "value": 0.10714285714285714,
+          "n": 700,
+          "ci": [
+            0.0848121395073042,
+            0.14706065718057795
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "own_last_differs:other",
+        "expected": {
+          "value": 0.177,
+          "n": 700,
+          "ci": [
+            0.122,
+            0.219
+          ]
+        },
+        "computed": {
+          "value": 0.17714285714285713,
+          "n": 700,
+          "ci": [
+            0.12226993845302944,
+            0.21814111261872454
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switch_own_last_differs:lands_on_partner_last",
+        "expected": {
+          "value": 0.377,
+          "n": 199
+        },
+        "computed": {
+          "value": 0.3768844221105528,
+          "n": 199
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switch_own_last_differs:chance",
+        "expected": {
+          "value": 0.375,
+          "n": 199
+        },
+        "computed": {
+          "value": 0.37524587715478913,
+          "n": 199
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switch_own_last_differs:difference",
+        "expected": {
+          "value": 0.002,
+          "n": 199,
+          "ci": [
+            -0.072,
+            0.086
+          ]
+        },
+        "computed": {
+          "value": 0.001638544955763672,
+          "n": 199,
+          "ci": [
+            -0.07088434498686057,
+            0.08491355951820663
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches",
+        "expected": {
+          "count": 270
+        },
+        "computed": {
+          "count": 270
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches:own_last_differs_lands_on_partner_last",
+        "expected": {
+          "count": 75
+        },
+        "computed": {
+          "count": 75
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches:own_last_equals_partner_last",
+        "expected": {
+          "count": 71
+        },
+        "computed": {
+          "count": 71
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches:other",
+        "expected": {
+          "count": 124
+        },
+        "computed": {
+          "count": 124
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches_with_d1",
+        "expected": {
+          "count": 168
+        },
+        "computed": {
+          "count": 168
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "returns_to_d1",
+        "expected": {
+          "value": 0.476,
+          "n": 168
+        },
+        "computed": {
+          "value": 0.47619047619047616,
+          "n": 168
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "returns_to_d1:chance",
+        "expected": {
+          "value": 0.268,
+          "n": 168
+        },
+        "computed": {
+          "value": 0.2680592639533502,
+          "n": 168
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "returns_to_d1:difference",
+        "expected": {
+          "value": 0.208,
+          "n": 168,
+          "ci": [
+            0.149,
+            0.26
+          ]
+        },
+        "computed": {
+          "value": 0.20813121223712597,
+          "n": 168,
+          "ci": [
+            0.14843455985968987,
+            0.2605180283894984
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "returns_to_d1:other_types_1",
+        "expected": {
+          "value": 0.545,
+          "n": 110,
+          "chance": 0.291
+        },
+        "computed": {
+          "value": 0.5454545454545454,
+          "n": 110,
+          "chance": 0.2906146506717844
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "returns_to_d1:other_types_2",
+        "expected": {
+          "value": 0.372,
+          "n": 43,
+          "chance": 0.237
+        },
+        "computed": {
+          "value": 0.37209302325581395,
+          "n": 43,
+          "chance": 0.23749921363962512
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "returns_to_d1:other_types_3_or_more",
+        "expected": {
+          "value": 0.267,
+          "n": 15,
+          "chance": 0.19
+        },
+        "computed": {
+          "value": 0.26666666666666666,
+          "n": 15,
+          "chance": 0.19025857225084522
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches_with_d2",
+        "expected": {
+          "count": 58
+        },
+        "computed": {
+          "count": 58
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches_with_d2:returns_to_d2",
+        "expected": {
+          "value": 0.207,
+          "n": 58
+        },
+        "computed": {
+          "value": 0.20689655172413793,
+          "n": 58
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "switches_with_d2:returns_to_d1",
+        "expected": {
+          "value": 0.345,
+          "n": 58
+        },
+        "computed": {
+          "value": 0.3448275862068966,
+          "n": 58
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "run_length:at_least_3",
+        "expected": {
+          "count": 808
+        },
+        "computed": {
+          "count": 808
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "run_length:at_least_10",
+        "expected": {
+          "count": 113
+        },
+        "computed": {
+          "count": 113
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "run_length:max",
+        "expected": {
+          "count": 21
+        },
+        "computed": {
+          "count": 21
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate_by_run_in_A_history:1",
+        "expected": {
+          "value": 0.651,
+          "n": 458
+        },
+        "computed": {
+          "value": 0.6506550218340611,
+          "n": 458
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate_by_run_in_A_history:2",
+        "expected": {
+          "value": 0.861,
+          "n": 281
+        },
+        "computed": {
+          "value": 0.8612099644128114,
+          "n": 281
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate_by_run_in_A_history:3",
+        "expected": {
+          "value": 0.881,
+          "n": 202
+        },
+        "computed": {
+          "value": 0.8811881188118812,
+          "n": 202
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate_by_run_in_A_history:4-5",
+        "expected": {
+          "value": 0.9,
+          "n": 261
+        },
+        "computed": {
+          "value": 0.9003831417624522,
+          "n": 261
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "repeat_rate_by_run_in_A_history:6-10",
+        "expected": {
+          "value": 0.939,
+          "n": 345
+        },
+        "computed": {
+          "value": 0.9391304347826087,
+          "n": 345
+        },
+        "failed_fields": [],
+        "passed": true
+      },
+      {
+        "name": "within_whale_exchange:run_2_or_more_minus_run_1",
+        "expected": {
+          "value": -0.007,
+          "n": 206,
+          "ci": [
+            -0.058,
+            0.04
+          ]
+        },
+        "computed": {
+          "value": -0.006777339355865909,
+          "n": 206,
+          "ci": [
+            -0.056339333147051904,
+            0.03980977916466442
+          ]
+        },
+        "failed_fields": [],
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "gate": {
+    "maximum_penalty_differences": 1,
+    "log_likelihood_tolerance_bits": 1e-05,
+    "probability_listing_threshold": 1e-05,
+    "fits_compared": 98,
+    "max_abs_log_likelihood_difference_bits": 2.401893068881833e-06,
+    "max_abs_probability_difference": 0.00011328809569266518,
+    "max_abs_probability_difference_same_penalty": 0.00011328809569266518,
+    "fits_above_probability_threshold": [
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "A_B_S",
+        "max_abs_probability_difference": 0.00011328809569266518,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "A",
+        "max_abs_probability_difference": 0.00010531912365249751,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": null,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": null,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2015-03-19",
+        "condition": "A",
+        "max_abs_probability_difference": 9.8600559481965e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": null,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": null,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2015-03-19",
+        "condition": "A_S",
+        "max_abs_probability_difference": 9.123849247133498e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "A_S",
+        "max_abs_probability_difference": 7.10281982185812e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2015-03-19",
+        "condition": "B",
+        "max_abs_probability_difference": 6.553644034057449e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": null,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": null,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "B",
+        "max_abs_probability_difference": 5.5258543963376816e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": null,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": null,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "A_B",
+        "max_abs_probability_difference": 5.5111104408256395e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": null,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": null,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2015-03-19",
+        "condition": "B_S",
+        "max_abs_probability_difference": 5.0517232212665686e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2015-03-19",
+        "condition": "A_B_S",
+        "max_abs_probability_difference": 3.5905117699297495e-05,
+        "chosen_l2": 0.0003,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.0003,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2014-04-24",
+        "condition": "A_S",
+        "max_abs_probability_difference": 2.823949784733215e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": 0.0003,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": 0.0003,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "S",
+        "max_abs_probability_difference": 2.629273887483352e-05,
+        "chosen_l2": 0.0001,
+        "chosen_l2_s": 0.0001,
+        "v4_chosen_l2": 0.0001,
+        "v4_chosen_l2_s": 0.0001,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2014-04-16",
+        "condition": "S",
+        "max_abs_probability_difference": 2.4257996117493796e-05,
+        "chosen_l2": 0.001,
+        "chosen_l2_s": 0.0001,
+        "v4_chosen_l2": 0.001,
+        "v4_chosen_l2_s": 0.0001,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2016-05-13",
+        "condition": "B_S",
+        "max_abs_probability_difference": 2.2875310196901477e-05,
+        "chosen_l2": 0.003,
+        "chosen_l2_s": 0.0001,
+        "v4_chosen_l2": 0.003,
+        "v4_chosen_l2_s": 0.0001,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2014-04-29",
+        "condition": "A_S",
+        "max_abs_probability_difference": 1.4865182606516036e-05,
+        "chosen_l2": 0.0003,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.0003,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2014-04-16",
+        "condition": "B_S",
+        "max_abs_probability_difference": 1.478960949563568e-05,
+        "chosen_l2": 0.001,
+        "chosen_l2_s": 1.0,
+        "v4_chosen_l2": 0.001,
+        "v4_chosen_l2_s": 1.0,
+        "same_penalty": true
+      },
+      {
+        "fold_id": "test-2015-04-07",
+        "condition": "B_S",
+        "max_abs_probability_difference": 1.329746669975762e-05,
+        "chosen_l2": 1.0,
+        "chosen_l2_s": 0.0003,
+        "v4_chosen_l2": 1.0,
+        "v4_chosen_l2_s": 0.0003,
+        "same_penalty": true
+      }
+    ],
+    "penalty_differences": [],
+    "by_condition": {
+      "none": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 0.0,
+        "mean_log_likelihood_bits": -2.6025399070492883,
+        "v4_mean_log_likelihood_bits": -2.6025399070492883,
+        "log_likelihood_difference_bits": 0.0
+      },
+      "S": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 2.629273887483352e-05,
+        "mean_log_likelihood_bits": -2.5538779415036448,
+        "v4_mean_log_likelihood_bits": -2.5538791847688294,
+        "log_likelihood_difference_bits": 1.243265184580622e-06
+      },
+      "A": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 0.00010531912365249751,
+        "mean_log_likelihood_bits": -1.0968959542389292,
+        "v4_mean_log_likelihood_bits": -1.096898356131998,
+        "log_likelihood_difference_bits": 2.401893068881833e-06
+      },
+      "B": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 6.553644034057449e-05,
+        "mean_log_likelihood_bits": -2.472776885054046,
+        "v4_mean_log_likelihood_bits": -2.47277736681475,
+        "log_likelihood_difference_bits": 4.817607037743699e-07
+      },
+      "A_B": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 5.5111104408256395e-05,
+        "mean_log_likelihood_bits": -1.1123700907741667,
+        "v4_mean_log_likelihood_bits": -1.1123708292037529,
+        "log_likelihood_difference_bits": 7.384295861445622e-07
+      },
+      "A_S": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 9.123849247133498e-05,
+        "mean_log_likelihood_bits": -1.106946972753366,
+        "v4_mean_log_likelihood_bits": -1.1069466537211157,
+        "log_likelihood_difference_bits": -3.190322503954235e-07
+      },
+      "B_S": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 5.0517232212665686e-05,
+        "mean_log_likelihood_bits": -2.4762998475415405,
+        "v4_mean_log_likelihood_bits": -2.4762998520097983,
+        "log_likelihood_difference_bits": 4.468257763790007e-09
+      },
+      "A_B_S": {
+        "fits": 14,
+        "penalties_differing": 0,
+        "max_abs_probability_difference": 0.00011328809569266518,
+        "mean_log_likelihood_bits": -1.1326052753412832,
+        "v4_mean_log_likelihood_bits": -1.1326062155844379,
+        "log_likelihood_difference_bits": 9.402431546678969e-07
+      }
+    },
+    "passed": true
+  },
+  "constant_conditions": [
+    "none",
+    "S",
+    "B",
+    "B_S"
+  ],
+  "metrics": {
+    "R": {
+      "A": {
+        "mean_log_likelihood_bits": -1.0968959542389292,
+        "accuracy": 0.8235294117647058,
+        "macro_f1": 0.28191166255541206,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.29586296231994946,
+          "unweighted_mean_bits_per_coda": 0.3606233703632403,
+          "ci_bits_per_coda": [
+            0.2419897691919118,
+            0.37190251545571107
+          ],
+          "positive_days": 14,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.6127864062683757,
+            "2014-04-24": 0.2883423211649801,
+            "2014-04-29": 0.16942524853067875,
+            "2015-03-02": 0.3298924809606246,
+            "2015-03-19": 0.3175874126660202,
+            "2015-03-26": 0.2167141601909182,
+            "2015-03-31": 0.20535066893363307,
+            "2015-04-01": 0.1901326067081096,
+            "2015-04-07": 0.5902073712797719,
+            "2015-04-10": 0.3794222652578047,
+            "2016-04-12": 0.5672246480717922,
+            "2016-04-24": 0.8130381010333145,
+            "2016-05-12": 0.3084452011094343,
+            "2016-05-13": 0.06015829290990652
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 3,
+          "folds": 14
+        }
+      },
+      "A_B_S": {
+        "mean_log_likelihood_bits": -1.1326052753412832,
+        "accuracy": 0.8228829993535876,
+        "macro_f1": 0.32477601627596353,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.2601536412175955,
+          "unweighted_mean_bits_per_coda": 0.35896827129117376,
+          "ci_bits_per_coda": [
+            0.18546472183298093,
+            0.4046936329547816
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.5595706669727629,
+            "2014-04-24": 0.28481351377779135,
+            "2014-04-29": 0.12071615360300418,
+            "2015-03-02": 0.12289552214937736,
+            "2015-03-19": 0.3573061617663095,
+            "2015-03-26": 0.21490795531885615,
+            "2015-03-31": 0.20533676192953818,
+            "2015-04-01": 0.23791335113697346,
+            "2015-04-07": 0.5549426140052476,
+            "2015-04-10": 0.3554968495922384,
+            "2016-04-12": 1.1523764053352314,
+            "2016-04-24": 0.9170191942312488,
+            "2016-05-12": 0.2999991186581204,
+            "2016-05-13": -0.3577384704002674
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      }
+    },
+    "L": {
+      "A": {
+        "mean_log_likelihood_bits": -1.088405698196412,
+        "accuracy": 0.8299935358758889,
+        "macro_f1": 0.30690986863391584,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.30435321836246665,
+          "unweighted_mean_bits_per_coda": 0.38203622588460867,
+          "ci_bits_per_coda": [
+            0.24351991955066618,
+            0.40039517885550163
+          ],
+          "positive_days": 14,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.612193502002447,
+            "2014-04-24": 0.2992907290162142,
+            "2014-04-29": 0.17552725948171874,
+            "2015-03-02": 0.32710217047028345,
+            "2015-03-19": 0.30347639089508965,
+            "2015-03-26": 0.21696052621095127,
+            "2015-03-31": 0.20484268973161077,
+            "2015-04-01": 0.18368965984813956,
+            "2015-04-07": 0.5957540886066836,
+            "2015-04-10": 0.3790818302998059,
+            "2016-04-12": 0.8709161454948989,
+            "2016-04-24": 0.8470676975594662,
+            "2016-05-12": 0.30822883234023263,
+            "2016-05-13": 0.024375640426979657
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 3,
+          "folds": 14
+        }
+      },
+      "A_B_S": {
+        "mean_log_likelihood_bits": -1.1349809800686377,
+        "accuracy": 0.8222365869424693,
+        "macro_f1": 0.3237188072177497,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.25777793649024094,
+          "unweighted_mean_bits_per_coda": 0.355842485981717,
+          "ci_bits_per_coda": [
+            0.18141453277689323,
+            0.40338745759072286
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.5661962007394188,
+            "2014-04-24": 0.28569288921099684,
+            "2014-04-29": 0.12103955427804587,
+            "2015-03-02": 0.11993940759458646,
+            "2015-03-19": 0.33008171096309213,
+            "2015-03-26": 0.21396109162346097,
+            "2015-03-31": 0.20559694783717006,
+            "2015-04-01": 0.22999724132441884,
+            "2015-04-07": 0.5488123628250082,
+            "2015-04-10": 0.3611613325197893,
+            "2016-04-12": 1.1662344034798673,
+            "2016-04-24": 0.9290750836363393,
+            "2016-05-12": 0.29815594057671024,
+            "2016-05-13": -0.3941493628648661
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      }
+    },
+    "P": {
+      "A": {
+        "mean_log_likelihood_bits": -1.0618758134850865,
+        "accuracy": 0.8345184227537169,
+        "macro_f1": 0.32409061784099,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.33088310307379215,
+          "unweighted_mean_bits_per_coda": 0.4315478244059949,
+          "ci_bits_per_coda": [
+            0.2541705419005146,
+            0.4679562832444748
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.7127566283099338,
+            "2014-04-24": 0.31225275213102266,
+            "2014-04-29": 0.16365492086497746,
+            "2015-03-02": 0.32353192858323143,
+            "2015-03-19": 0.2975555395384507,
+            "2015-03-26": 0.23030664155125635,
+            "2015-03-31": 0.2247161121444936,
+            "2015-04-01": 0.19024035197590186,
+            "2015-04-07": 0.6170814223862402,
+            "2015-04-10": 0.37916503908733834,
+            "2016-04-12": 1.3492399717378885,
+            "2016-04-24": 1.0013156309683546,
+            "2016-05-12": 0.3296197485859509,
+            "2016-05-13": -0.08976714618111195
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 2,
+          "folds": 14
+        }
+      },
+      "A_B_S": {
+        "mean_log_likelihood_bits": -1.0940050367545378,
+        "accuracy": 0.8299935358758889,
+        "macro_f1": 0.3435390359416412,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.2987538798043411,
+          "unweighted_mean_bits_per_coda": 0.40854079707538266,
+          "ci_bits_per_coda": [
+            0.21166263835051835,
+            0.4716288490345783
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.6678087931783065,
+            "2014-04-24": 0.2978768334106512,
+            "2014-04-29": 0.1193093696796954,
+            "2015-03-02": 0.16538138950108747,
+            "2015-03-19": 0.36223416865860497,
+            "2015-03-26": 0.2297121044372164,
+            "2015-03-31": 0.22891088963077738,
+            "2015-04-01": 0.2414634239168698,
+            "2015-04-07": 0.58144277993148,
+            "2015-04-10": 0.4075684594379388,
+            "2016-04-12": 1.517378652229483,
+            "2016-04-24": 1.0310284612725373,
+            "2016-05-12": 0.3339999793598904,
+            "2016-05-13": -0.46454414558918083
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      }
+    },
+    "D": {
+      "A": {
+        "mean_log_likelihood_bits": -1.0498907688768389,
+        "accuracy": 0.832579185520362,
+        "macro_f1": 0.3614257419628424,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.34286814768203994,
+          "unweighted_mean_bits_per_coda": 0.42818738880980145,
+          "ci_bits_per_coda": [
+            0.26246261287127587,
+            0.47276776193718456
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.7151471781294465,
+            "2014-04-24": 0.279003828976604,
+            "2014-04-29": 0.18593463197203874,
+            "2015-03-02": 0.3672994941069803,
+            "2015-03-19": 0.2632901809062911,
+            "2015-03-26": 0.2505255625700118,
+            "2015-03-31": 0.2223659517825127,
+            "2015-04-01": 0.24157485354790773,
+            "2015-04-07": 0.5443528470782284,
+            "2015-04-10": 0.36361274319090614,
+            "2016-04-12": 1.324522965139471,
+            "2016-04-24": 1.058496003231458,
+            "2016-05-12": 0.3274455047792155,
+            "2016-05-13": -0.14894830207385207
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      },
+      "A_B_S": {
+        "mean_log_likelihood_bits": -1.0993732165735515,
+        "accuracy": 0.821590174531351,
+        "macro_f1": 0.3568133028281594,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.2933856999853273,
+          "unweighted_mean_bits_per_coda": 0.3990433143537725,
+          "ci_bits_per_coda": [
+            0.20300562135173658,
+            0.46694492681447913
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.643167505142894,
+            "2014-04-24": 0.2703897687602907,
+            "2014-04-29": 0.15245331137064153,
+            "2015-03-02": 0.1430686207726046,
+            "2015-03-19": 0.36051928500689057,
+            "2015-03-26": 0.2485949261809723,
+            "2015-03-31": 0.22463946114533814,
+            "2015-04-01": 0.2620804982708829,
+            "2015-04-07": 0.5389064887225848,
+            "2015-04-10": 0.3894420702386276,
+            "2016-04-12": 1.5282624362646853,
+            "2016-04-24": 1.027021100668823,
+            "2016-05-12": 0.31755442151320795,
+            "2016-05-13": -0.5194934931056285
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      }
+    },
+    "PD": {
+      "A": {
+        "mean_log_likelihood_bits": -1.0389244039159558,
+        "accuracy": 0.8377504848093084,
+        "macro_f1": 0.36983512558037596,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.3538345126429231,
+          "unweighted_mean_bits_per_coda": 0.4485821378210398,
+          "ci_bits_per_coda": [
+            0.2668245214670261,
+            0.49938489293657484
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.7524116163803175,
+            "2014-04-24": 0.2927823913717546,
+            "2014-04-29": 0.1857149211281179,
+            "2015-03-02": 0.36717668864327613,
+            "2015-03-19": 0.28846127936375354,
+            "2015-03-26": 0.25880817835234704,
+            "2015-03-31": 0.22701938770648175,
+            "2015-04-01": 0.23286587648763013,
+            "2015-04-07": 0.5610538751717015,
+            "2015-04-10": 0.3555152743496204,
+            "2016-04-12": 1.4812274515029282,
+            "2016-04-24": 1.1217726422233203,
+            "2016-05-12": 0.3524079038429895,
+            "2016-05-13": -0.1970675570296817
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      },
+      "A_B_S": {
+        "mean_log_likelihood_bits": -1.0809065810424379,
+        "accuracy": 0.8319327731092437,
+        "macro_f1": 0.3613789503786446,
+        "versus_repeat_own_last": {
+          "mean_bits_per_coda": 0.31185233551644076,
+          "unweighted_mean_bits_per_coda": 0.4206770709304216,
+          "ci_bits_per_coda": [
+            0.21983637569332373,
+            0.4940221221046158
+          ],
+          "positive_days": 13,
+          "days": 14,
+          "day_means_bits": {
+            "2014-04-16": 0.6798928059288607,
+            "2014-04-24": 0.28615291290533534,
+            "2014-04-29": 0.14342559202347901,
+            "2015-03-02": 0.1739554557429721,
+            "2015-03-19": 0.37431806526529526,
+            "2015-03-26": 0.2558451805994501,
+            "2015-03-31": 0.2308258179018321,
+            "2015-04-01": 0.26240439064777926,
+            "2015-04-07": 0.5611877689538456,
+            "2015-04-10": 0.42646513363219374,
+            "2016-04-12": 1.6446321869320675,
+            "2016-04-24": 1.0710583268696434,
+            "2016-05-12": 0.32798453909593317,
+            "2016-05-13": -0.5486691834727846
+          }
+        },
+        "history_l2": {
+          "median": 0.001,
+          "at_grid_edge": 1,
+          "folds": 14
+        }
+      }
+    }
+  },
+  "coefficients": {
+    "R": {
+      "A": {
+        "copy_beta": {
+          "min": 2.3813221683324777,
+          "median": 2.7542752206774446,
+          "max": 3.4480385093491766,
+          "per_fold": {
+            "test-2014-04-16": 3.0280191477633998,
+            "test-2014-04-24": 3.3987044084426694,
+            "test-2014-04-29": 2.9387987830148914,
+            "test-2015-03-02": 2.789143714006241,
+            "test-2015-03-19": 3.4480385093491766,
+            "test-2015-03-26": 2.719406727348648,
+            "test-2015-03-31": 2.5419149475122857,
+            "test-2015-04-01": 2.7018768445831873,
+            "test-2015-04-07": 3.017866724874519,
+            "test-2015-04-10": 2.6561874476580707,
+            "test-2016-04-12": 2.617575118725973,
+            "test-2016-04-24": 2.3813221683324777,
+            "test-2016-05-12": 2.6335563620173414,
+            "test-2016-05-13": 3.44427293789937
+          }
+        }
+      },
+      "A_B_S": {
+        "copy_beta": {
+          "min": 2.331998236696577,
+          "median": 2.4510110676619696,
+          "max": 3.0178474519052187,
+          "per_fold": {
+            "test-2014-04-16": 2.521156737109021,
+            "test-2014-04-24": 2.77112729053439,
+            "test-2014-04-29": 2.430924129413886,
+            "test-2015-03-02": 2.5043210075014244,
+            "test-2015-03-19": 2.737328803530803,
+            "test-2015-03-26": 2.4195553595006167,
+            "test-2015-03-31": 2.331998236696577,
+            "test-2015-04-01": 2.471098005910054,
+            "test-2015-04-07": 2.5357244634691813,
+            "test-2015-04-10": 2.416186662852625,
+            "test-2016-04-12": 2.3637513715091756,
+            "test-2016-04-24": 2.41456666006826,
+            "test-2016-05-12": 2.4101925411971976,
+            "test-2016-05-13": 3.0178474519052187
+          }
+        }
+      }
+    },
+    "L": {
+      "A": {
+        "copy_beta": {
+          "min": 2.135423023340124,
+          "median": 2.7754751019261654,
+          "max": 3.5723972860723765,
+          "per_fold": {
+            "test-2014-04-16": 3.1360562275454265,
+            "test-2014-04-24": 3.5094628162336705,
+            "test-2014-04-29": 2.7729404500570647,
+            "test-2015-03-02": 2.8195800113493084,
+            "test-2015-03-19": 3.5723972860723765,
+            "test-2015-03-26": 2.7713307044911444,
+            "test-2015-03-31": 2.5298123917739685,
+            "test-2015-04-01": 2.7780097537952666,
+            "test-2015-04-07": 3.1065230326578206,
+            "test-2015-04-10": 2.6605818421276974,
+            "test-2016-04-12": 2.512818783302406,
+            "test-2016-04-24": 2.135423023340124,
+            "test-2016-05-12": 2.6274630518734043,
+            "test-2016-05-13": 3.5607304044840773
+          }
+        },
+        "run_length": {
+          "min": -0.532269552423748,
+          "median": -0.22650760404265374,
+          "max": 0.6913610918869081,
+          "per_fold": {
+            "test-2014-04-16": -0.4536425834972878,
+            "test-2014-04-24": -0.4751422266307279,
+            "test-2014-04-29": -0.24063359021711372,
+            "test-2015-03-02": -0.12132632523768798,
+            "test-2015-03-19": -0.532269552423748,
+            "test-2015-03-26": -0.21238161786819373,
+            "test-2015-03-31": 0.04430707122601771,
+            "test-2015-04-01": -0.29636752858453913,
+            "test-2015-04-07": -0.36409176379678987,
+            "test-2015-04-10": -0.014914143055244146,
+            "test-2016-04-12": 0.09082805009745086,
+            "test-2016-04-24": 0.6913610918869081,
+            "test-2016-05-12": 0.020744956245715655,
+            "test-2016-05-13": -0.5006401124124198
+          }
+        }
+      },
+      "A_B_S": {
+        "copy_beta": {
+          "min": 2.282853307388155,
+          "median": 2.50786401143683,
+          "max": 3.1602287673996137,
+          "per_fold": {
+            "test-2014-04-16": 2.5837163925683457,
+            "test-2014-04-24": 2.613231604596986,
+            "test-2014-04-29": 2.498286994034286,
+            "test-2015-03-02": 2.517441028839374,
+            "test-2015-03-19": 2.8630541506920664,
+            "test-2015-03-26": 2.3882047850273618,
+            "test-2015-03-31": 2.3122940042319398,
+            "test-2015-04-01": 2.5480536385528008,
+            "test-2015-04-07": 2.5879286089371187,
+            "test-2015-04-10": 2.286562599678866,
+            "test-2016-04-12": 2.328199845887324,
+            "test-2016-04-24": 2.282853307388155,
+            "test-2016-05-12": 2.3827887648714796,
+            "test-2016-05-13": 3.1602287673996137
+          }
+        },
+        "run_length": {
+          "min": -0.5516050785900627,
+          "median": -0.11046309569452387,
+          "max": 0.3898579830990346,
+          "per_fold": {
+            "test-2014-04-16": -0.2213684466380801,
+            "test-2014-04-24": -0.17025239196037223,
+            "test-2014-04-29": -0.2473306347987536,
+            "test-2015-03-02": -0.0506737994286755,
+            "test-2015-03-19": -0.4884164183118121,
+            "test-2015-03-26": 0.10668554838346504,
+            "test-2015-03-31": 0.0714458796840344,
+            "test-2015-04-01": -0.2838286110435423,
+            "test-2015-04-07": -0.18688925139369889,
+            "test-2015-04-10": 0.37669812229960986,
+            "test-2016-04-12": 0.13156962584243637,
+            "test-2016-04-24": 0.3898579830990346,
+            "test-2016-05-12": 0.08873271096793518,
+            "test-2016-05-13": -0.5516050785900627
+          }
+        }
+      }
+    },
+    "P": {
+      "A": {
+        "copy_beta": {
+          "min": 2.134594815847116,
+          "median": 2.788890809986291,
+          "max": 3.6249428168883773,
+          "per_fold": {
+            "test-2014-04-16": 3.175329822183865,
+            "test-2014-04-24": 3.5684776475191473,
+            "test-2014-04-29": 2.789634571407438,
+            "test-2015-03-02": 2.8590179755950165,
+            "test-2015-03-19": 2.487096344814089,
+            "test-2015-03-26": 2.788147048565144,
+            "test-2015-03-31": 2.527855469946474,
+            "test-2015-04-01": 2.7992350574694074,
+            "test-2015-04-07": 3.1442501424480036,
+            "test-2015-04-10": 2.6700728431629672,
+            "test-2016-04-12": 2.556465691880807,
+            "test-2016-04-24": 2.134594815847116,
+            "test-2016-05-12": 2.639759751952236,
+            "test-2016-05-13": 3.6249428168883773
+          }
+        },
+        "run_length": {
+          "min": -0.18383179045605422,
+          "median": 0.21451231451036634,
+          "max": 0.7333608359820488,
+          "per_fold": {
+            "test-2014-04-16": -0.18383179045605422,
+            "test-2014-04-24": -0.1489873273108293,
+            "test-2014-04-29": 0.07512261489152493,
+            "test-2015-03-02": 0.3248217400018894,
+            "test-2015-03-19": 0.528884667575734,
+            "test-2015-03-26": 0.15866001309468628,
+            "test-2015-03-31": 0.4206599191414807,
+            "test-2015-04-01": 0.021612002727269677,
+            "test-2015-04-07": -0.06507849319119585,
+            "test-2015-04-10": 0.2703646159260464,
+            "test-2016-04-12": 0.3851852196244997,
+            "test-2016-04-24": 0.7333608359820488,
+            "test-2016-05-12": 0.2867183014182964,
+            "test-2016-05-13": -0.16195188953484282
+          }
+        },
+        "repertoire": {
+          "min": 0.6766822228500015,
+          "median": 0.8266744547240275,
+          "max": 1.1672794367000687,
+          "per_fold": {
+            "test-2014-04-16": 0.6766822228500015,
+            "test-2014-04-24": 0.7864688382323592,
+            "test-2014-04-29": 0.7856376629808828,
+            "test-2015-03-02": 1.1672794367000687,
+            "test-2015-03-19": 0.8953173988604615,
+            "test-2015-03-26": 0.7948553826652314,
+            "test-2015-03-31": 0.908939660662638,
+            "test-2015-04-01": 0.8201096345256268,
+            "test-2015-04-07": 0.7324215548494997,
+            "test-2015-04-10": 0.941453935516032,
+            "test-2016-04-12": 1.1626813134180418,
+            "test-2016-04-24": 0.7192550636490396,
+            "test-2016-05-12": 0.8919635030693557,
+            "test-2016-05-13": 0.8332392749224281
+          }
+        }
+      },
+      "A_B_S": {
+        "copy_beta": {
+          "min": 2.295892482098094,
+          "median": 2.5485521255148935,
+          "max": 3.229744918267182,
+          "per_fold": {
+            "test-2014-04-16": 2.6145019643904446,
+            "test-2014-04-24": 2.6366888994151463,
+            "test-2014-04-29": 2.5210580127560447,
+            "test-2015-03-02": 2.581325126616193,
+            "test-2015-03-19": 2.8992433693369724,
+            "test-2015-03-26": 2.4120140534036425,
+            "test-2015-03-31": 2.3257524478425147,
+            "test-2015-04-01": 2.576046238273742,
+            "test-2015-04-07": 2.6133469597970262,
+            "test-2015-04-10": 2.450844896049264,
+            "test-2016-04-12": 2.3708005885995016,
+            "test-2016-04-24": 2.295892482098094,
+            "test-2016-05-12": 2.4050763192961826,
+            "test-2016-05-13": 3.229744918267182
+          }
+        },
+        "run_length": {
+          "min": -0.21579258000039597,
+          "median": 0.220990744399851,
+          "max": 0.5239600938797101,
+          "per_fold": {
+            "test-2014-04-16": 0.046706267837009915,
+            "test-2014-04-24": 0.14999815660347393,
+            "test-2014-04-29": 0.044780359709972774,
+            "test-2015-03-02": 0.350911140479202,
+            "test-2015-03-19": -0.18536939549745404,
+            "test-2015-03-26": 0.3796947068856855,
+            "test-2015-03-31": 0.4173039273568322,
+            "test-2015-04-01": 0.0169106453752759,
+            "test-2015-04-07": 0.09789775933544377,
+            "test-2015-04-10": 0.2919833321962281,
+            "test-2016-04-12": 0.3992972765045875,
+            "test-2016-04-24": 0.5239600938797101,
+            "test-2016-05-12": 0.32887987581663447,
+            "test-2016-05-13": -0.21579258000039597
+          }
+        },
+        "repertoire": {
+          "min": 0.691034195680304,
+          "median": 0.7881115778096157,
+          "max": 1.088697184659593,
+          "per_fold": {
+            "test-2014-04-16": 0.7119402376404799,
+            "test-2014-04-24": 0.7856179314940254,
+            "test-2014-04-29": 0.7174549606509165,
+            "test-2015-03-02": 1.088697184659593,
+            "test-2015-03-19": 0.691034195680304,
+            "test-2015-03-26": 0.8060915409761732,
+            "test-2015-03-31": 0.8335197613133696,
+            "test-2015-04-01": 0.7651353484369173,
+            "test-2015-04-07": 0.7184246437988211,
+            "test-2015-04-10": 0.8457208248510152,
+            "test-2016-04-12": 1.0031039738006058,
+            "test-2016-04-24": 0.7497289040581961,
+            "test-2016-05-12": 0.790605224125206,
+            "test-2016-05-13": 0.8150883694778105
+          }
+        }
+      }
+    },
+    "D": {
+      "A": {
+        "copy_beta": {
+          "min": 2.5328885806785473,
+          "median": 2.9593288117061176,
+          "max": 3.8048366121646437,
+          "per_fold": {
+            "test-2014-04-16": 3.323080374912076,
+            "test-2014-04-24": 3.324184982478127,
+            "test-2014-04-29": 3.2519321758529904,
+            "test-2015-03-02": 3.0215850333390026,
+            "test-2015-03-19": 2.612494665587742,
+            "test-2015-03-26": 2.962639256723719,
+            "test-2015-03-31": 2.7158505940530957,
+            "test-2015-04-01": 2.956018366688516,
+            "test-2015-04-07": 3.3321778424507973,
+            "test-2015-04-10": 2.6089554406140456,
+            "test-2016-04-12": 2.6510532751965905,
+            "test-2016-04-24": 2.5328885806785473,
+            "test-2016-05-12": 2.815714439533071,
+            "test-2016-05-13": 3.8048366121646437
+          }
+        },
+        "run_length": {
+          "min": -0.01255193123271471,
+          "median": 0.281464915253657,
+          "max": 0.5314386350173278,
+          "per_fold": {
+            "test-2014-04-16": -0.01255193123271471,
+            "test-2014-04-24": 0.165167213262785,
+            "test-2014-04-29": 0.08587501277009718,
+            "test-2015-03-02": 0.35715094079086357,
+            "test-2015-03-19": 0.5314386350173278,
+            "test-2015-03-26": 0.20577888971645053,
+            "test-2015-03-31": 0.3812869866116097,
+            "test-2015-04-01": 0.14165063755933216,
+            "test-2015-04-07": 0.12323287299459962,
+            "test-2015-04-10": 0.5059973203915987,
+            "test-2016-04-12": 0.4095610219367337,
+            "test-2016-04-24": 0.513495663021807,
+            "test-2016-05-12": 0.3576732972506678,
+            "test-2016-05-13": 0.014213536686544084
+          }
+        },
+        "distinct_1": {
+          "min": 1.2841005816499833,
+          "median": 1.6247327153565032,
+          "max": 1.7885891759059114,
+          "per_fold": {
+            "test-2014-04-16": 1.5428593052049486,
+            "test-2014-04-24": 1.735256289357524,
+            "test-2014-04-29": 1.687699188518806,
+            "test-2015-03-02": 1.7055813489710596,
+            "test-2015-03-19": 1.4435843364709393,
+            "test-2015-03-26": 1.6147505416798815,
+            "test-2015-03-31": 1.6219887221947051,
+            "test-2015-04-01": 1.627476708518301,
+            "test-2015-04-07": 1.7117024009812956,
+            "test-2015-04-10": 1.459389472441545,
+            "test-2016-04-12": 1.5297838051824442,
+            "test-2016-04-24": 1.2841005816499833,
+            "test-2016-05-12": 1.6873015329652112,
+            "test-2016-05-13": 1.7885891759059114
+          }
+        },
+        "distinct_2": {
+          "min": 0.33340868548513125,
+          "median": 1.0854584146028086,
+          "max": 1.4745908785693982,
+          "per_fold": {
+            "test-2014-04-16": 1.1923507710507315,
+            "test-2014-04-24": 1.319655001452585,
+            "test-2014-04-29": 1.0902386683275147,
+            "test-2015-03-02": 1.1071273108023327,
+            "test-2015-03-19": 0.33340868548513125,
+            "test-2015-03-26": 1.2567134228617405,
+            "test-2015-03-31": 1.0806781608781022,
+            "test-2015-04-01": 1.0467671006694443,
+            "test-2015-04-07": 1.323379362437863,
+            "test-2015-04-10": 0.3888465844109412,
+            "test-2016-04-12": 0.5650452207676387,
+            "test-2016-04-24": 0.3605977068684848,
+            "test-2016-05-12": 0.8745292992195816,
+            "test-2016-05-13": 1.4745908785693982
+          }
+        }
+      },
+      "A_B_S": {
+        "copy_beta": {
+          "min": 2.4239094647184083,
+          "median": 2.718578273133466,
+          "max": 3.442123978638478,
+          "per_fold": {
+            "test-2014-04-16": 2.789166881381198,
+            "test-2014-04-24": 2.81628571668515,
+            "test-2014-04-29": 2.6989946826027675,
+            "test-2015-03-02": 2.7617719127550573,
+            "test-2015-03-19": 3.072918010383747,
+            "test-2015-03-26": 2.5796080055507953,
+            "test-2015-03-31": 2.5072957801786635,
+            "test-2015-04-01": 2.738161863664165,
+            "test-2015-04-07": 2.795645974090085,
+            "test-2015-04-10": 2.4239094647184083,
+            "test-2016-04-12": 2.465545415722332,
+            "test-2016-04-24": 2.6021342792270943,
+            "test-2016-05-12": 2.5758073780309956,
+            "test-2016-05-13": 3.442123978638478
+          }
+        },
+        "run_length": {
+          "min": -0.10086858267359457,
+          "median": 0.2987055675289986,
+          "max": 0.5013360542694474,
+          "per_fold": {
+            "test-2014-04-16": 0.15477553432187519,
+            "test-2014-04-24": 0.26109326236970887,
+            "test-2014-04-29": 0.15266000363995735,
+            "test-2015-03-02": 0.3997910114690168,
+            "test-2015-03-19": -0.046093228627364,
+            "test-2015-03-26": 0.37476250363354857,
+            "test-2015-03-31": 0.35974308859265075,
+            "test-2015-04-01": 0.10458996479243622,
+            "test-2015-04-07": 0.20457121723766408,
+            "test-2015-04-10": 0.5013360542694474,
+            "test-2016-04-12": 0.3987969616295152,
+            "test-2016-04-24": 0.33631787268828833,
+            "test-2016-05-12": 0.3725328031587494,
+            "test-2016-05-13": -0.10086858267359457
+          }
+        },
+        "distinct_1": {
+          "min": 1.257120269000006,
+          "median": 1.492900212502907,
+          "max": 1.7046958592164019,
+          "per_fold": {
+            "test-2014-04-16": 1.5045267490417267,
+            "test-2014-04-24": 1.592384321619383,
+            "test-2014-04-29": 1.5168453195741918,
+            "test-2015-03-02": 1.7046958592164019,
+            "test-2015-03-19": 1.5636566170059625,
+            "test-2015-03-26": 1.456863624610823,
+            "test-2015-03-31": 1.4361082513017092,
+            "test-2015-04-01": 1.4812736759640872,
+            "test-2015-04-07": 1.549334833128616,
+            "test-2015-04-10": 1.257120269000006,
+            "test-2016-04-12": 1.3214023324012725,
+            "test-2016-04-24": 1.3553060925052762,
+            "test-2016-05-12": 1.4783017972163566,
+            "test-2016-05-13": 1.6436049118886955
+          }
+        },
+        "distinct_2": {
+          "min": 0.33323805280347346,
+          "median": 0.8894018286051498,
+          "max": 1.5567281399742259,
+          "per_fold": {
+            "test-2014-04-16": 1.0299778666298782,
+            "test-2014-04-24": 0.9833708165950092,
+            "test-2014-04-29": 0.8338122081450526,
+            "test-2015-03-02": 0.7546682833981411,
+            "test-2015-03-19": 1.0984462647462592,
+            "test-2015-03-26": 0.8057104575521491,
+            "test-2015-03-31": 0.944991449065247,
+            "test-2015-04-01": 0.9768659979796748,
+            "test-2015-04-07": 1.0076722277480703,
+            "test-2015-04-10": 0.33323805280347346,
+            "test-2016-04-12": 0.4554195227132744,
+            "test-2016-04-24": 0.681996118146965,
+            "test-2016-05-12": 0.7236196573302002,
+            "test-2016-05-13": 1.5567281399742259
+          }
+        }
+      }
+    },
+    "PD": {
+      "A": {
+        "copy_beta": {
+          "min": 2.5218523777907462,
+          "median": 2.943949973720363,
+          "max": 3.8091503289502686,
+          "per_fold": {
+            "test-2014-04-16": 3.32415241742586,
+            "test-2014-04-24": 3.3173461523242995,
+            "test-2014-04-29": 2.947774271071951,
+            "test-2015-03-02": 3.0020523290486905,
+            "test-2015-03-19": 2.5904037883246005,
+            "test-2015-03-26": 2.942686202119598,
+            "test-2015-03-31": 2.682606690903508,
+            "test-2015-04-01": 2.941566679965665,
+            "test-2015-04-07": 3.3298231724501437,
+            "test-2015-04-10": 2.5858027413604985,
+            "test-2016-04-12": 2.641224171222096,
+            "test-2016-04-24": 2.5218523777907462,
+            "test-2016-05-12": 2.9452137453211282,
+            "test-2016-05-13": 3.8091503289502686
+          }
+        },
+        "run_length": {
+          "min": 0.07906794704496119,
+          "median": 0.3189044603557901,
+          "max": 0.5944760617582253,
+          "per_fold": {
+            "test-2014-04-16": 0.07906794704496119,
+            "test-2014-04-24": 0.2528993382948152,
+            "test-2014-04-29": 0.3161979608009161,
+            "test-2015-03-02": 0.47750649045938254,
+            "test-2015-03-19": 0.5944760617582253,
+            "test-2015-03-26": 0.31483025965468775,
+            "test-2015-03-31": 0.5183847713536833,
+            "test-2015-04-01": 0.2356417281911417,
+            "test-2015-04-07": 0.2161458990588683,
+            "test-2015-04-10": 0.5752284167663594,
+            "test-2016-04-12": 0.49022252267694855,
+            "test-2016-04-24": 0.5771108293354466,
+            "test-2016-05-12": 0.32161095991066413,
+            "test-2016-05-13": 0.10711103503232991
+          }
+        },
+        "repertoire": {
+          "min": 0.3397351980912516,
+          "median": 0.44894747448145134,
+          "max": 0.7285683932422188,
+          "per_fold": {
+            "test-2014-04-16": 0.38137207005850376,
+            "test-2014-04-24": 0.38045811224638665,
+            "test-2014-04-29": 0.3929894171527302,
+            "test-2015-03-02": 0.643657174859167,
+            "test-2015-03-19": 0.5830692753380136,
+            "test-2015-03-26": 0.3397351980912516,
+            "test-2015-03-31": 0.45698676651403436,
+            "test-2015-04-01": 0.44819269158541847,
+            "test-2015-04-07": 0.3940113655775728,
+            "test-2015-04-10": 0.6447388942969735,
+            "test-2016-04-12": 0.7285683932422188,
+            "test-2016-04-24": 0.5654625760188138,
+            "test-2016-05-12": 0.42230350662123783,
+            "test-2016-05-13": 0.44970225737748426
+          }
+        },
+        "distinct_1": {
+          "min": 0.9706700269212057,
+          "median": 1.3659101046429343,
+          "max": 1.5422741017745405,
+          "per_fold": {
+            "test-2014-04-16": 1.3668090060246882,
+            "test-2014-04-24": 1.5197989863154158,
+            "test-2014-04-29": 1.4646278088527667,
+            "test-2015-03-02": 1.3174269537111032,
+            "test-2015-03-19": 1.1097546675176302,
+            "test-2015-03-26": 1.4014619030625954,
+            "test-2015-03-31": 1.334547098529241,
+            "test-2015-04-01": 1.3650112032611803,
+            "test-2015-04-07": 1.5183079543251843,
+            "test-2015-04-10": 1.0902077864115598,
+            "test-2016-04-12": 1.0602463582314856,
+            "test-2016-04-24": 0.9706700269212057,
+            "test-2016-05-12": 1.447825843263567,
+            "test-2016-05-13": 1.5422741017745405
+          }
+        },
+        "distinct_2": {
+          "min": 0.2275479013843187,
+          "median": 0.8568424779735042,
+          "max": 1.2349867948673001,
+          "per_fold": {
+            "test-2014-04-16": 0.9712098268321573,
+            "test-2014-04-24": 1.10937286638098,
+            "test-2014-04-29": 0.7443496144249414,
+            "test-2015-03-02": 0.8326547861239978,
+            "test-2015-03-19": 0.2275479013843187,
+            "test-2015-03-26": 1.062994355137589,
+            "test-2015-03-31": 0.8810301698230106,
+            "test-2015-04-01": 0.8034912793463143,
+            "test-2015-04-07": 1.115656674292839,
+            "test-2015-04-10": 0.26305518220520296,
+            "test-2016-04-12": 0.3434356517855601,
+            "test-2016-04-24": 0.25490206746922406,
+            "test-2016-05-12": 0.9032436895089367,
+            "test-2016-05-13": 1.2349867948673001
+          }
+        }
+      },
+      "A_B_S": {
+        "copy_beta": {
+          "min": 2.455665801153044,
+          "median": 2.7028366746662407,
+          "max": 3.444893543401013,
+          "per_fold": {
+            "test-2014-04-16": 2.7801807238922613,
+            "test-2014-04-24": 2.805126312714521,
+            "test-2014-04-29": 2.6815290121387827,
+            "test-2015-03-02": 2.753246369387248,
+            "test-2015-03-19": 3.064397206288061,
+            "test-2015-03-26": 2.557582978446578,
+            "test-2015-03-31": 2.476881751541461,
+            "test-2015-04-01": 2.724144337193699,
+            "test-2015-04-07": 2.787848482715283,
+            "test-2015-04-10": 2.5911710204728937,
+            "test-2016-04-12": 2.455665801153044,
+            "test-2016-04-24": 2.5868085296639087,
+            "test-2016-05-12": 2.559369705926086,
+            "test-2016-05-13": 3.444893543401013
+          }
+        },
+        "run_length": {
+          "min": 0.004544816205391552,
+          "median": 0.38940274999927965,
+          "max": 0.5202586478020477,
+          "per_fold": {
+            "test-2014-04-16": 0.24179881998736377,
+            "test-2014-04-24": 0.3772938209663735,
+            "test-2014-04-29": 0.24232912148009822,
+            "test-2015-03-02": 0.5202586478020477,
+            "test-2015-03-19": 0.04646248724235455,
+            "test-2015-03-26": 0.47024402653151254,
+            "test-2015-03-31": 0.49814845089635074,
+            "test-2015-04-01": 0.20157301037378045,
+            "test-2015-04-07": 0.3060793507381079,
+            "test-2015-04-10": 0.4015116790321858,
+            "test-2016-04-12": 0.48614604944732104,
+            "test-2016-04-24": 0.41951147689923635,
+            "test-2016-05-12": 0.4557313053230411,
+            "test-2016-05-13": 0.004544816205391552
+          }
+        },
+        "repertoire": {
+          "min": 0.38095095619984554,
+          "median": 0.44033872584094047,
+          "max": 0.6486873347418631,
+          "per_fold": {
+            "test-2014-04-16": 0.38709352578191064,
+            "test-2014-04-24": 0.4303693937247617,
+            "test-2014-04-29": 0.3902245608547669,
+            "test-2015-03-02": 0.6051096886990937,
+            "test-2015-03-19": 0.38095095619984554,
+            "test-2015-03-26": 0.41529659960973037,
+            "test-2015-03-31": 0.46035105153145994,
+            "test-2015-04-01": 0.4422292101065885,
+            "test-2015-04-07": 0.39524100736276263,
+            "test-2015-04-10": 0.4983272549419046,
+            "test-2016-04-12": 0.6486873347418631,
+            "test-2016-04-24": 0.4384482415752925,
+            "test-2016-05-12": 0.457185475186054,
+            "test-2016-05-13": 0.48553794741362827
+          }
+        },
+        "distinct_1": {
+          "min": 0.923511739416892,
+          "median": 1.250367863051899,
+          "max": 1.3808620508491816,
+          "per_fold": {
+            "test-2014-04-16": 1.2940184729831443,
+            "test-2014-04-24": 1.3434046318905053,
+            "test-2014-04-29": 1.2799602274019042,
+            "test-2015-03-02": 1.3808620508491816,
+            "test-2015-03-19": 1.3387449223855306,
+            "test-2015-03-26": 1.1895429467052712,
+            "test-2015-03-31": 1.148516588894208,
+            "test-2015-04-01": 1.2207754987018942,
+            "test-2015-04-07": 1.3479717155165851,
+            "test-2015-04-10": 1.1775555978482881,
+            "test-2016-04-12": 0.923511739416892,
+            "test-2016-04-24": 1.0849240214499438,
+            "test-2016-05-12": 1.216257749400598,
+            "test-2016-05-13": 1.3801923916390804
+          }
+        },
+        "distinct_2": {
+          "min": 0.25971977097406784,
+          "median": 0.7057882336428911,
+          "max": 1.316705279212201,
+          "per_fold": {
+            "test-2014-04-16": 0.8544428484178179,
+            "test-2014-04-24": 0.7826801602267061,
+            "test-2014-04-29": 0.6508563476697969,
+            "test-2015-03-02": 0.5045215039867348,
+            "test-2015-03-19": 0.8994695083039062,
+            "test-2015-03-26": 0.6545323292424798,
+            "test-2015-03-31": 0.7570441380433023,
+            "test-2015-04-01": 0.7688289311060696,
+            "test-2015-04-07": 0.8259235334717816,
+            "test-2015-04-10": 0.5478082726426147,
+            "test-2016-04-12": 0.25971977097406784,
+            "test-2016-04-24": 0.5349639119850175,
+            "test-2016-05-12": 0.5671245059112813,
+            "test-2016-05-13": 1.316705279212201
+          }
+        }
+      }
+    }
+  },
+  "contrasts": {
+    "A_B_S": {
+      "PD-P": {
+        "full": "PD",
+        "reduced": "P",
+        "role": "primary",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.01309845571209968,
+            "unweighted_mean_bits_per_coda": 0.012136273855038935,
+            "ci_bits_per_coda": [
+              0.0024788582034389666,
+              0.026699966326340686
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.012084012750554176,
+              "2014-04-24": -0.011723920505315807,
+              "2014-04-29": 0.024116222343783637,
+              "2015-03-02": 0.008574066241884648,
+              "2015-03-19": 0.012083896606690316,
+              "2015-03-26": 0.02613307616223369,
+              "2015-03-31": 0.0019149282710547112,
+              "2015-04-01": 0.020940966730909432,
+              "2015-04-07": -0.02025501097763445,
+              "2015-04-10": 0.01889667419425493,
+              "2016-04-12": 0.12725353470258474,
+              "2016-04-24": 0.04002986559710606,
+              "2016-05-12": -0.006015440263957211,
+              "2016-05-13": -0.08412503788360379
+            },
+            "sign_flip_p_two_sided": 0.052490234375
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.011829682377646793,
+            "unweighted_mean_bits_per_coda": 0.007690599623415467,
+            "ci_bits_per_coda": [
+              0.003879198232591888,
+              0.01859341577852145
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.009751630630409031,
+              "2014-04-24": -0.0070289801962,
+              "2014-04-29": 0.03423247782058548,
+              "2015-03-02": 0.019829289733178407,
+              "2015-03-19": -0.007965868820079273,
+              "2015-03-26": 0.015596356024961157,
+              "2015-03-31": 0.002970426559581672,
+              "2015-04-01": 0.012387676473714172,
+              "2015-04-07": 0.004661627732290284,
+              "2015-04-10": 0.01981423232355673,
+              "2016-04-12": 0.057857848877169854,
+              "2016-04-24": -0.05168468239278301,
+              "2016-05-12": -0.006236578307743825,
+              "2016-05-13": 0.0034829382691758614
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.0012687733344528857,
+            "unweighted_mean_bits_per_coda": 0.00444567423162347,
+            "ci_bits_per_coda": [
+              -0.007194212536316918,
+              0.01231480945273897
+            ],
+            "positive_days": 7,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.0023323821201451525,
+              "2014-04-24": -0.004694940309115808,
+              "2014-04-29": -0.010116255476801833,
+              "2015-03-02": -0.011255223491293773,
+              "2015-03-19": 0.020049765426769586,
+              "2015-03-26": 0.010536720137272526,
+              "2015-03-31": -0.0010554982885269543,
+              "2015-04-01": 0.008553290257195265,
+              "2015-04-07": -0.024916638709924707,
+              "2015-04-10": -0.000917558129301791,
+              "2016-04-12": 0.06939568582541493,
+              "2016-04-24": 0.09171454798988907,
+              "2016-05-12": 0.00022113804378663597,
+              "2016-05-13": -0.08760797615277972
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "PD-R": {
+        "full": "PD",
+        "reduced": "R",
+        "role": "secondary",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.05169869429884529,
+            "unweighted_mean_bits_per_coda": 0.06170879963924788,
+            "ci_bits_per_coda": [
+              0.02337265024277524,
+              0.0986164557104109
+            ],
+            "positive_days": 13,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.12032213895609777,
+              "2014-04-24": 0.001339399127543977,
+              "2014-04-29": 0.022709438420474844,
+              "2015-03-02": 0.05105993359359474,
+              "2015-03-19": 0.01701190349898572,
+              "2015-03-26": 0.040937225280593945,
+              "2015-03-31": 0.02548905597229389,
+              "2015-04-01": 0.024491039510805803,
+              "2015-04-07": 0.006245154948598061,
+              "2015-04-10": 0.07096828403995532,
+              "2016-04-12": 0.49225578159683614,
+              "2016-04-24": 0.1540391326383946,
+              "2016-05-12": 0.02798542043781277,
+              "2016-05-13": -0.19093071307251722
+            },
+            "sign_flip_p_two_sided": 0.0084228515625
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.020041616409126124,
+            "unweighted_mean_bits_per_coda": 0.021046864904169127,
+            "ci_bits_per_coda": [
+              0.009060450147506305,
+              0.033530159065807356
+            ],
+            "positive_days": 12,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.06826023405978457,
+              "2014-04-24": 0.0052360046626065,
+              "2014-04-29": 0.04499307941293676,
+              "2015-03-02": 0.021181641488242853,
+              "2015-03-19": -0.0044938448214262685,
+              "2015-03-26": 0.010726691187942056,
+              "2015-03-31": 0.024744985897192748,
+              "2015-04-01": 0.005233084560391323,
+              "2015-04-07": 0.022136390580561018,
+              "2015-04-10": 0.01562065682079804,
+              "2016-04-12": 0.13244995581676086,
+              "2016-04-24": 0.02472572568582357,
+              "2016-05-12": 0.00024616613107916047,
+              "2016-05-13": -0.07640466282432541
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.03165707788971916,
+            "unweighted_mean_bits_per_coda": 0.04066193473507874,
+            "ci_bits_per_coda": [
+              0.010131918025450016,
+              0.0675191971417013
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.0520619048963132,
+              "2014-04-24": -0.0038966055350625234,
+              "2014-04-29": -0.02228364099246191,
+              "2015-03-02": 0.029878292105351863,
+              "2015-03-19": 0.021505748320411976,
+              "2015-03-26": 0.030210534092651883,
+              "2015-03-31": 0.0007440700751011508,
+              "2015-04-01": 0.019257954950414484,
+              "2015-04-07": -0.015891235631962947,
+              "2015-04-10": 0.05534762721915729,
+              "2016-04-12": 0.35980582578007525,
+              "2016-04-24": 0.129313406952571,
+              "2016-05-12": 0.027739254306733616,
+              "2016-05-13": -0.11452605024819193
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "L-R": {
+        "full": "L",
+        "reduced": "R",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": -0.002375704727354522,
+            "unweighted_mean_bits_per_coda": -0.0031257853094567266,
+            "ci_bits_per_coda": [
+              -0.006474689334480212,
+              0.0008009631141574678
+            ],
+            "positive_days": 7,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.006625533766655809,
+              "2014-04-24": 0.0008793754332054383,
+              "2014-04-29": 0.0003234006750416985,
+              "2015-03-02": -0.002956114554790917,
+              "2015-03-19": -0.027224450803217393,
+              "2015-03-26": -0.0009468636953951756,
+              "2015-03-31": 0.00026018590763185706,
+              "2015-04-01": -0.007916109812554608,
+              "2015-04-07": -0.006130251180239185,
+              "2015-04-10": 0.005664482927550928,
+              "2016-04-12": 0.013857998144635751,
+              "2016-04-24": 0.01205588940509054,
+              "2016-05-12": -0.001843178081410196,
+              "2016-05-13": -0.03641089246459872
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": -0.0019794040314937444,
+            "unweighted_mean_bits_per_coda": -0.0018330999382616478,
+            "ci_bits_per_coda": [
+              -0.005850310164744043,
+              0.0014716612121961647
+            ],
+            "positive_days": 7,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.0005016778566260827,
+              "2014-04-24": 0.004445921245161276,
+              "2014-04-29": 0.004017564129592814,
+              "2015-03-02": -0.0037614440639107826,
+              "2015-03-19": -0.01639125290775993,
+              "2015-03-26": -6.440482973170937e-05,
+              "2015-03-31": 0.0009276546076164371,
+              "2015-04-01": -0.011115718413850794,
+              "2015-04-07": -0.004052465334972304,
+              "2015-04-10": 0.006032147567279388,
+              "2016-04-12": 0.01661712169574973,
+              "2016-04-24": 0.02165445933709647,
+              "2016-05-12": -0.0011680950066805774,
+              "2016-05-13": -0.04330656501787917
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": -0.0003963006958607818,
+            "unweighted_mean_bits_per_coda": -0.0012926853711950944,
+            "ci_bits_per_coda": [
+              -0.0021793002887645855,
+              0.000878210943524465
+            ],
+            "positive_days": 4,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.00612385591002972,
+              "2014-04-24": -0.003566545811955838,
+              "2014-04-29": -0.00369416345455111,
+              "2015-03-02": 0.0008053295091198661,
+              "2015-03-19": -0.010833197895457466,
+              "2015-03-26": -0.0008824588656634665,
+              "2015-03-31": -0.0006674686999845822,
+              "2015-04-01": 0.0031996086012961826,
+              "2015-04-07": -0.002077785845266882,
+              "2015-04-10": -0.00036766463972845177,
+              "2016-04-12": -0.0027591235511140134,
+              "2016-04-24": -0.009598569932005988,
+              "2016-05-12": -0.0006750830747296263,
+              "2016-05-13": 0.006895672553280333
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "D-L": {
+        "full": "D",
+        "reduced": "L",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.03560776349508641,
+            "unweighted_mean_bits_per_coda": 0.0432008283720555,
+            "ci_bits_per_coda": [
+              0.01671896756013548,
+              0.07073795677132727
+            ],
+            "positive_days": 11,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.07697130440347523,
+              "2014-04-24": -0.015303120450706092,
+              "2014-04-29": 0.031413757092595654,
+              "2015-03-02": 0.023129213178018148,
+              "2015-03-19": 0.03043757404379843,
+              "2015-03-26": 0.034633834557511324,
+              "2015-03-31": 0.019042513308168103,
+              "2015-04-01": 0.0320832569464641,
+              "2015-04-07": -0.009905874102423379,
+              "2015-04-10": 0.02828073771883826,
+              "2016-04-12": 0.3620280327848181,
+              "2016-04-24": 0.09794601703248382,
+              "2016-05-12": 0.01939848093649776,
+              "2016-05-13": -0.12534413024076246
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.01359425022146415,
+            "unweighted_mean_bits_per_coda": 0.013949034993762894,
+            "ci_bits_per_coda": [
+              0.006902331692085032,
+              0.02394897189351362
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.04246381919682273,
+              "2014-04-24": -0.007649220179562018,
+              "2014-04-29": 0.04621212634410187,
+              "2015-03-02": 0.00732690661747368,
+              "2015-03-19": 0.0001327291205540113,
+              "2015-03-26": 0.006571593557910767,
+              "2015-03-31": 0.016838537982646475,
+              "2015-04-01": 0.016529962638179102,
+              "2015-04-07": 0.011272828590443868,
+              "2015-04-10": 0.0176313022154436,
+              "2016-04-12": 0.0911565475979805,
+              "2016-04-24": -0.037634874542962916,
+              "2016-05-12": -0.001655719709474047,
+              "2016-05-13": -0.013910049516877115
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.022013513273622262,
+            "unweighted_mean_bits_per_coda": 0.029251793378292618,
+            "ci_bits_per_coda": [
+              0.005668688632224921,
+              0.04909962682556346
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.034507485206652505,
+              "2014-04-24": -0.007653900271144075,
+              "2014-04-29": -0.014798369251506216,
+              "2015-03-02": 0.015802306560544464,
+              "2015-03-19": 0.03030484492324441,
+              "2015-03-26": 0.028062240999600554,
+              "2015-03-31": 0.0022039753255216274,
+              "2015-04-01": 0.015553294308284995,
+              "2015-04-07": -0.02117870269286726,
+              "2015-04-10": 0.010649435503394663,
+              "2016-04-12": 0.2708714851868377,
+              "2016-04-24": 0.13558089157544673,
+              "2016-05-12": 0.021054200645971802,
+              "2016-05-13": -0.1114340807238852
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "P-L": {
+        "full": "P",
+        "reduced": "L",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.04097594331410013,
+            "unweighted_mean_bits_per_coda": 0.05269831109366567,
+            "ci_bits_per_coda": [
+              0.020769216040806646,
+              0.07540060064553984
+            ],
+            "positive_days": 12,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.10161259243888777,
+              "2014-04-24": 0.012183944199654347,
+              "2014-04-29": -0.0017301845983504923,
+              "2015-03-02": 0.045441981906501006,
+              "2015-03-19": 0.032152457695512796,
+              "2015-03-26": 0.01575101281375543,
+              "2015-03-31": 0.023313941793607323,
+              "2015-04-01": 0.01146618259245098,
+              "2015-04-07": 0.032630417106471694,
+              "2015-04-10": 0.046407126918149466,
+              "2016-04-12": 0.3511442487496156,
+              "2016-04-24": 0.10195337763619802,
+              "2016-05-12": 0.03584403878318018,
+              "2016-05-13": -0.07039478272431472
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.010191338062973074,
+            "unweighted_mean_bits_per_coda": 0.015189365219015304,
+            "ci_bits_per_coda": [
+              0.0022023417635452305,
+              0.021120439083886722
+            ],
+            "positive_days": 11,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.05800692557274945,
+              "2014-04-24": 0.007819063613645224,
+              "2014-04-29": 0.006743037462758468,
+              "2015-03-02": 0.005113795818975232,
+              "2015-03-19": 0.019863276906412933,
+              "2015-03-26": -0.0048052600072873925,
+              "2015-03-31": 0.020846904729994637,
+              "2015-04-01": 0.003961126500527944,
+              "2015-04-07": 0.021527228183243038,
+              "2015-04-10": -0.010225723070038079,
+              "2016-04-12": 0.057974985243841266,
+              "2016-04-24": 0.0547559487415101,
+              "2016-05-12": 0.007650839445503562,
+              "2016-05-13": -0.03658103607562212
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.030784605251127053,
+            "unweighted_mean_bits_per_coda": 0.03750894587465037,
+            "ci_bits_per_coda": [
+              0.011887833420336006,
+              0.05963394367137316
+            ],
+            "positive_days": 12,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.04360566686613832,
+              "2014-04-24": 0.004364880586009123,
+              "2014-04-29": -0.008473222061108968,
+              "2015-03-02": 0.04032818608752577,
+              "2015-03-19": 0.012289180789099857,
+              "2015-03-26": 0.020556272821042824,
+              "2015-03-31": 0.002467037063612687,
+              "2015-04-01": 0.007505056091923037,
+              "2015-04-07": 0.011103188923228645,
+              "2015-04-10": 0.05663284998818753,
+              "2016-04-12": 0.2931692635057744,
+              "2016-04-24": 0.04719742889468789,
+              "2016-05-12": 0.028193199337676604,
+              "2016-05-13": -0.03381374664869254
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "PD-D": {
+        "full": "PD",
+        "reduced": "D",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.0184666355311134,
+            "unweighted_mean_bits_per_coda": 0.021633756576649104,
+            "ci_bits_per_coda": [
+              0.007851111406985667,
+              0.031596495588913726
+            ],
+            "positive_days": 12,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.036725300785966725,
+              "2014-04-24": 0.015763144145044632,
+              "2014-04-29": -0.009027719347162509,
+              "2015-03-02": 0.0308868349703675,
+              "2015-03-19": 0.013798780258404685,
+              "2015-03-26": 0.007250254418477795,
+              "2015-03-31": 0.006186356756493934,
+              "2015-04-01": 0.0003238923768963151,
+              "2015-04-07": 0.022281280231260626,
+              "2015-04-10": 0.03702306339356614,
+              "2016-04-12": 0.1163697506673822,
+              "2016-04-24": 0.04403722620082027,
+              "2016-05-12": 0.010430117582725204,
+              "2016-05-13": -0.02917569036715603
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.00842677021915572,
+            "unweighted_mean_bits_per_coda": 0.00893092984866788,
+            "ci_bits_per_coda": [
+              0.0027637756050432533,
+              0.01372362838242247
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.025294737006335756,
+              "2014-04-24": 0.008439303597007243,
+              "2014-04-29": -0.0052366110607579225,
+              "2015-03-02": 0.017616178934679955,
+              "2015-03-19": 0.01176467896577965,
+              "2015-03-26": 0.004219502459762998,
+              "2015-03-31": 0.006978793306929834,
+              "2015-04-01": -0.0001811596639369858,
+              "2015-04-07": 0.014916027325089455,
+              "2015-04-10": -0.008042792961924946,
+              "2016-04-12": 0.024676286523030617,
+              "2016-04-24": 0.040706140891690015,
+              "2016-05-12": 0.003069980847233785,
+              "2016-05-13": -0.019188048289569142
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.010039865311957675,
+            "unweighted_mean_bits_per_coda": 0.012702826727981219,
+            "ci_bits_per_coda": [
+              0.002584148851421647,
+              0.02102525783010524
+            ],
+            "positive_days": 11,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.011430563779630974,
+              "2014-04-24": 0.00732384054803739,
+              "2014-04-29": -0.0037911082864045867,
+              "2015-03-02": 0.013270656035687535,
+              "2015-03-19": 0.0020341012926250374,
+              "2015-03-26": 0.003030751958714796,
+              "2015-03-31": -0.0007924365504358944,
+              "2015-04-01": 0.0005050520408333064,
+              "2015-04-07": 0.007365252906171193,
+              "2015-04-10": 0.04506585635549108,
+              "2016-04-12": 0.09169346414435162,
+              "2016-04-24": 0.003331085309130219,
+              "2016-05-12": 0.007360136735491439,
+              "2016-05-13": -0.009987642077587048
+            }
+          }
+        },
+        "fitting_flag": false
+      }
+    },
+    "A": {
+      "PD-P": {
+        "full": "PD",
+        "reduced": "P",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.02295140956913092,
+            "unweighted_mean_bits_per_coda": 0.017034313415044886,
+            "ci_bits_per_coda": [
+              0.0032485708686445895,
+              0.03890697350963742
+            ],
+            "positive_days": 9,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.03965498807038376,
+              "2014-04-24": -0.019470360759268068,
+              "2014-04-29": 0.02206000026314046,
+              "2015-03-02": 0.04364476006004474,
+              "2015-03-19": -0.009094260174697208,
+              "2015-03-26": 0.02850153680109067,
+              "2015-03-31": 0.0023032755619881405,
+              "2015-04-01": 0.0426255245117283,
+              "2015-04-07": -0.05602754721453877,
+              "2015-04-10": -0.023649764737718,
+              "2016-04-12": 0.1319874797650398,
+              "2016-04-24": 0.12045701125496575,
+              "2016-05-12": 0.022788155257038617,
+              "2016-05-13": -0.10730041084856978
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.020149253228587995,
+            "unweighted_mean_bits_per_coda": 0.01320134717867317,
+            "ci_bits_per_coda": [
+              0.005848177451953588,
+              0.034382378294956155
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.02644243136459486,
+              "2014-04-24": -0.009605879797058242,
+              "2014-04-29": 0.027681617840389878,
+              "2015-03-02": 0.04919511193351762,
+              "2015-03-19": -0.0048265112976210375,
+              "2015-03-26": 0.016331000082289843,
+              "2015-03-31": 6.0871694134806e-05,
+              "2015-04-01": 0.020719016228942767,
+              "2015-04-07": -0.03864745025654028,
+              "2015-04-10": 0.019624100837744247,
+              "2016-04-12": 0.05458294881351882,
+              "2016-04-24": 0.015124001236861192,
+              "2016-05-12": 0.010057132775209258,
+              "2016-05-13": -0.0019195309545593424
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.0028021563405429195,
+            "unweighted_mean_bits_per_coda": 0.0038329662363717084,
+            "ci_bits_per_coda": [
+              -0.008662220230686348,
+              0.014532234644206849
+            ],
+            "positive_days": 7,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.01321255670578893,
+              "2014-04-24": -0.009864480962209824,
+              "2014-04-29": -0.005621617577249401,
+              "2015-03-02": -0.005550351873472892,
+              "2015-03-19": -0.0042677488770761695,
+              "2015-03-26": 0.012170536718800827,
+              "2015-03-31": 0.0022424038678533304,
+              "2015-04-01": 0.021906508282785526,
+              "2015-04-07": -0.017380096957998477,
+              "2015-04-10": -0.043273865575462256,
+              "2016-04-12": 0.07740453095152094,
+              "2016-04-24": 0.10533301001810455,
+              "2016-05-12": 0.012731022481829363,
+              "2016-05-13": -0.10538087989401053
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "PD-R": {
+        "full": "PD",
+        "reduced": "R",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.05797155032297361,
+            "unweighted_mean_bits_per_coda": 0.08795876745779947,
+            "ci_bits_per_coda": [
+              0.011118724213472878,
+              0.14832800485257633
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.13962521011194184,
+              "2014-04-24": 0.004440070206774499,
+              "2014-04-29": 0.01628967259743914,
+              "2015-03-02": 0.037284207682651574,
+              "2015-03-19": -0.029126133302266672,
+              "2015-03-26": 0.04209401816142884,
+              "2015-03-31": 0.021668718772848677,
+              "2015-04-01": 0.042733269779520536,
+              "2015-04-07": -0.029153496108070377,
+              "2015-04-10": -0.023906990908184326,
+              "2016-04-12": 0.9140028034311362,
+              "2016-04-24": 0.30873454119000576,
+              "2016-05-12": 0.04396270273355515,
+              "2016-05-13": -0.25722584993958825
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.029639331163590018,
+            "unweighted_mean_bits_per_coda": 0.04948855383332098,
+            "ci_bits_per_coda": [
+              0.00694474781009676,
+              0.08090987876579625
+            ],
+            "positive_days": 12,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.055589689934580556,
+              "2014-04-24": 0.00759775545035307,
+              "2014-04-29": 0.023433954148289738,
+              "2015-03-02": 0.014253756457249007,
+              "2015-03-19": 0.0006955500815880595,
+              "2015-03-26": 0.012670895738461887,
+              "2015-03-31": 0.017552047351764206,
+              "2015-04-01": 0.004573771160533445,
+              "2015-04-07": -0.01933981965430233,
+              "2015-04-10": 0.00910534961099925,
+              "2016-04-12": 0.5141376479015701,
+              "2016-04-24": 0.13437861485037134,
+              "2016-05-12": 0.008588004011547513,
+              "2016-05-13": -0.09039746337651214
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.028332219159383595,
+            "unweighted_mean_bits_per_coda": 0.0384702136244785,
+            "ci_bits_per_coda": [
+              0.0024300177013847693,
+              0.06790354744855838
+            ],
+            "positive_days": 8,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.08403552017736131,
+              "2014-04-24": -0.0031576852435785696,
+              "2014-04-29": -0.00714428155085059,
+              "2015-03-02": 0.02303045122540256,
+              "2015-03-19": -0.029821683383854717,
+              "2015-03-26": 0.02942312242296696,
+              "2015-03-31": 0.00411667142108447,
+              "2015-04-01": 0.038159498618987084,
+              "2015-04-07": -0.00981367645376803,
+              "2015-04-10": -0.03301234051918358,
+              "2016-04-12": 0.39986515552956614,
+              "2016-04-24": 0.1743559263396344,
+              "2016-05-12": 0.03537469872200764,
+              "2016-05-13": -0.1668283865630761
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "L-R": {
+        "full": "L",
+        "reduced": "R",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.008490256042517175,
+            "unweighted_mean_bits_per_coda": 0.021412855521368377,
+            "ci_bits_per_coda": [
+              -0.003688692113311633,
+              0.040467781158968465
+            ],
+            "positive_days": 6,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": -0.0005929042659285397,
+              "2014-04-24": 0.010948407851234078,
+              "2014-04-29": 0.00610201095103996,
+              "2015-03-02": -0.00279031049034116,
+              "2015-03-19": -0.014111021770930503,
+              "2015-03-26": 0.0002463660200330807,
+              "2015-03-31": -0.0005079792020223092,
+              "2015-04-01": -0.006442946859970062,
+              "2015-04-07": 0.005546717326911715,
+              "2015-04-10": -0.00034043495799876736,
+              "2016-04-12": 0.30369149742310675,
+              "2016-04-24": 0.03402959652615162,
+              "2016-05-12": -0.00021636876920168825,
+              "2016-05-13": -0.035782652482926884
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.008920050800373912,
+            "unweighted_mean_bits_per_coda": 0.024394014035988898,
+            "ci_bits_per_coda": [
+              -0.0053155265697302,
+              0.04612459117585439
+            ],
+            "positive_days": 5,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": -0.014848237878081972,
+              "2014-04-24": 0.008008787786921477,
+              "2014-04-29": 0.0029531448412299503,
+              "2015-03-02": -0.0036378531701645703,
+              "2015-03-19": -0.006654678685554147,
+              "2015-03-26": -0.002643069543993842,
+              "2015-03-31": -6.341502198414626e-05,
+              "2015-04-01": -0.011793135827190633,
+              "2015-04-07": 0.004250684223728026,
+              "2015-04-10": -0.00039668642078484554,
+              "2016-04-12": 0.3546788233882478,
+              "2016-04-24": 0.04616247372136083,
+              "2016-05-12": -0.00016262024286065423,
+              "2016-05-13": -0.034338020667028714
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": -0.00042979475785673277,
+            "unweighted_mean_bits_per_coda": -0.0029811585146205144,
+            "ci_bits_per_coda": [
+              -0.006125937423252395,
+              0.002719026364510329
+            ],
+            "positive_days": 8,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.014255333612153458,
+              "2014-04-24": 0.002939620064312603,
+              "2014-04-29": 0.0031488661098100132,
+              "2015-03-02": 0.0008475426798234144,
+              "2015-03-19": -0.007456343085376349,
+              "2015-03-26": 0.0028894355640269264,
+              "2015-03-31": -0.0004445641800381628,
+              "2015-04-01": 0.00535018896722057,
+              "2015-04-07": 0.0012960331031836956,
+              "2015-04-10": 5.625146278608117e-05,
+              "2016-04-12": -0.05098732596514103,
+              "2016-04-24": -0.012132877195209252,
+              "2016-05-12": -5.374852634104741e-05,
+              "2016-05-13": -0.0014446318158981267
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "D-L": {
+        "full": "D",
+        "reduced": "L",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.03851492931957329,
+            "unweighted_mean_bits_per_coda": 0.04615116292519273,
+            "ci_bits_per_coda": [
+              0.008726820668339989,
+              0.0812418880980795
+            ],
+            "positive_days": 9,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.1029536761269993,
+              "2014-04-24": -0.020286900039610218,
+              "2014-04-29": 0.010407372490319996,
+              "2015-03-02": 0.040197323636696855,
+              "2015-03-19": -0.0401862099887986,
+              "2015-03-26": 0.03356503635906056,
+              "2015-03-31": 0.017523262050901923,
+              "2015-04-01": 0.05788519369976816,
+              "2015-04-07": -0.05140124152845521,
+              "2015-04-10": -0.01546908710889978,
+              "2016-04-12": 0.45360681964457217,
+              "2016-04-24": 0.21142830567199195,
+              "2016-05-12": 0.019216672438982896,
+              "2016-05-13": -0.17332394250083175
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.01779352021143608,
+            "unweighted_mean_bits_per_coda": 0.01704515572891027,
+            "ci_bits_per_coda": [
+              0.008370422698974108,
+              0.028883557799262643
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.04856136704520786,
+              "2014-04-24": -0.009124222526472936,
+              "2014-04-29": 0.029459762783896223,
+              "2015-03-02": 0.025305669050242417,
+              "2015-03-19": -0.005371480141257858,
+              "2015-03-26": 0.008370766123226474,
+              "2015-03-31": 0.011041149360981509,
+              "2015-04-01": 0.02403526784741599,
+              "2015-04-07": -0.03770192337759804,
+              "2015-04-10": 0.02138986923026707,
+              "2016-04-12": 0.11064686167681587,
+              "2016-04-24": 0.03567798530449143,
+              "2016-05-12": 0.003844559683147342,
+              "2016-05-13": -0.02750345185561958
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.0207214091081372,
+            "unweighted_mean_bits_per_coda": 0.029106007196282455,
+            "ci_bits_per_coda": [
+              -0.0020633818029570264,
+              0.05446164426213268
+            ],
+            "positive_days": 8,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.054392309081791414,
+              "2014-04-24": -0.011162677513137282,
+              "2014-04-29": -0.019052390293576225,
+              "2015-03-02": 0.01489165458645443,
+              "2015-03-19": -0.03481472984754075,
+              "2015-03-26": 0.025194270235834083,
+              "2015-03-31": 0.00648211268992041,
+              "2015-04-01": 0.03384992585235217,
+              "2015-04-07": -0.013699318150857195,
+              "2015-04-10": -0.036858956339166866,
+              "2016-04-12": 0.34295995796775625,
+              "2016-04-24": 0.17575032036750055,
+              "2016-05-12": 0.015372112755835568,
+              "2016-05-13": -0.1458204906452122
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "P-L": {
+        "full": "P",
+        "reduced": "L",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.02652988471132552,
+            "unweighted_mean_bits_per_coda": 0.04951159852138621,
+            "ci_bits_per_coda": [
+              0.0021543172266248766,
+              0.07751551251135562
+            ],
+            "positive_days": 10,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.10056312630748664,
+              "2014-04-24": 0.012962023114808489,
+              "2014-04-29": -0.011872338616741277,
+              "2015-03-02": -0.003570241887052003,
+              "2015-03-19": -0.005920851356638966,
+              "2015-03-26": 0.01334611534030509,
+              "2015-03-31": 0.019873422412882844,
+              "2015-04-01": 0.006550692127762301,
+              "2015-04-07": 0.021327333779556677,
+              "2015-04-10": 8.320878753244679e-05,
+              "2016-04-12": 0.4783238262429897,
+              "2016-04-24": 0.15424793340888837,
+              "2016-05-12": 0.02139091624571823,
+              "2016-05-13": -0.11414278660809159
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.0005700271346281088,
+            "unweighted_mean_bits_per_coda": 0.011893192618658913,
+            "ci_bits_per_coda": [
+              -0.01491907283991967,
+              0.020011027314424
+            ],
+            "positive_days": 7,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.04399549644806767,
+              "2014-04-24": 0.009194847460489835,
+              "2014-04-29": -0.0072008085333300905,
+              "2015-03-02": -0.03130350230610404,
+              "2015-03-19": 0.012176740064763244,
+              "2015-03-26": -0.0010170347998341167,
+              "2015-03-31": 0.017554590679613548,
+              "2015-04-01": -0.004352109241218689,
+              "2015-04-07": 0.015056946378509925,
+              "2015-04-10": -0.01012206480596015,
+              "2016-04-12": 0.10487587569980349,
+              "2016-04-24": 0.07309213989214933,
+              "2016-05-12": -0.0013065085208010924,
+              "2016-05-13": -0.05413991175492409
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.02595985757669741,
+            "unweighted_mean_bits_per_coda": 0.037618405902727296,
+            "ci_bits_per_coda": [
+              0.006007326274535782,
+              0.0625726574625143
+            ],
+            "positive_days": 11,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.056567629859418926,
+              "2014-04-24": 0.0037671756543186533,
+              "2014-04-29": -0.004671530083411202,
+              "2015-03-02": 0.02773326041905204,
+              "2015-03-19": -0.018097591421402208,
+              "2015-03-26": 0.014363150140139204,
+              "2015-03-31": 0.002318831733269302,
+              "2015-04-01": 0.01090280136898099,
+              "2015-04-07": 0.006270387401046751,
+              "2015-04-10": 0.010205273593492601,
+              "2016-04-12": 0.37344795054318614,
+              "2016-04-24": 0.0811557935167391,
+              "2016-05-12": 0.022697424766519324,
+              "2016-05-13": -0.060002874853167465
+            }
+          }
+        },
+        "fitting_flag": false
+      },
+      "PD-D": {
+        "full": "PD",
+        "reduced": "D",
+        "role": "descriptive",
+        "components": {
+          "log_likelihood_bits": {
+            "mean_bits_per_coda": 0.010966364960883152,
+            "unweighted_mean_bits_per_coda": 0.020394749011238358,
+            "ci_bits_per_coda": [
+              0.0014619323861086205,
+              0.029197264238817192
+            ],
+            "positive_days": 9,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.0372644382508711,
+              "2014-04-24": 0.013778562395150639,
+              "2014-04-29": -0.00021971084392081574,
+              "2015-03-02": -0.00012280546370411956,
+              "2015-03-19": 0.02517109845746243,
+              "2015-03-26": 0.0082826157823352,
+              "2015-03-31": 0.0046534359239690645,
+              "2015-04-01": -0.008708977060277573,
+              "2015-04-07": 0.016701028093473118,
+              "2015-04-10": -0.008097468841285779,
+              "2016-04-12": 0.15670448636345727,
+              "2016-04-24": 0.06327663899186217,
+              "2016-05-12": 0.024962399063773948,
+              "2016-05-13": -0.04811925495582966
+            }
+          },
+          "repeat_bits": {
+            "mean_bits_per_coda": 0.002925760151780025,
+            "unweighted_mean_bits_per_coda": 0.008049384068421813,
+            "ci_bits_per_coda": [
+              -0.003203719265515324,
+              0.011066878313131258
+            ],
+            "positive_days": 9,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.02187656076745467,
+              "2014-04-24": 0.008713190189904529,
+              "2014-04-29": -0.008978953476836435,
+              "2015-03-02": -0.0074140594228288385,
+              "2015-03-19": 0.012721708908400065,
+              "2015-03-26": 0.0069431991592292545,
+              "2015-03-31": 0.006574313012766843,
+              "2015-04-01": -0.007668360859691912,
+              "2015-04-07": 0.014111419499567686,
+              "2015-04-10": -0.011887833198482977,
+              "2016-04-12": 0.048811962836506434,
+              "2016-04-24": 0.05253815582451909,
+              "2016-05-12": 0.004906064571260825,
+              "2016-05-13": -0.028555990853863854
+            }
+          },
+          "switch_choice_bits": {
+            "mean_bits_per_coda": 0.008040604809103128,
+            "unweighted_mean_bits_per_coda": 0.012345364942816553,
+            "ci_bits_per_coda": [
+              0.0016526917539447666,
+              0.01996929070222736
+            ],
+            "positive_days": 11,
+            "days": 14,
+            "day_means_bits": {
+              "2014-04-16": 0.015387877483416443,
+              "2014-04-24": 0.00506537220524611,
+              "2014-04-29": 0.008759242632915623,
+              "2015-03-02": 0.007291253959124713,
+              "2015-03-19": 0.012449389549062377,
+              "2015-03-26": 0.0013394166231059492,
+              "2015-03-31": -0.0019208770887977778,
+              "2015-04-01": -0.0010406162005856606,
+              "2015-04-07": 0.0025896085939054693,
+              "2015-04-10": 0.0037903643571972055,
+              "2016-04-12": 0.10789252352695085,
+              "2016-04-24": 0.010738483167343119,
+              "2016-05-12": 0.02005633449251312,
+              "2016-05-13": -0.019563264101965804
+            }
+          }
+        },
+        "fitting_flag": false
+      }
+    }
+  },
+  "stop_rules": {
+    "R": [],
+    "L": [],
+    "P": [],
+    "D": [],
+    "PD": []
+  },
+  "stop_rules_dec23": {
+    "R": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.048661965545643684,
+          "days": 14,
+          "sign_flip_p": 0.55963134765625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038474297452754,
+            0.2991911270003667
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5056439528103591,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1967056665106144,
+            1.9136869551422309
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976302199524242,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077133393605387,
+            0.6997502246998769
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.015474136535237373,
+          "days": 14,
+          "sign_flip_p": 0.336181640625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.07467151929304375,
+            0.06645357799597787
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3604067942798792,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9492826262771653,
+            1.7408116256479986
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4469309687502787,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.199321072090358,
+            1.7507111384604097
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.0100510185144368,
+          "days": 14,
+          "sign_flip_p": 0.24658203125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.02484030609235791,
+            0.003739622009029013
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.07757809396210424,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.283273075282086,
+            0.45813614508858236
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035229624874945123,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084497262887853,
+            0.14042157908745442
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.02023518456711665,
+          "days": 14,
+          "sign_flip_p": 0.1195068359375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.04635318748523537,
+            0.0013565151047945658
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.025658302587917216,
+          "days": 14,
+          "sign_flip_p": 0.31402587890625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.09421935538727856,
+            0.06350845269027203
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3436945722002571,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9445376739763243,
+            1.7317131815675915
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.29586296231994946,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2419897691919118,
+            0.37190251545571107
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.2803888257847121,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2157966829835088,
+            0.4091938459784499
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.28581194380551267,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2386021177310204,
+            0.3662775905109139
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2601536412175955,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.18546472183298093,
+            0.4046936329547816
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "L": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.048661965545643684,
+          "days": 14,
+          "sign_flip_p": 0.55963134765625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038474297452754,
+            0.2991911270003667
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5141342088528766,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.1962193664297078,
+            1.9412644739629212
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976302199524242,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077133393605387,
+            0.6997502246998769
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.02627915254232602,
+          "days": 14,
+          "sign_flip_p": 0.303466796875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.0784247667941502,
+            0.030642200271853343
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.358092034315308,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9471365544446372,
+            1.7377800743751632
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4549724715407244,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2062829799859078,
+            1.7635177246637188
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.010499771766508239,
+          "days": 14,
+          "sign_flip_p": 0.204345703125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.02543039008691635,
+            0.0031846319330584767
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.07757809396210424,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.283273075282086,
+            0.45813614508858236
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035229624874945123,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084497262887853,
+            0.14042157908745442
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.020296129329899708,
+          "days": 14,
+          "sign_flip_p": 0.11859130859375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.04635624120747875,
+            0.0013881366584261193
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.036075510105717475,
+          "days": 14,
+          "sign_flip_p": 0.26898193359375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.09890260682631011,
+            0.028381342020823916
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3413188674729029,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9425824077952822,
+            1.7282725339695497
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.3043532183624667,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.24351991955066618,
+            0.40039517885550163
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.27807406582014066,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21222937844373113,
+            0.4083123681622922
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.2938534465959584,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23847107129437828,
+            0.3943773755361025
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.25777793649024094,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.18141453277689323,
+            0.40338745759072286
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "P": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.048661965545643684,
+          "days": 14,
+          "sign_flip_p": 0.55963134765625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038474297452754,
+            0.2991911270003667
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.540664093564202,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2113478221852165,
+            2.0056983625078706
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976302199524242,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077133393605387,
+            0.6997502246998769
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.016723583362297362,
+          "days": 14,
+          "sign_flip_p": 0.34808349609375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.059518752252694,
+            0.026815955245964317
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3941774882066622,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9845254033146762,
+            1.7754002335528614
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.476583330083716,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2245141570344171,
+            1.8048372899422442
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.015418797934842474,
+          "days": 14,
+          "sign_flip_p": 0.19256591796875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.037402723970830276,
+            0.003577510409521867
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.07757809396210424,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.283273075282086,
+            0.45813614508858236
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035229624874945123,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084497262887853,
+            0.14042157908745442
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.015405639907153741,
+          "days": 14,
+          "sign_flip_p": 0.139404296875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.03464355978255187,
+            0.0018564139173837659
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.016710425334608633,
+          "days": 14,
+          "sign_flip_p": 0.3218994140625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.05769647494491463,
+            0.02484290477215007
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3822948107870028,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.973185769312563,
+            1.7763113979516734
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.33088310307379215,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2541705419005146,
+            0.4679562832444748
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.3141595197114948,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.23257187228404025,
+            0.47796550588341985
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.3154643051389497,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2440370357801218,
+            0.4636914583558223
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2987538798043411,
+          "days": 14,
+          "sign_flip_p": 0.99981689453125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21166263835051835,
+            0.4716288490345783
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "D": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.048661965545643684,
+          "days": 14,
+          "sign_flip_p": 0.55963134765625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038474297452754,
+            0.2991911270003667
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5526491381724496,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2105221762868228,
+            2.0152586548131883
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976302199524242,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077133393605387,
+            0.6997502246998769
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.029537544409858396,
+          "days": 14,
+          "sign_flip_p": 0.31573486328125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.0859764304642857,
+            0.026884857545236663
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.3933485717673488,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9886329768358396,
+            1.7713832328953851
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.4934792091846816,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2259006691989967,
+            1.8197923753405176
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.010507963442124494,
+          "days": 14,
+          "sign_flip_p": 0.198974609375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.02512891590383156,
+            0.0031591759151839917
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.07757809396210424,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.283273075282086,
+            0.45813614508858236
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035229624874945123,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084497262887853,
+            0.14042157908745442
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.019944903286854197,
+          "days": 14,
+          "sign_flip_p": 0.1334228515625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.04539858240641807,
+            0.001705252117782999
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.0389744842545881,
+          "days": 14,
+          "sign_flip_p": 0.287841796875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.10635296722940259,
+            0.024457018640471995
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.376926630967989,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.9754020201591165,
+            1.7625525968524534
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.34286814768203994,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.26246261287127587,
+            0.47276776193718456
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.31333060327218154,
+          "days": 14,
+          "sign_flip_p": 0.999755859375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2313457359423851,
+            0.4742705516168415
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.3323601842399154,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2584664257178827,
+            0.4664361615462728
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.2933856999853273,
+          "days": 14,
+          "sign_flip_p": 0.999755859375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.20300562135173658,
+            0.46694492681447913
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    },
+    "PD": {
+      "alpha": 0.05,
+      "test": "exact one-sided sign-flip on day sums (mean below zero), Holm across the family",
+      "checks": [
+        {
+          "check": "add_input:S-none",
+          "mean_bits_per_coda": 0.048661965545643684,
+          "days": 14,
+          "sign_flip_p": 0.55963134765625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.08038474297452754,
+            0.2991911270003667
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A-none",
+          "mean_bits_per_coda": 1.5636155031333328,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2200433221651266,
+            2.0376372746452858
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B-none",
+          "mean_bits_per_coda": 0.12976302199524242,
+          "days": 14,
+          "sign_flip_p": 0.7001953125,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.29077133393605387,
+            0.6997502246998769
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-A",
+          "mean_bits_per_coda": -0.02521989351805031,
+          "days": 14,
+          "sign_flip_p": 0.31695556640625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.07593012582941139,
+            0.02527886615950813
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B-B",
+          "mean_bits_per_coda": 1.40863258762004,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.0033548707101119,
+            1.7879934826208097
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-S",
+          "mean_bits_per_coda": 1.5056850340183108,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            1.2389228356789657,
+            1.8394749949014462
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_S-A",
+          "mean_bits_per_coda": -0.009268503569378328,
+          "days": 14,
+          "sign_flip_p": 0.19873046875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.0216483869388652,
+            0.002774760463794706
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-S",
+          "mean_bits_per_coda": 0.07757809396210424,
+          "days": 14,
+          "sign_flip_p": 0.6263427734375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.283273075282086,
+            0.45813614508858236
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:B_S-B",
+          "mean_bits_per_coda": -0.0035229624874945123,
+          "days": 14,
+          "sign_flip_p": 0.47467041015625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.1084497262887853,
+            0.14042157908745442
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_B",
+          "mean_bits_per_coda": -0.01676228360843204,
+          "days": 14,
+          "sign_flip_p": 0.15545654296875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.038237095084816396,
+            0.002527543174017249
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-A_S",
+          "mean_bits_per_coda": -0.03271367355710402,
+          "days": 14,
+          "sign_flip_p": 0.29840087890625,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            -0.09232088458753934,
+            0.023605303789580246
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "add_input:A_B_S-B_S",
+          "mean_bits_per_coda": 1.3953932664991024,
+          "days": 14,
+          "sign_flip_p": 1.0,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.98845041077952,
+            1.7885506083471792
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A",
+          "mean_bits_per_coda": 0.3538345126429231,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2668245214670261,
+            0.49938489293657484
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B",
+          "mean_bits_per_coda": 0.3286146191248728,
+          "days": 14,
+          "sign_flip_p": 0.99969482421875,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2412579054881256,
+            0.5000271409686495
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_S",
+          "mean_bits_per_coda": 0.3445660090735448,
+          "days": 14,
+          "sign_flip_p": 0.99993896484375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.2629580861494193,
+            0.4941495947528297
+          ],
+          "old_rule_fires": false
+        },
+        {
+          "check": "repeat:A_B_S",
+          "mean_bits_per_coda": 0.31185233551644076,
+          "days": 14,
+          "sign_flip_p": 0.999755859375,
+          "holm_p": 1.0,
+          "fires": false,
+          "ci_bits_per_coda": [
+            0.21983637569332373,
+            0.4940221221046158
+          ],
+          "old_rule_fires": false
+        }
+      ],
+      "fired": []
+    }
+  },
+  "environment": {
+    "R": {
+      "python": "3.10.21",
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "blas_threads": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "L": {
+      "python": "3.10.21",
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "blas_threads": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "P": {
+      "python": "3.10.21",
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "blas_threads": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "D": {
+      "python": "3.10.21",
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "blas_threads": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "PD": {
+      "python": "3.10.21",
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "blas_threads": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1"
+      }
+    }
+  },
+  "fit_seconds": {
+    "R": 645.2566863960819,
+    "L": 700.4802672099322,
+    "P": 726.772018668009,
+    "D": 728.9752694929484,
+    "PD": 759.6197610410163
+  },
+  "fits": 24570,
+  "reading": [
+    "Primary, pre-specified: LL(PD) - LL(P) in A_B_S: 0.01310 bits/coda (unweighted day mean 0.01214, 95% CI [0.0025, 0.0267], 10/14 days positive, two-sided sign-flip p = 0.0525); repeat part 0.01183 [0.0039, 0.0186], switch part 0.00127 [-0.0072, 0.0123].",
+    "The order of the whale's earlier switches carries information beyond its active repertoire (for example A\u2192B\u2192A alternation). Not grammar. It lives in the repeat part (interval above zero).",
+    "Secondary, pre-specified (numbers only; no reading): LL(PD) - LL(R) in A_B_S: 0.05170 bits/coda (unweighted day mean 0.06171, 95% CI [0.0234, 0.0986], 13/14 days positive, two-sided sign-flip p = 0.0084); repeat part 0.02004 [0.0091, 0.0335], switch part 0.03166 [0.0101, 0.0675]."
+  ],
+  "input_sha256": {
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "config/rq1_switch_structure.json": "2e4556c1ad8c1573039b9a986191bc2d57ff276a2cacabd4505c58e032181769",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "config/rq1_evaluation_v4.json": "17ea02e16f8dbebb4fde8a3ea6c0785be1ed8ef1b03d89535cd920043aa5d6a0",
+    "data/results/rq1_switch_structure/descriptive/summary.json": "48e7a25b59cf48153afad669b873659069a32a193c5687f536b0f62d3f1c67a9",
+    "data/results/rq1_switch_structure/R/summary.json": "408b277c21eee44c417a26543e50fe866604ed36b53c03e563971dfecf9900ac",
+    "data/results/rq1_switch_structure/R/l2_selection.jsonl": "5f784507789a8c301e1beeb8efef7efe17429b7e26d14c64bc58a5cde2e2432a",
+    "data/results/rq1_switch_structure/R/scored.jsonl": "765e1c729c5f9661bbadd15ce472ba326c0624bc4ac9ecdb9208e042ab6eb3bf",
+    "data/results/rq1_switch_structure/R/coefficients.jsonl": "e552fc627a4640b37e709e71f5b4cfc76054fcbc1c8e87772f2d94685801c954",
+    "data/results/rq1_switch_structure/L/summary.json": "2866e552bfece24ded0080b70b8c67aadbd34f5712057467e582eb2a9bd7c94f",
+    "data/results/rq1_switch_structure/L/l2_selection.jsonl": "a4eb190b328ccbb0aabe2734bd53958981be5b9f72271e4d236baa6bbae94127",
+    "data/results/rq1_switch_structure/L/scored.jsonl": "dc3375255a53879bb5eaa9504e8257646f5484adff4a4adcf2dcc99945999b82",
+    "data/results/rq1_switch_structure/L/coefficients.jsonl": "8026897b07fd55fcb5afbc682625b8de7cedbb306385f3b0d55fdd1868e9cab0",
+    "data/results/rq1_switch_structure/P/summary.json": "de825c78cf8d64d15273c4cdfd69322fc1469d05355213e6be2fc3fc1dbf465c",
+    "data/results/rq1_switch_structure/P/l2_selection.jsonl": "84c7a818d0847305bbf731da6e0bd783d3b5dcc4784eb63dd7d651783da32870",
+    "data/results/rq1_switch_structure/P/scored.jsonl": "a8450d47a73ef538c455cab024404b0fa43674e7672dba5bb851af120994dad9",
+    "data/results/rq1_switch_structure/P/coefficients.jsonl": "baa4f846e3af48421886249fb537858cdf0717d4477c99f82778e18a5f54370d",
+    "data/results/rq1_switch_structure/D/summary.json": "c2085224d79e5e79b155068a8c212ce286b6e2a4e067ddce6ef8221dc4c107a1",
+    "data/results/rq1_switch_structure/D/l2_selection.jsonl": "5ec4add15afd9be730f8ae45bb1d2f6965cb7e88e31880e1d6c3a9f20c082053",
+    "data/results/rq1_switch_structure/D/scored.jsonl": "b9a57dabc42ea2fd4197620834315bbecaca5368517156b364eff842299faf41",
+    "data/results/rq1_switch_structure/D/coefficients.jsonl": "5139b5f41c691add680e284e5b7863595b2217b7834a7829be4fe03f1a0b424b",
+    "data/results/rq1_switch_structure/PD/summary.json": "21461c43736d0cd0f0cb11c64ca31b235a812cf0df9a22316026ac773278ddaf",
+    "data/results/rq1_switch_structure/PD/l2_selection.jsonl": "3a6df62c974a1dd4d1e8a1f9ab347950cded394c7eb27d44bb5fcac065729904",
+    "data/results/rq1_switch_structure/PD/scored.jsonl": "f4df23f3ce2edc210840e246ccefba3d011c7d25e529e9e42e923ccc73a2c4e5",
+    "data/results/rq1_switch_structure/PD/coefficients.jsonl": "ec6c2424829f591de1afdfc4ba6d3749e5a44c40b593a3a342144a556dc8457b"
+  }
+}

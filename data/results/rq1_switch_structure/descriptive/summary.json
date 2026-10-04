@@ -1,0 +1,850 @@
+{
+  "settings": {
+    "enforce": true,
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 42,
+    "confidence": 0.95,
+    "interval_tolerance": 0.015,
+    "source": "computed independently in a Cowork session before this run, 2026-10-04"
+  },
+  "labels": "as stored in Ct",
+  "quantities": {
+    "targets": {
+      "count": 1547
+    },
+    "repeats_of_own_last": {
+      "count": 1277
+    },
+    "repeat_rate:self_continuation": {
+      "value": 0.8221258134490239,
+      "ci": [
+        0.7444394714407503,
+        0.8848268793972633
+      ],
+      "replicates_without_denominator": 0,
+      "count": 379,
+      "n": 461
+    },
+    "repeat_rate:switch": {
+      "value": 0.8248062015503876,
+      "ci": [
+        0.7708641565503288,
+        0.8713694825305189
+      ],
+      "replicates_without_denominator": 0,
+      "count": 532,
+      "n": 645
+    },
+    "repeat_rate:overlap": {
+      "value": 0.8299319727891157,
+      "ci": [
+        0.7748091603053435,
+        0.8741096789196552
+      ],
+      "replicates_without_denominator": 0,
+      "count": 366,
+      "n": 441
+    },
+    "own_last_equals_partner_last": {
+      "value": 0.5475113122171946,
+      "ci": [
+        0.4049938969051857,
+        0.6810675968150103
+      ],
+      "replicates_without_denominator": 0,
+      "count": 847,
+      "n": 1547
+    },
+    "agreement_chance": {
+      "value": 0.4878880140683321,
+      "ci": [
+        0.398753886257771,
+        0.5792115975323072
+      ],
+      "replicates_without_denominator": 0,
+      "n": 1547
+    },
+    "own_last_differs:repeats_own_last": {
+      "value": 0.7157142857142857,
+      "ci": [
+        0.6632106075974815,
+        0.7500072590011614
+      ],
+      "replicates_without_denominator": 0,
+      "count": 501,
+      "n": 700
+    },
+    "own_last_differs:takes_partner_last": {
+      "value": 0.10714285714285714,
+      "ci": [
+        0.0848121395073042,
+        0.14706065718057795
+      ],
+      "replicates_without_denominator": 0,
+      "count": 75,
+      "n": 700
+    },
+    "own_last_differs:other": {
+      "value": 0.17714285714285713,
+      "ci": [
+        0.12226993845302944,
+        0.21814111261872454
+      ],
+      "replicates_without_denominator": 0,
+      "count": 124,
+      "n": 700
+    },
+    "switch_own_last_differs:lands_on_partner_last": {
+      "value": 0.3768844221105528,
+      "ci": [
+        0.2980993860959018,
+        0.5289282857904558
+      ],
+      "replicates_without_denominator": 0,
+      "count": 75,
+      "n": 199
+    },
+    "switch_own_last_differs:chance": {
+      "value": 0.37524587715478913,
+      "ci": [
+        0.3074830434854391,
+        0.49920155448522774
+      ],
+      "replicates_without_denominator": 0,
+      "n": 199
+    },
+    "switch_own_last_differs:difference": {
+      "value": 0.001638544955763672,
+      "ci": [
+        -0.07088434498686057,
+        0.08491355951820663
+      ],
+      "replicates_without_denominator": 0,
+      "n": 199
+    },
+    "switches": {
+      "count": 270
+    },
+    "switches:own_last_differs_lands_on_partner_last": {
+      "count": 75
+    },
+    "switches:own_last_equals_partner_last": {
+      "count": 71
+    },
+    "switches:other": {
+      "count": 124
+    },
+    "switches_with_d1": {
+      "count": 168
+    },
+    "returns_to_d1": {
+      "value": 0.47619047619047616,
+      "ci": [
+        0.4065040650406504,
+        0.5666666666666667
+      ],
+      "replicates_without_denominator": 0,
+      "count": 80,
+      "n": 168
+    },
+    "returns_to_d1:chance": {
+      "value": 0.2680592639533502,
+      "ci": [
+        0.2238185320424553,
+        0.3441977640015732
+      ],
+      "replicates_without_denominator": 0,
+      "n": 168
+    },
+    "returns_to_d1:difference": {
+      "value": 0.20813121223712597,
+      "ci": [
+        0.14843455985968987,
+        0.2605180283894984
+      ],
+      "replicates_without_denominator": 0,
+      "n": 168
+    },
+    "returns_to_d1:other_types_1": {
+      "value": 0.5454545454545454,
+      "ci": [
+        0.4622592713077424,
+        0.6333396946564884
+      ],
+      "replicates_without_denominator": 0,
+      "count": 60,
+      "n": 110,
+      "chance": 0.2906146506717844,
+      "chance_ci": [
+        0.23580828850736502,
+        0.38226263768415103
+      ]
+    },
+    "returns_to_d1:other_types_2": {
+      "value": 0.37209302325581395,
+      "ci": [
+        0.27586206896551724,
+        0.5
+      ],
+      "replicates_without_denominator": 0,
+      "count": 16,
+      "n": 43,
+      "chance": 0.23749921363962512,
+      "chance_ci": [
+        0.14868557839953767,
+        0.32575205663753
+      ]
+    },
+    "returns_to_d1:other_types_3_or_more": {
+      "value": 0.26666666666666666,
+      "ci": [
+        0.1111111111111111,
+        0.5
+      ],
+      "replicates_without_denominator": 9,
+      "count": 4,
+      "n": 15,
+      "chance": 0.19025857225084522,
+      "chance_ci": [
+        0.07893986643986645,
+        0.30758445691390063
+      ]
+    },
+    "switches_with_d2": {
+      "count": 58
+    },
+    "switches_with_d2:returns_to_d2": {
+      "value": 0.20689655172413793,
+      "ci": [
+        0.06896551724137931,
+        0.3142857142857143
+      ],
+      "replicates_without_denominator": 0,
+      "count": 12,
+      "n": 58
+    },
+    "switches_with_d2:returns_to_d1": {
+      "value": 0.3448275862068966,
+      "ci": [
+        0.2631578947368421,
+        0.45902747009304373
+      ],
+      "replicates_without_denominator": 0,
+      "count": 20,
+      "n": 58
+    },
+    "run_length:at_least_3": {
+      "count": 808
+    },
+    "run_length:at_least_10": {
+      "count": 113
+    },
+    "run_length:max": {
+      "count": 21
+    },
+    "repeat_rate_by_run_in_A_history:1": {
+      "value": 0.6506550218340611,
+      "ci": [
+        0.5796178343949044,
+        0.7345368779432354
+      ],
+      "replicates_without_denominator": 0,
+      "count": 298,
+      "n": 458
+    },
+    "repeat_rate_by_run_in_A_history:2": {
+      "value": 0.8612099644128114,
+      "ci": [
+        0.8055555555555556,
+        0.9
+      ],
+      "replicates_without_denominator": 0,
+      "count": 242,
+      "n": 281
+    },
+    "repeat_rate_by_run_in_A_history:3": {
+      "value": 0.8811881188118812,
+      "ci": [
+        0.8307692307692308,
+        0.9137947178096345
+      ],
+      "replicates_without_denominator": 0,
+      "count": 178,
+      "n": 202
+    },
+    "repeat_rate_by_run_in_A_history:4-5": {
+      "value": 0.9003831417624522,
+      "ci": [
+        0.8579537692498758,
+        0.9323308270676691
+      ],
+      "replicates_without_denominator": 0,
+      "count": 235,
+      "n": 261
+    },
+    "repeat_rate_by_run_in_A_history:6-10": {
+      "value": 0.9391304347826087,
+      "ci": [
+        0.8944420556920557,
+        0.9870143864755934
+      ],
+      "replicates_without_denominator": 0,
+      "count": 324,
+      "n": 345
+    },
+    "within_whale_exchange:run_2_or_more_minus_run_1": {
+      "value": -0.006777339355865909,
+      "ci": [
+        -0.056339333147051904,
+        0.03980977916466442
+      ],
+      "replicates_without_denominator": 0,
+      "n": 206
+    }
+  },
+  "checks": [
+    {
+      "name": "targets",
+      "expected": {
+        "count": 1547
+      },
+      "computed": {
+        "count": 1547
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeats_of_own_last",
+      "expected": {
+        "count": 1277
+      },
+      "computed": {
+        "count": 1277
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate:self_continuation",
+      "expected": {
+        "value": 0.822,
+        "n": 461,
+        "ci": [
+          0.741,
+          0.884
+        ]
+      },
+      "computed": {
+        "value": 0.8221258134490239,
+        "n": 461,
+        "ci": [
+          0.7444394714407503,
+          0.8848268793972633
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate:switch",
+      "expected": {
+        "value": 0.825,
+        "n": 645,
+        "ci": [
+          0.77,
+          0.872
+        ]
+      },
+      "computed": {
+        "value": 0.8248062015503876,
+        "n": 645,
+        "ci": [
+          0.7708641565503288,
+          0.8713694825305189
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate:overlap",
+      "expected": {
+        "value": 0.83,
+        "n": 441,
+        "ci": [
+          0.773,
+          0.873
+        ]
+      },
+      "computed": {
+        "value": 0.8299319727891157,
+        "n": 441,
+        "ci": [
+          0.7748091603053435,
+          0.8741096789196552
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "own_last_equals_partner_last",
+      "expected": {
+        "value": 0.548,
+        "count": 847,
+        "ci": [
+          0.404,
+          0.681
+        ]
+      },
+      "computed": {
+        "value": 0.5475113122171946,
+        "count": 847,
+        "ci": [
+          0.4049938969051857,
+          0.6810675968150103
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "agreement_chance",
+      "expected": {
+        "value": 0.488,
+        "ci": [
+          0.399,
+          0.578
+        ]
+      },
+      "computed": {
+        "value": 0.4878880140683321,
+        "ci": [
+          0.398753886257771,
+          0.5792115975323072
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "own_last_differs:repeats_own_last",
+      "expected": {
+        "value": 0.716,
+        "n": 700,
+        "ci": [
+          0.663,
+          0.75
+        ]
+      },
+      "computed": {
+        "value": 0.7157142857142857,
+        "n": 700,
+        "ci": [
+          0.6632106075974815,
+          0.7500072590011614
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "own_last_differs:takes_partner_last",
+      "expected": {
+        "value": 0.107,
+        "n": 700,
+        "ci": [
+          0.085,
+          0.148
+        ]
+      },
+      "computed": {
+        "value": 0.10714285714285714,
+        "n": 700,
+        "ci": [
+          0.0848121395073042,
+          0.14706065718057795
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "own_last_differs:other",
+      "expected": {
+        "value": 0.177,
+        "n": 700,
+        "ci": [
+          0.122,
+          0.219
+        ]
+      },
+      "computed": {
+        "value": 0.17714285714285713,
+        "n": 700,
+        "ci": [
+          0.12226993845302944,
+          0.21814111261872454
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switch_own_last_differs:lands_on_partner_last",
+      "expected": {
+        "value": 0.377,
+        "n": 199
+      },
+      "computed": {
+        "value": 0.3768844221105528,
+        "n": 199
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switch_own_last_differs:chance",
+      "expected": {
+        "value": 0.375,
+        "n": 199
+      },
+      "computed": {
+        "value": 0.37524587715478913,
+        "n": 199
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switch_own_last_differs:difference",
+      "expected": {
+        "value": 0.002,
+        "n": 199,
+        "ci": [
+          -0.072,
+          0.086
+        ]
+      },
+      "computed": {
+        "value": 0.001638544955763672,
+        "n": 199,
+        "ci": [
+          -0.07088434498686057,
+          0.08491355951820663
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches",
+      "expected": {
+        "count": 270
+      },
+      "computed": {
+        "count": 270
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches:own_last_differs_lands_on_partner_last",
+      "expected": {
+        "count": 75
+      },
+      "computed": {
+        "count": 75
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches:own_last_equals_partner_last",
+      "expected": {
+        "count": 71
+      },
+      "computed": {
+        "count": 71
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches:other",
+      "expected": {
+        "count": 124
+      },
+      "computed": {
+        "count": 124
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches_with_d1",
+      "expected": {
+        "count": 168
+      },
+      "computed": {
+        "count": 168
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "returns_to_d1",
+      "expected": {
+        "value": 0.476,
+        "n": 168
+      },
+      "computed": {
+        "value": 0.47619047619047616,
+        "n": 168
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "returns_to_d1:chance",
+      "expected": {
+        "value": 0.268,
+        "n": 168
+      },
+      "computed": {
+        "value": 0.2680592639533502,
+        "n": 168
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "returns_to_d1:difference",
+      "expected": {
+        "value": 0.208,
+        "n": 168,
+        "ci": [
+          0.149,
+          0.26
+        ]
+      },
+      "computed": {
+        "value": 0.20813121223712597,
+        "n": 168,
+        "ci": [
+          0.14843455985968987,
+          0.2605180283894984
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "returns_to_d1:other_types_1",
+      "expected": {
+        "value": 0.545,
+        "n": 110,
+        "chance": 0.291
+      },
+      "computed": {
+        "value": 0.5454545454545454,
+        "n": 110,
+        "chance": 0.2906146506717844
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "returns_to_d1:other_types_2",
+      "expected": {
+        "value": 0.372,
+        "n": 43,
+        "chance": 0.237
+      },
+      "computed": {
+        "value": 0.37209302325581395,
+        "n": 43,
+        "chance": 0.23749921363962512
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "returns_to_d1:other_types_3_or_more",
+      "expected": {
+        "value": 0.267,
+        "n": 15,
+        "chance": 0.19
+      },
+      "computed": {
+        "value": 0.26666666666666666,
+        "n": 15,
+        "chance": 0.19025857225084522
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches_with_d2",
+      "expected": {
+        "count": 58
+      },
+      "computed": {
+        "count": 58
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches_with_d2:returns_to_d2",
+      "expected": {
+        "value": 0.207,
+        "n": 58
+      },
+      "computed": {
+        "value": 0.20689655172413793,
+        "n": 58
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "switches_with_d2:returns_to_d1",
+      "expected": {
+        "value": 0.345,
+        "n": 58
+      },
+      "computed": {
+        "value": 0.3448275862068966,
+        "n": 58
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "run_length:at_least_3",
+      "expected": {
+        "count": 808
+      },
+      "computed": {
+        "count": 808
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "run_length:at_least_10",
+      "expected": {
+        "count": 113
+      },
+      "computed": {
+        "count": 113
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "run_length:max",
+      "expected": {
+        "count": 21
+      },
+      "computed": {
+        "count": 21
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate_by_run_in_A_history:1",
+      "expected": {
+        "value": 0.651,
+        "n": 458
+      },
+      "computed": {
+        "value": 0.6506550218340611,
+        "n": 458
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate_by_run_in_A_history:2",
+      "expected": {
+        "value": 0.861,
+        "n": 281
+      },
+      "computed": {
+        "value": 0.8612099644128114,
+        "n": 281
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate_by_run_in_A_history:3",
+      "expected": {
+        "value": 0.881,
+        "n": 202
+      },
+      "computed": {
+        "value": 0.8811881188118812,
+        "n": 202
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate_by_run_in_A_history:4-5",
+      "expected": {
+        "value": 0.9,
+        "n": 261
+      },
+      "computed": {
+        "value": 0.9003831417624522,
+        "n": 261
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "repeat_rate_by_run_in_A_history:6-10",
+      "expected": {
+        "value": 0.939,
+        "n": 345
+      },
+      "computed": {
+        "value": 0.9391304347826087,
+        "n": 345
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "within_whale_exchange:run_2_or_more_minus_run_1",
+      "expected": {
+        "value": -0.007,
+        "n": 206,
+        "ci": [
+          -0.058,
+          0.04
+        ]
+      },
+      "computed": {
+        "value": -0.006777339355865909,
+        "n": 206,
+        "ci": [
+          -0.056339333147051904,
+          0.03980977916466442
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "input_sha256": {
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "config/rq1_switch_structure.json": "2e4556c1ad8c1573039b9a986191bc2d57ff276a2cacabd4505c58e032181769"
+  }
+}
