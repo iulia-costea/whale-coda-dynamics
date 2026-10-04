@@ -16,7 +16,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **RQ2:** a token-inventory study (§7, DEC-22). **Done:** six inventories of the same codas (`reports/rq2_inventories.md`: the `[R2-1]`/`[R2-2]` checks and `[R2-0]` counts reproduce), their folds (UNK counts equal `[R2-0]`'s), logistic v4 on each and the comparison `reports/rq2_inventories_v4.md`. All fits converged. DEC-16 stop rules fire for B, C, D, E and D′ (add-one-input contrasts that add S, CIs just below zero); A and E′ have none. Per `[R2-7]` no conclusion is drawn from the five; no setting was changed.
 - **Done:** logistic v5 (DEC-23): every input block can be absent, chosen on the validation day from v4's committed fits, and stop rules by exact sign-flip tests with Holm's correction; for RQ1 (primary and old-delay) and the six RQ2 inventories. DEC-23's rule fires in no run. RQ2's comparison uses v5 for every inventory (`reports/rq2_inventories_v5.md`); RQ1's headline stays v4, with v5 as a robustness line (§12).
 - **Done:** the partner-tempo ablation (DEC-24, `[R2-8]`): `reports/rq2_partner_tempo.md`. All gates pass and all 10,332 penalty candidates converged. No stop rule fires in either run (rhythm, primary; type, secondary), under DEC-23's or DEC-16's rule, for the own fits, v5 or the one-SE variant. Under v5 all four contrasts' CIs span zero in both runs. Primary (bits per coda of the tempo class): partner tempo alone +0.005, CI [−0.017, 0.038]; partner rhythm alone +0.001 [−0.015, 0.024]; tempo beyond rhythm +0.007 [−0.018, 0.050]; rhythm beyond tempo +0.003 [−0.016, 0.035]. Per DEC-24, read as not detectable at this data size.
-- **RQ3:** preprocessing on branch `rq3-cross-clan` (Vlad). Design updated to a descriptive transfer study on shared building blocks (§8, DEC-19); no model code yet.
+- **RQ3:** building blocks `[R3-0]`–`[R3-3]`, the 9 × 9 matrix `[R3-4]`, coverage `[R3-5]`, the identity split and Pacific overlap test `[R3-6]` (DEC-26) and the ZZZ sensitivity are done (`reports/rq3_*.md`; Vlad). Not run: the type diagnostics `[R3-7]`. Pending: the pooled experiment `[R3-8]` (DEC-27).
 
 See §12 for the order of work.
 
@@ -285,7 +285,7 @@ $$\log_2 p(\text{type}, \text{tempo}) = \log_2 p(\text{type}) + \log_2 p(\text{t
 
 ## 8. RQ3 — cross-clan transfer
 
-RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown and one exploratory overlap test (DEC-19). Every RQ3 model uses the building blocks `[R3-0]`–`[R3-3]`, including any later pooled model (`docs/LATER.md`).
+RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown and one exploratory overlap test (DEC-19), plus a pooled multi-clan experiment (DEC-27). Every RQ3 model uses the building blocks `[R3-0]`–`[R3-3]`.
 
 **Building blocks**
 - **`[R3-0]` Processed codas** (`data/processed/rq3/`, Vlad's pipeline):
@@ -307,13 +307,43 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
   - Models: smoothed n-gram (main); VLMC (sensitivity, if time).
   - Report each source's training size beside its row: sources differ up to about 8.6× in size, and there are no size-matched reruns (`docs/LATER.md`).
 - **`[R3-5]` Coverage:** for each pair, the share of the target's codas whose full symbol string occurs at least 5 times in the source's data; G reported separately for covered and uncovered codas (after Aycock et al. 2025).
-- **`[R3-6]` Exploratory overlap test, Pacific only:** separate models for identity and for non-identity codas (same building blocks). Per clan pair, G averaged over both directions and related to the pair's mean spatial overlap (Hersh et al. SI Table S4); permutation test over the 7 clan labels (5,040 orders), separately for identity and non-identity codas. The prediction (Leitão et al. 2024): overlap lowers G for non-identity codas only. With 21 pairs this is exploratory.
+- **`[R3-6]` Exploratory overlap test, Pacific only:** the `[R3-4]` models (one per clan, all codas); each Pacific target coda's loss goes to the identity or non-identity stratum by its own clan's list, and the strata are averaged separately (DEC-26). Separate identity and non-identity models: robustness check, if time. Per clan pair, G averaged over both directions and related to the pair's mean spatial overlap (Hersh et al. SI Table S4); permutation test over the 7 clan labels (5,040 orders), separately for identity and non-identity codas. The prediction (Leitão et al. 2024): overlap lowers G for non-identity codas only. With 21 pairs this is exploratory.
 - **`[R3-7]` Coda-type distributions** per clan: diagnostic, within one dataset only.
+- **`[R3-8]` Pooled training across clans** (the mBART recipe, Liu et al. 2020, trained from scratch; DEC-27). Every arm uses `[R3-0]`–`[R3-3]` unchanged.
+  - **Model:** a left-to-right LSTM over the `[R3-1]` symbols, predicting every interval symbol and `EOS`. All arms use the same model code; they differ only in training data, start symbol and initialisation.
+  - **Clan tag:** a clan-specific start symbol (`BOS_<clan>`) in place of `BOS`. Untagged models use the shared `BOS`.
+  - **Held-out groups:** run $k$ ($k = 0,\dots,5$) holds out fold $k$ of every clan that has one (fold 5: EC2 only). A model that scores a coda never saw that coda's fold in training or validation. Inner validation uses fold $(k+1) \bmod K_c$ of each clan, for early stopping and settings. Then the model is refit on all training folds with the chosen settings and number of epochs.
+  - **Arms:**
+    1. **own-clan:** trained on one clan only. Its scores are the reference for the pooled arms. Scored on the other clans (mean over the source's fold models, as in `[R3-4]`), it also gives a neural 9 × 9 matrix;
+    2. **pooled, tagged:** all nine clans. Each training draw picks clan $c$ with probability $\propto n_c^{\alpha}$, where $n_c$ is the clan's training codas and $\alpha \in \{1, 0.7, 0.5, 0.3\}$ (1 = proportional to size; lower values favour small clans);
+    3. **pooled, untagged:** as arm 2, with the shared `BOS`;
+    4. **leave one clan out:** untagged, trained on the other eight clans (inner validation on fold 0 of each, then refit on all their codas). Sampling uses arm 3's primary $\alpha$. It scores every coda of the left-out clan zero-shot;
+    5. **data efficiency:** arm 4's model fine-tuned on a share $f \in \{0.02, 0.05, 0.1, 0.25, 0.5, 1\}$ of the target clan's training folds (excluding its inner-validation fold), against the same architecture trained from scratch on the same codas. Three random draws per $f$, one seed each. Both versions use arm 4's chosen hidden size and dropout, choose the learning rate and stop early on the full inner-validation fold, and are scored as stopped (no refit).
+  - **Settings:**
+    - Grid: hidden size $\{32, 64, 128\}$ × dropout $\{0, 0.2, 0.4\}$.
+    - Fixed: one layer, embedding 32, Adam with learning rate 0.003 (arm 5: 0.001 or 0.003, chosen on inner validation), batch 64.
+    - Training: an epoch is as many draws as there are training codas. Early stopping on inner-validation bits per symbol (patience 5, at most 100 epochs).
+    - Selection: chosen per model on inner validation only; ties go to the smaller model. The primary $\alpha$ maximises the clan-averaged inner-validation score (clans weighted equally), and every $\alpha$ is reported.
+    - Refits use 3 seeds; a coda's score is its mean log-likelihood over seeds.
+  - **Contrasts:** per target clan, in bits per symbol, paired on the same codas, with CIs as in `[R3-3]`. Positive means the first model is better.
+    - pooling gain = pooled tagged − own-clan;
+    - tag value = pooled tagged − pooled untagged: the conditional 𝒱-information of the clan, given the coda so far;
+    - zero-shot loss = own-clan − leave-one-out, shown beside arm 1's single-source losses for that target (their mean, and the best source, labelled as an oracle);
+    - data efficiency = fine-tuned − from scratch, per $f$.
+  - **Gate:** for every clan, the own-clan LSTM must not be reliably below the own-clan n-gram (`[R3-4]` diagonal) on the same codas, meaning the 95% CI of the difference is not entirely below zero. Otherwise arm 1 is rerun once for every clan with the grid extended by hidden size 256, learning rate 0.001 and patience 10, chosen on inner validation as before; if a clan still fails, the fit is fixed before any contrast is run.
+  - **Capacity check:** if pooled tagged is reliably below own-clan for a clan, rerun arm 2 with double the hidden size and report both.
+  - **Predictions** (from multilingual NLP, written before running):
+    - pooling gain is largest for the smallest clans (EC2, SI) and about zero for the largest (EC1, REG);
+    - lower $\alpha$ helps small clans and costs large ones;
+    - tag value is clearly positive for every clan;
+    - the leave-one-out model beats the mean single source;
+    - fine-tuning helps most at small $f$, and the gap closes as $f$ grows.
+  - **Claims:** how much other clans' codas help model a clan, and how much knowing the clan is worth, in bits. Nothing about shared ancestry, learning between clans, or meaning.
 - **Sensitivity:** the matrix without the `ZZZ` codas. `N-NOISE` codas stay in `[R3-4]` and `[R3-5]` (symbol strings, no types) and are left out of `[R3-6]` and `[R3-7]`.
 
 **Rules**
 - No multi-whale conditions on `[D6]` or `[D4]`; day-level coda order is never own history.
-- Tuning and model choice use the training clan only.
+- Tuning and model choice use training data only: the source clan for single-clan models, the inner-validation folds for `[R3-8]`; never a scored fold.
 - Don't repeat Leitão et al.'s VLMC/KL comparison as a result; their bins and VLMC may be used as tools.
 - Claims: how well clans' within-coda timing predicts each other's, and how much of that is coverage. No claim that sharing waters causes convergence, nothing about meaning, no "dialects".
 
@@ -385,7 +415,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
 4. **Phase 4 — robustness:** `[P2]` own-history length sweep (DEC-25) — **done** (`reports/rq1_history_length.md`); remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`, kept as the record); DEC-16's stop rules fire for B, C, D, E and D′ (`[R2-7]`). Then v5 and DEC-23's stop rules on every inventory, and the comparison on v5 with `[R2-4]` for A → E, C → D and A → E′ — **done** (`reports/rq2_inventories_v5.md`); DEC-23's rule fires for no inventory, on v5 or v4 (DEC-16's old rule still fires on v5 for B, C, D, E, D′ and E′, always on a contrast that adds $S$). The partner-tempo ablation `[R2-8]` (DEC-24), primary (rhythm) and secondary (type) — **done** (`reports/rq2_partner_tempo.md`); no stop rule fires in either run, under DEC-23's or DEC-16's rule, for the own fits, v5 or one-SE; under v5 all four contrasts' CIs span zero in both runs.
-6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]`.
+6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]` — **done** for `[R3-0]`–`[R3-6]` (`[R3-7]` not run); then `[R3-8]` (DEC-27).
 
 ---
 
