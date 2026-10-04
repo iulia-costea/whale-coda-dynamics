@@ -1,0 +1,174 @@
+{
+  "arm1_source": "arm1",
+  "commit": "74784b3c4f71c9458b988a2036e9e295d494e2f6",
+  "config": {
+    "arm5": {
+      "draws": 3,
+      "learning_rates": [
+        0.001,
+        0.003
+      ],
+      "reduced_draws": 1,
+      "reduced_shares": [
+        0.05,
+        0.25,
+        1.0
+      ],
+      "shares": [
+        0.02,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1.0
+      ]
+    },
+    "bootstrap_draws": 1000,
+    "bootstrap_seed": 42,
+    "capacity_multiplier": 2,
+    "checkpoint_directory": "data/results/rq3_neural/checkpoints",
+    "clans": [
+      "EC1",
+      "EC2",
+      "FP",
+      "PALI",
+      "PO",
+      "REG",
+      "RI",
+      "SH",
+      "SI"
+    ],
+    "codas_input": "data/processed/rq3/rq3_codas.csv",
+    "device": "auto",
+    "figure_directory": "reports/rq3_neural_figures",
+    "folds_input": "data/processed/rq3/rq3_folds.csv",
+    "gate_rerun": {
+      "hidden_grid": [
+        32,
+        64,
+        128,
+        256
+      ],
+      "learning_rates": [
+        0.003,
+        0.001
+      ],
+      "patience": 10
+    },
+    "model": {
+      "batch_size": 64,
+      "dropout_grid": [
+        0.0,
+        0.2,
+        0.4
+      ],
+      "embedding_dim": 32,
+      "eval_batch_size": 4096,
+      "hidden_grid": [
+        32,
+        64,
+        128
+      ],
+      "learning_rate": 0.003,
+      "max_epochs": 100,
+      "patience": 5,
+      "refit_seeds": [
+        0,
+        1,
+        2
+      ],
+      "selection_seed": 0
+    },
+    "ngram_calibration_input": "data/results/rq3/calibration/self_calibration.csv",
+    "ngram_matrix_scores_input": "data/results/rq3/transfer_matrix/scores.csv",
+    "ngram_matrix_summary_input": "data/results/rq3/transfer_matrix/summary.csv",
+    "ngram_self_scores_input": "data/results/rq3/calibration/self_scores.csv",
+    "output_directory": "data/results/rq3_neural",
+    "pilot": {
+      "budget_hours": 6,
+      "cpu_workers": [
+        10,
+        18
+      ],
+      "cublas_workspace_config": ":4096:8",
+      "gpu_workers": [
+        1,
+        4
+      ],
+      "own_clan": "EC2",
+      "own_fold": 0,
+      "pooled_alpha": 0.7,
+      "pooled_run": 0,
+      "pooled_tagged": true,
+      "stop_hours": 12,
+      "tie_tolerance": 0.05,
+      "timing_epochs": 3
+    },
+    "pooled_alphas": [
+      1.0,
+      0.7,
+      0.5,
+      0.3
+    ],
+    "report_output": "reports/rq3_neural.md",
+    "require_clean_tree": true,
+    "smoke_test": false,
+    "tokenizer_id": "fixed-50ms-v1",
+    "workers": null
+  },
+  "dirty_paths": [],
+  "finished": "2026-10-04T01:10:04+00:00",
+  "fit_seconds": 0.0,
+  "fits": 0,
+  "gate1_passed": {
+    "arm1": true
+  },
+  "input_sha256": {
+    "config/rq3_neural.json": "59d9c0fc2747b1a4d0d2674701f2680cdc1c24e9e4801d8defcf58af0d77b2f7",
+    "data/processed/rq3/rq3_codas.csv": "82ab3cc2de8e0cd5e31ddc18e238bd1ab1a55776e5091cc75afbb1ae3e022ffa",
+    "data/processed/rq3/rq3_folds.csv": "272bb592515d6f11918a6914d2b087d4f530f0b2a60c98e6bb066248d52cb9ce",
+    "data/results/rq3/calibration/self_scores.csv": "b3fb74cb3f30635df0c74ae4ecc22ceb0850f162ca61c7a991f694a9c98e3df2",
+    "data/results/rq3/transfer_matrix/scores.csv": "250c3d931c95cccf98aa45b57a3c3506cb72929200048b5c404790a5af29e33c",
+    "data/results/rq3/transfer_matrix/summary.csv": "0e8b2a16435cb6bed8a75246174c199cb64197c509f774d1b0b81e3cd1cd6f2d",
+    "data/results/rq3_neural/arm1/gate1.csv": "2490bcb5f8f7e878598ef3e1050a6c870af131d353c53d9abb2345544bb3ebde",
+    "data/results/rq3_neural/arm1/matrix_scores.csv": "ddef56cecb322dcb5fdbcbb3f79c5745e37ba0e096bb1bcc101644845476afe3",
+    "data/results/rq3_neural/arm1/own_scores.csv": "1f6b47f8b9b0c5bfa0ddd5b4cf40672a10d20d9db97839a7c04ae448300b322e",
+    "data/results/rq3_neural/arm1/refits.csv": "c822e430cd5f46118bdf4b0b5cf0a5336fb01b9573f20d59e05b819b8443f8ed",
+    "data/results/rq3_neural/arm1/selection.csv": "55f9940ca4027ffde409ce40fde000c27aa1567fa00e5dbb5cd4425ae69638b7",
+    "data/results/rq3_neural/arm1/summary.json": "101cfe453fadccaf9af5c2667630065a5773afd3c5d9923bb37ef0826c1b7a0a",
+    "data/results/rq3_neural/arm23/arm2_scores.csv": "753247c970050816a5754bdc1d47b807e790d90cf197f568cca66a85cf96d0b2",
+    "data/results/rq3_neural/arm23/arm3_scores.csv": "01a78228b602226c6b01d72b2b605ee5e8f7494179bad35796b788d00a2038bd",
+    "data/results/rq3_neural/arm23/selection.csv": "7fd28d5245f527aa40fefad36b39e73b9288b25863ddc5d304f70cfc72e7f7c4",
+    "data/results/rq3_neural/arm23/summary.json": "1bb7800dc0dc83771e9c14407839bfc1f2c8850a56c67a58ffd84befc61469ff",
+    "data/results/rq3_neural/arm4/scores.csv": "1a5c7dd7a2c491f7780dcb159ed92cbddeccb1c7566501c9c41a9f4a5233fd37",
+    "data/results/rq3_neural/arm4/selection.csv": "3a2923c1852d9819d6d2e3b97983c6f9a10ceecf4ed9176ebe53bc3d3bc63d9e",
+    "data/results/rq3_neural/arm4/summary.json": "28e17ff7a622515255e5f7ab69c75637ad84803f24480676b67a46e575b7d7a5",
+    "data/results/rq3_neural/arm5/group_sums.csv": "5d423987d843539d916549d03e39943c0773eb50404b047b44367efc02ff6b55",
+    "data/results/rq3_neural/arm5/summary.json": "9bddbc2fabd24b3a79b875d47e61ccd569cb8fc0c04a5f8fc6d18e69398aa7c9",
+    "data/results/rq3_neural/capacity/scores.csv": "8a2a3854c583c6a45fd8c20fbe4719a7e13913afa4cc400aee2e6857f3aaa3a3",
+    "data/results/rq3_neural/capacity/summary.json": "ae80488e63aa80f8a55be0964845f01bc57612eb7b43a8b9175c93078e1877b0",
+    "data/results/rq3_neural/pilot/determinism.csv": "a84db7ffd70800f30bd1058b046012bf34aa12763611439f1e160e291365ef9b",
+    "data/results/rq3_neural/pilot/gate0.csv": "451bb7113ffd57be1bd349c030f279fcf20f61a3d01ba4d2081a720369846a94",
+    "data/results/rq3_neural/pilot/summary.json": "26422fdda26f53597018ef352c457272f9d2d9fa0ca1b47d187b96d1d5b0299b",
+    "data/results/rq3_neural/pilot/timing.csv": "f8c16ea4bca6d3f45b4157bac2248f912b3d75900b349799ed8eb71d171be72f"
+  },
+  "numpy": "2.2.6",
+  "predictions": {
+    "P1: Pooling gain is largest for the smallest clans (EC2, SI) and about zero for the largest (EC1, REG)": "not supported",
+    "P2: Lower alpha helps small clans and costs large ones": "partly supported",
+    "P3: Tag value is clearly positive for every clan": "supported",
+    "P4: The leave-one-out model beats the mean single source": "supported",
+    "P5: Fine-tuning helps most at small f, and the gap closes as f grows": "supported"
+  },
+  "primary_alpha": {
+    "arm2": 0.7,
+    "arm3": 0.3
+  },
+  "python": "3.10.21",
+  "spearman_p": 2.527818865765541e-27,
+  "spearman_rho": 0.9025660814200273,
+  "stage": "report",
+  "started": "2026-10-04T01:09:54+00:00",
+  "torch": "2.14.0+cu130",
+  "wall_seconds": 9.7
+}
