@@ -5,6 +5,7 @@ paired on the same codas and aggregated through Vlad's [R3-3] functions (``contr
 positive means the first model is better. The verdict rules for the [R3-8] predictions are fixed
 here, in code, before any arm was run (see PREDICTION_RULES).
 """
+import os
 from collections import defaultdict
 from pathlib import Path
 
@@ -62,6 +63,14 @@ PREDICTION_RULES = {
            'largest share is below the gain at the smallest. Supported: all nine clans; partly: some; '
            'not supported: none.'),
 }
+
+FIGURES = [
+    ('pooling_gain_vs_size.png', 'Pooling gain against clan size, one line per alpha'),
+    ('tag_value.png', 'Tag value per clan, one marker per alpha'),
+    ('zero_shot.png', 'Zero-shot loss beside the single-source losses per target'),
+    ('data_efficiency.png', 'Data-efficiency curves, one panel per clan'),
+    ('matrix_vs_ngram.png', 'Neural against n-gram transfer matrix'),
+]
 
 INTERPRETATIONS = [
     'Score rows use PLAN `[R3-3]`\'s columns. `ll_bits` is the coda\'s log2 probability, the same quantity and '
@@ -600,6 +609,14 @@ def render(r, ctx, pilot, gate0, timing, determinism, arm1_runs, gates, summarie
               '`rq3_neural/report.py` before any arm ran.', '',
               table(['Prediction', 'Rule', 'Result', 'Verdict'],
                     [[p['prediction'], p['rule'], p['result'], f"**{p['verdict']}**"] for p in predictions]), '']
+
+    # Figures
+    figures = os.path.relpath(ctx.root / config['figure_directory'], (ctx.root / config['report_output']).parent)
+    lines += ['## Figures', '',
+              f"Written by `python -m whale_coda_dynamics.rq3_neural.plots` from `{config['output_directory']}/report/`.",
+              '']
+    for name, caption in FIGURES:
+        lines += [f'![{caption}]({Path(figures, name).as_posix()})', '']
 
     # Interpretations
     lines += ['## Interpretations', '',
