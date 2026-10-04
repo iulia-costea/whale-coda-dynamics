@@ -428,7 +428,50 @@ class HistoryLengthSmokeTests(unittest.TestCase):
             self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
 
 
-RQ3_INPUTS = ('data/processed/rq3/rq3_codas.csv', 'data/processed/rq3/rq3_folds.csv',
+@unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
+class SwitchStructureSmokeTests(unittest.TestCase):
+    def test_switch_structure_runner(self):
+        """DEC-28: describe, fit (variants R, P, PD, all conditions), report; then the report alone regenerates byte for byte."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(V4 + 'predictions.jsonl', V4 + 'l2_selection.jsonl', V4 + 'evaluation/summary.json')
+            box.evaluation('eval.json', PRIMARY, [42])
+            box.config('logistic_tiny.json', **LOGISTIC_V2)
+            config = box.config(
+                'switch.json', manifest=PRIMARY, logistic_config='config/logistic_tiny.json', evaluation_config='config/eval.json',
+                output_directory='out/switch', report='out/switch.md',
+                variants=dict(R=[], P=['run_length', 'repertoire'], PD=['run_length', 'repertoire', 'distinct_1', 'distinct_2']),
+                reference_variant='R', conditions=['A', 'A_B_S'], primary=dict(condition='A_B_S', full='PD', reduced='P'),
+                secondary=dict(condition='A_B_S', full='PD', reduced='R'), descriptive_contrasts=[['P', 'R']],
+                repertoire_contrast=dict(condition='A_B_S', full='P', reduced='R'),
+                gate=dict(enforce=False, results_directory=V4.rstrip('/'), maximum_penalty_differences=1,
+                          log_likelihood_tolerance_bits=1e-5, probability_listing_threshold=1e-5),
+                descriptive=dict(enforce=True, bootstrap_replicates=50, bootstrap_seed=42, confidence=0.95,
+                                 interval_tolerance=0.015, source='smoke test',
+                                 expected={'targets': {'count': 1547}, 'switches_with_d2': {'count': 58}}))
+            box.run('switch_structure', config, '--workers', '3', env=ONE_BLAS_THREAD)
+            summary = json.loads((box.root / 'out/switch/summary.json').read_text(encoding='utf-8'))
+            self.assertTrue(summary['descriptive']['passed'])
+            self.assertEqual(set(summary['metrics']), {'R', 'P', 'PD'})
+            self.assertEqual({c: list(v) for c, v in summary['contrasts'].items()},
+                             {'A_B_S': ['PD-P', 'PD-R', 'P-R'], 'A': ['PD-P', 'PD-R', 'P-R']})
+            self.assertEqual(summary['contrasts']['A_B_S']['PD-P']['role'], 'primary')
+            self.assertEqual(summary['contrasts']['A_B_S']['PD-R']['role'], 'secondary')
+            self.assertEqual(summary['contrasts']['A']['PD-P']['role'], 'descriptive')
+            self.assertIn('sign_flip_p_two_sided', summary['contrasts']['A_B_S']['PD-P']['components']['log_likelihood_bits'])
+            self.assertEqual({v: len(r['checks']) for v, r in summary['stop_rules_dec23'].items()}, {'R': 16, 'P': 16, 'PD': 16})
+            self.assertEqual(set(summary['coefficients']['PD']['A']), {'copy_beta', 'run_length', 'repertoire', 'distinct_1', 'distinct_2'})
+            self.assertEqual(len(summary['coefficients']['PD']['A_B_S']['distinct_1']['per_fold']), 14)
+            self.assertEqual(summary['constant_conditions'], ['none', 'S', 'B', 'B_S'])
+            self.assertEqual(summary['gate']['fits_compared'], 98)
+            self.assertTrue((box.root / 'out/switch.md').read_text(encoding='utf-8').startswith('# RQ1 switch structure'))
+            regenerated = ('out/switch.md', 'out/switch/summary.json')
+            before = {rel: (box.root / rel).read_bytes() for rel in regenerated}
+            box.run('switch_structure', config, '--stage', 'report')
+            self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
+
+
+RQ3_INPUTS = ('data/processed/rq3/rq3_codas.csv','data/processed/rq3/rq3_folds.csv',
               'data/results/rq3/calibration/self_scores.csv', 'data/results/rq3/calibration/self_calibration.csv',
               'data/results/rq3/transfer_matrix/scores.csv', 'data/results/rq3/transfer_matrix/summary.csv')
 

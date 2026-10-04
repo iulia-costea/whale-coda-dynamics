@@ -141,18 +141,34 @@ def _copy_logits(logits, beta, own_last_idx, gamma, partner_last_idx):
     return logits
 
 
-def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None, l2_vector=None):
+def _class_feature_logits(logits, class_weights, class_features):
+    """Add each class-feature matrix (rows x classes) times its one shared scalar (DEC-28)."""
+    for weight, features in zip(class_weights, class_features):
+        logits = logits + weight * features
+    return logits
+
+
+def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=None, l2_vector=None,
+              class_features=None):
     """l2 penalizes beta/gamma (and every main weight, when l2_vector is not
     given: the plain single-penalty path used by v1 through v3). l2_vector,
     when given, is a per-feature penalty (DEC-20: separate history/S
-    penalties) applied to the main weights instead of the scalar l2."""
+    penalties) applied to the main weights instead of the scalar l2.
+    class_features (DEC-28), when given, is a list of rows x classes matrices,
+    each with one shared scalar placed after beta and gamma and penalized by l2
+    like them. With none (None or an empty list) every operation is v4's."""
     n_features = x.shape[1]
     w, beta, gamma = _unpack(weights, n_features, classes, own_last_idx, partner_last_idx)
     logits = _copy_logits(x @ w, beta, own_last_idx, gamma, partner_last_idx)
+    if class_features:
+        class_weights = weights[len(weights)-len(class_features):]
+        logits = _class_feature_logits(logits, class_weights, class_features)
     logs = logits - logsumexp(logits, axis=1, keepdims=True)
     l2w = np.broadcast_to(l2 if l2_vector is None else l2_vector, (n_features,))
     loss = (-logs[np.arange(len(y)), y].mean() + (l2w[:, None] * np.square(w)).sum() / 2
            + l2 * ((beta or 0.0)**2 + (gamma or 0.0)**2) / 2)
+    if class_features:
+        loss += l2 * float(class_weights @ class_weights) / 2
     residual = np.exp(logs)
     residual[np.arange(len(y)), y] -= 1
     grad = [(x.T @ residual / len(y) + l2w[:, None] * w).ravel()]
@@ -162,6 +178,8 @@ def objective(weights, x, y, classes, l2, own_last_idx=None, partner_last_idx=No
     if gamma is not None:
         mask = partner_last_idx >= 0
         grad.append(np.array([residual[mask, partner_last_idx[mask]].sum() / len(y) + l2 * gamma]))
+    if class_features:
+        grad.append(np.array([(residual * f).sum() / len(y) for f in class_features]) + l2 * class_weights)
     return loss, np.concatenate(grad)
 
 
@@ -170,26 +188,38 @@ class NonConvergenceError(ValueError):
     non-converged candidates (`skip_nonconverged_candidates`, DEC-22) stop exactly as before."""
 
 
-def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None, l2_vector=None):
+def fit(x, y, classes, config, own_last_idx=None, partner_last_idx=None, l2_vector=None, class_features=None):
+    """Returns w, beta, gamma and the convergence record; with class_features given (a list of rows x classes
+    matrices, DEC-28), also their fitted scalars, as a fifth value."""
     # Penalize intercepts too, making absent target classes (including UNK)
     # well-defined and finite without synthetic targets or post-hoc clipping.
     if not np.isfinite(config['l2']) or config['l2'] <= 0:
         raise ValueError('Require positive finite L2')
     n_features = x.shape[1]
     n_extra = (own_last_idx is not None) + (partner_last_idx is not None)
+    if class_features is not None:
+        if any(np.shape(f) != (len(y), classes) for f in class_features):
+            raise ValueError('Class-feature matrices must have one row per target and one column per class')
+        n_extra += len(class_features)
     result = minimize(objective, np.zeros(n_features*classes + n_extra),
-                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx, l2_vector),
+                      args=(x, y, classes, config['l2'], own_last_idx, partner_last_idx, l2_vector, class_features),
                       jac=True, method='L-BFGS-B', options={'maxiter': config['max_iterations'],
                       'gtol': config['gradient_tolerance'], 'ftol': 1e-14})
     gradient = float(np.max(np.abs(result.jac)))
     if not result.success or gradient > 10*config['gradient_tolerance']:
         raise NonConvergenceError(f'Optimizer did not converge: {result.message}; gradient={gradient}')
     w, beta, gamma = _unpack(result.x, n_features, classes, own_last_idx, partner_last_idx)
-    return w, beta, gamma, {'iterations': int(result.nit), 'max_gradient': gradient}
+    convergence = {'iterations': int(result.nit), 'max_gradient': gradient}
+    if class_features is None:
+        return w, beta, gamma, convergence
+    return w, beta, gamma, convergence, result.x[len(result.x)-len(class_features):]
 
 
-def probabilities(x, w, beta=None, gamma=None, own_last_idx=None, partner_last_idx=None):
+def probabilities(x, w, beta=None, gamma=None, own_last_idx=None, partner_last_idx=None, class_weights=None,
+                  class_features=None):
     logits = _copy_logits(x @ w, beta, own_last_idx, gamma, partner_last_idx)
+    if class_features:
+        logits = _class_feature_logits(logits, class_weights, class_features)
     return np.exp(logits - logsumexp(logits, axis=1, keepdims=True))
 
 
@@ -201,14 +231,16 @@ def is_timing_feature(name):
         'gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s')
 
 
-def select_l2_and_fit(train, validation, vocab, fields, config):
+def select_l2_and_fit(train, validation, vocab, fields, config, class_features=None):
     """Grid-search L2 on the validation day only; `test` is never an argument
     here, so it is structurally impossible for test data to influence selection.
     DEC-20: when the condition includes S, history and S get separate penalties,
     chosen jointly from the same grid (a 2D search); conditions without S keep
     the original single-penalty 1D search, unchanged. With `skip_nonconverged_candidates` set (off by
     default; on only in the RQ2 inventory runs, DEC-22), a candidate whose fit fails the convergence check
-    is recorded and left out of the selection; if every candidate fails, NonConvergenceError is raised."""
+    is recorded and left out of the selection; if every candidate fails, NonConvergenceError is raised.
+    `class_features` (DEC-28), when given, maps a list of rows to its list of rows x classes matrices; each
+    gets one shared scalar under the history penalty, stored in every candidate as `class_weights`."""
     encoder = Encoder(train, vocab, fields, config['history_order'], config.get('history_orders'))
     x_train, x_val = encoder.transform(train), encoder.transform(validation)
     y_train = np.array([vocab.index(r['Ct']) for r in train])
@@ -218,17 +250,22 @@ def select_l2_and_fit(train, validation, vocab, fields, config):
     own_val = last_label_index(validation, 'A_history', vocab) if 'A_history' in fields else None
     partner_val = last_label_index(validation, 'B_history', vocab) if 'B_history' in fields else None
     timing_mask = np.array([is_timing_feature(name) for name in encoder.names] + [False])  # intercept -> history
+    class_train = class_val = None
+    if class_features is not None:
+        class_train, class_val = class_features(train), class_features(validation)
     chosen, grid = grid_search_l2(x_train, y_train, x_val, y_val, len(vocab), timing_mask, config,
-                                  own_train, partner_train, own_val, partner_val)
+                                  own_train, partner_train, own_val, partner_val, class_train, class_val)
     return encoder, chosen, grid
 
 
 def grid_search_l2(x_train, y_train, x_val, y_val, classes, timing_mask, config,
-                   own_train=None, partner_train=None, own_val=None, partner_val=None):
+                   own_train=None, partner_train=None, own_val=None, partner_val=None,
+                   class_train=None, class_val=None):
     """select_l2_and_fit's validation-day penalty search on encoded matrices, shared with other model
     families that keep v4's rule (DEC-24). `timing_mask` marks the S columns (the intercept is history):
     with any S column, history and S penalties are searched jointly over the grid (DEC-20), otherwise one
-    penalty. Ties go to the larger value on each axis. Returns the chosen candidate and the whole grid."""
+    penalty. Ties go to the larger value on each axis. Returns the chosen candidate and the whole grid.
+    With class-feature matrices (DEC-28) for both days, each candidate also records `class_weights`."""
     skip_nonconverged = config.get('skip_nonconverged_candidates', False)
     has_timing = bool(timing_mask.any())
     s_axis = config['l2_grid'] if has_timing else [None]
@@ -237,17 +274,20 @@ def grid_search_l2(x_train, y_train, x_val, y_val, classes, timing_mask, config,
         for l2_s in s_axis:
             l2_vector = np.where(timing_mask, l2_s, l2_history) if has_timing else None
             try:
-                w, beta, gamma, convergence = fit(x_train, y_train, classes, dict(config, l2=l2_history),
-                                                  own_train, partner_train, l2_vector=l2_vector)
+                fitted = fit(x_train, y_train, classes, dict(config, l2=l2_history), own_train, partner_train,
+                             l2_vector=l2_vector, class_features=class_train)
             except NonConvergenceError as error:
                 if not skip_nonconverged:
                     raise
                 grid.append(dict(l2=l2_history, l2_s=l2_s, nonconverged=str(error)))
                 continue
-            p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val)
+            w, beta, gamma, convergence = fitted[:4]
+            class_weights = fitted[4] if class_train is not None else None
+            p_val = probabilities(x_val, w, beta, gamma, own_val, partner_val, class_weights, class_val)
             val_ll = float(np.mean(np.log2(p_val[np.arange(len(y_val)), y_val])))
             grid.append(dict(l2=l2_history, l2_s=l2_s, validation_log_likelihood_bits=val_ll,
-                            w=w, beta=beta, gamma=gamma, convergence=convergence))
+                            w=w, beta=beta, gamma=gamma, convergence=convergence,
+                            **({} if class_train is None else {'class_weights': class_weights})))
     converged = [g for g in grid if 'nonconverged' not in g]
     if not converged:
         raise NonConvergenceError(f'All {len(grid)} L2 candidates failed the convergence check')
@@ -459,13 +499,19 @@ def run(config_path):
     return summary
 
 
-def fit_v2_lattice(config, manifest, rows, evaluation_config):
+def fit_v2_lattice(config, manifest, rows, evaluation_config, class_features=None):
     """Fold loop, fitting and evaluation of logistic v2-v4 over the manifest's conditions;
     writes nothing. Adds shared copy features (beta for A, gamma for B) and per-fold,
     per-condition L2 selected on the validation day; everything else (preprocessing,
     folds, UNK policy) is unchanged. See select_l2_and_fit for the test-isolation
     guarantee. Used by _fit_and_evaluate_v2 and by the own-history length sweep
-    (history_length.py, DEC-25), which adds only config['history_orders']."""
+    (history_length.py, DEC-25), which adds only config['history_orders'].
+
+    `class_features` (switch_structure.py, DEC-28), when given, is called per fold and condition as
+    class_features(mapped, policy, fields), with the fold's mapped rows (every split and target), and returns
+    None (that condition is fitted exactly as without it) or (names, featurize): featurize maps rows to one
+    rows x classes matrix per name, each given one shared scalar (select_l2_and_fit). The names and fitted
+    scalars are stored with the model and the selection record."""
     if evaluation_config['seeds'] != [config['seed']]:
         raise ValueError('Evaluation seed configuration mismatch')
     predictions, baselines, models, diagnostics, selections = [], [], [], [], []
@@ -493,15 +539,22 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config):
             if condition == 'none':
                 p = np.array([[prior[t] for t in vocab]]*len(test))
             else:
+                extra = class_features(mapped, policy, fields) if class_features is not None else None
+                names, featurize = extra if extra is not None else (None, None)
                 try:
-                    encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config)
+                    encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config, featurize)
                 except NonConvergenceError as error:
                     if not config.get('skip_nonconverged_candidates', False):
                         raise
                     raise NonConvergenceError(f"{fold['fold_id']}, condition {condition}: {error}") from error
                 own_test = last_label_index(test, 'A_history', vocab) if 'A_history' in fields else None
                 partner_test = last_label_index(test, 'B_history', vocab) if 'B_history' in fields else None
-                p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test)
+                class_test = {} if featurize is None else dict(class_weights=chosen['class_weights'],
+                                                               class_features=featurize(test))
+                p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test,
+                                  **class_test)
+                stored_class = {} if featurize is None else dict(class_features=list(names),
+                                                                 class_weights=chosen['class_weights'].tolist())
                 diagnostics.append(dict(fold_id=fold['fold_id'],condition=condition,**chosen['convergence']))
                 models.append(dict(fold_id=fold['fold_id'],condition=condition,vocabulary=vocab,
                                    fields=fields,order=encoder.order,
@@ -510,9 +563,9 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config):
                                    feature_names=encoder.names+['intercept'],mean=encoder.mean.tolist(),
                                    scale=encoder.scale.tolist(),weights=chosen['w'].tolist(),
                                    beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2'],
-                                   chosen_l2_s=chosen['l2_s']))
+                                   chosen_l2_s=chosen['l2_s'],**stored_class))
                 selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
-                                       chosen_l2_s=chosen['l2_s'],
+                                       chosen_l2_s=chosen['l2_s'],**stored_class,
                                        grid=[dict(l2=g['l2'],l2_s=g['l2_s'],nonconverged=g['nonconverged']) if 'nonconverged' in g else
                                              dict(l2=g['l2'],l2_s=g['l2_s'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
                                                   convergence=g['convergence']) for g in grid]))

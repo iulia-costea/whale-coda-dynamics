@@ -176,6 +176,75 @@ class LogisticTests(unittest.TestCase):
             repeat_distribution('a',1,{'a':.5,'b':.5})
 
 
+class ClassFeatureTests(unittest.TestCase):
+    """DEC-28: shared class-feature weights. Without any, every path is v4's, bit for bit."""
+    x=np.array([[1.,1.],[-1.,1.],[.5,1.],[.2,-.3],[.7,.1]])
+    y=np.array([0,1,0,2,1])
+    own_idx=np.array([0,-1,2,1,1]);partner_idx=np.array([1,2,-1,0,2])
+    features=[np.array([[np.log(3),0,0],[0,0,0],[0,0,np.log(2)],[0,0,0],[0,np.log(5),0]]),
+              np.array([[0,1.,0],[1.,0,0],[0,0,0],[0,0,1.],[1.,0,0]]),
+              np.log1p(np.array([[2.,0,1],[0,1,0],[3,0,0],[1,1,1],[0,0,4]]))]
+
+    def test_empty_list_is_exactly_no_class_features(self):
+        w=np.arange(12,dtype=float)/10-.4
+        l2_vector=np.array([.3,.05])
+        for args in ((),(self.own_idx,self.partner_idx),(self.own_idx,self.partner_idx,l2_vector)):
+            loss,grad=objective(w,self.x,self.y,3,.01,*args)
+            loss_empty,grad_empty=objective(w,self.x,self.y,3,.01,*args,class_features=[])
+            self.assertEqual(loss,loss_empty)
+            np.testing.assert_array_equal(grad,grad_empty)
+        config=dict(l2=.01,max_iterations=2000,gradient_tolerance=1e-6)
+        w1,b1,g1,c1=fit(self.x,self.y,3,config,self.own_idx,self.partner_idx)
+        w2,b2,g2,c2,weights=fit(self.x,self.y,3,config,self.own_idx,self.partner_idx,class_features=[])
+        np.testing.assert_array_equal(w1,w2);self.assertEqual((b1,g1,c1),(b2,g2,c2));self.assertEqual(len(weights),0)
+        np.testing.assert_array_equal(probabilities(self.x,w1,b1,g1,self.own_idx,self.partner_idx),
+                                      probabilities(self.x,w2,b2,g2,self.own_idx,self.partner_idx,weights,[]))
+
+    def test_class_feature_gradient(self):
+        """Finite differences for every parameter, the new scalars included, with copy weights and split penalties."""
+        rng=np.random.RandomState(3)
+        l2_vector=np.array([.3,.05])
+        for k in (1,2,3):
+            features=self.features[:k]
+            w=rng.normal(size=6+2+k)
+            f=lambda a:objective(a,self.x,self.y,3,.02,self.own_idx,self.partner_idx,l2_vector,features)  # noqa: E731
+            self.assertLess(check_grad(lambda a:f(a)[0],lambda a:f(a)[1],w),1e-6)
+            numeric=[(f(w+e)[0]-f(w-e)[0])/2e-6 for e in np.eye(len(w))[-k:]*1e-6]
+            np.testing.assert_allclose(f(w)[1][-k:],numeric,rtol=1e-5,atol=1e-7)
+        w=rng.normal(size=6+3)
+        g=lambda a:objective(a,self.x,self.y,3,.02,class_features=self.features)  # noqa: E731
+        self.assertLess(check_grad(lambda a:g(a)[0],lambda a:g(a)[1],w),1e-6)
+
+    def test_class_features_enter_fit_and_probabilities(self):
+        config=dict(l2=.01,max_iterations=2000,gradient_tolerance=1e-6)
+        w,beta,gamma,_,weights=fit(self.x,self.y,3,config,self.own_idx,self.partner_idx,class_features=self.features)
+        self.assertEqual(len(weights),3)
+        p=probabilities(self.x,w,beta,gamma,self.own_idx,self.partner_idx,weights,self.features)
+        self.assertTrue(np.all(p>0));np.testing.assert_allclose(p.sum(axis=1),1)
+        logits=self.x@w
+        logits[[0,2,3,4],self.own_idx[[0,2,3,4]]]+=beta
+        logits[[0,1,3,4],self.partner_idx[[0,1,3,4]]]+=gamma
+        logits+=sum(t*f for t,f in zip(weights,self.features))
+        np.testing.assert_allclose(p,np.exp(logits)/np.exp(logits).sum(axis=1,keepdims=True),rtol=1e-12)
+        with self.assertRaises(ValueError):
+            fit(self.x,self.y,3,config,class_features=[np.zeros((4,3))])
+
+    def test_selection_stores_class_weights_only_when_given(self):
+        vocab=['a','b','UNK']
+        rows=[dict(coda_id=f'r{i}',Ct=vocab[(i+1)%2],A_history=[vocab[i%2]],split='train') for i in range(10)]
+        config=dict(history_order=1,l2_grid=[.01,.1],max_iterations=500,gradient_tolerance=1e-6)
+        _,plain,grid=select_l2_and_fit(rows,rows,vocab,['A_history'],config)
+        self.assertNotIn('class_weights',plain);self.assertTrue(all('class_weights' not in g for g in grid))
+        _,empty,grid_empty=select_l2_and_fit(rows,rows,vocab,['A_history'],config,lambda rs:[])
+        np.testing.assert_array_equal(plain['w'],empty['w'])
+        self.assertEqual([g['validation_log_likelihood_bits'] for g in grid],[g['validation_log_likelihood_bits'] for g in grid_empty])
+        self.assertEqual(len(empty['class_weights']),0)
+        ones=lambda rs:[np.array([[float(r['A_history'][-1]==t) for t in vocab] for r in rs])]  # noqa: E731
+        _,chosen,grid=select_l2_and_fit(rows,rows,vocab,['A_history'],config,ones)
+        self.assertEqual(len(chosen['class_weights']),1)
+        self.assertTrue(all(len(g['class_weights'])==1 for g in grid))
+
+
 class NonConvergedCandidateTests(unittest.TestCase):
     """DEC-22: skip_nonconverged_candidates is opt-in; without it a failed fit stops the run as before."""
     def setUp(self):
