@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-31 added the ornament-merge test of DEC-28's switch structure after the results freeze (2026-10-05). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -331,6 +331,31 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Repertoire (P − L) positive, primary null: switch choices follow the whale's active repertoire, consistent with stable individual or unit repertoires (Gero, Whitehead & Rendell 2016b).
   - Nulls read "not detectable at this data size". The primary rests on few discriminating switches, so its null is weak. No calibration is run.
 - **Not done:** a collapsed partner history; v5 or the residual LSTM with these features; a planted-signal calibration; more than two distinct types.
+
+## Ornament merge (2026-10-05)
+
+**DEC-31 — Ornament merge (`[P7]`): DEC-28's switch structure on an inventory in which ornamented codas take their neighbour's type.**
+- **Question:** DEC-28's secondary, $\mathrm{LL(PD)} - \mathrm{LL(R)}$ in $A,B,S$, sits mostly on targets that complete A A B → A (61 targets, about 77% of the net gain). Many of those single Bs are the surrounding A with one extra final click, which Sharma et al. 2024a call an ornament; named types give an ornamented coda its own type, so A A B A can be a labelling effect. Does the gain survive when the codas Sharma et al. flag as ornamented take their neighbour's type?
+- **Decision:**
+  - Inventory O: `guy_coda_type` (inventory A) with one change. A coda is ornamented if Sharma et al.'s released flag (`ornaments.p`, `sw-combinatoriality` commit 7228c8e, one flag per row of `sperm-whale-dialogues.csv`, `[D2]`) is 1 for the `[D2]` row it matches one-to-one on (REC, TsTo, Duration) rounded to 3 decimals, as `inventories.py` matches `[D1]` to `[D2]`. Unmatched codas count as unornamented.
+  - An ornamented coda takes its neighbour's inventory-A label. The neighbour: among the whale's immediately preceding and following codas in the same exchange (ordered by onset), those whose onset is at most 10 s from its own and that have exactly one fewer click (raw `nClicks`), the nearest; a tie goes to the preceding one. Without such a neighbour it keeps its label. The new label replaces the old one wherever the coda appears (target, `A_history`, `B_history`), as for the RQ2 inventories (DEC-22); targets, folds, $S$ and the UNK policy are unchanged.
+  - The released flags are used, not a reimplementation of the rule: the published definition (the final click in a coda with one more click than the nearest preceding or following coda within ten seconds), applied to Sharma et al.'s own file, flags 214 codas and recovers 126 of their 151, so their flags involve steps the paper and code don't document.
+  - Logistic v4 with RQ1's settings on O (folds, fits, evaluation as for an RQ2 inventory); then DEC-28's runner on O with DEC-28's features, variants (R, L, P, D, PD), grid and rules unchanged. R must reproduce O's v4 run under DEC-25's amended gate.
+  - Primary, pre-specified: $\mathrm{LL(PD)} - \mathrm{LL(R)}$ in $A,B,S$ on O, with day-bootstrap CI (10,000 replicates), unweighted day mean, positive days, the repeat and switch parts (`[P1]`) and the exact two-sided sign-flip $p$.
+  - Descriptive: the per-coda change from inventory A, $[\mathrm{LL_O(PD)} - \mathrm{LL_O(R)}] - [\mathrm{LL_A(PD)} - \mathrm{LL_A(R)}]$ in $A,B,S$, paired by coda, with day-bootstrap CI; for each inventory, the gain split into targets right after a switch whose target returns to the type before it, other targets right after a switch, and all other targets; $\mathrm{LL(PD)} - \mathrm{LL(P)}$ on O with its two-sided $p$; the own, partner and timing contrasts of O's v4 lattice beside RQ1's.
+  - Stop rules: DEC-23's rule on every variant's 16 checks, with DEC-16's reported beside it; DEC-28's fitting flag.
+- **Why:**
+  - DEC-28's secondary is the result most likely to depend on the labels: the RQ1 lattice was tested across seven inventories (DEC-22), DEC-28 on named types only.
+  - Descriptively (2026-10-05): 1,706 of 2,075 RQ1 rows match a `[D2]` row; 66 are flagged; 55 have a qualifying neighbour, 51 change label (31 comparison targets). On the comparison targets, repeats of the own last coda go from 1,277 to 1,337, and returns right after a switch from 61 to 34. The run recomputes these.
+  - DEC-22 rejected ornaments as an RQ2 dimension (rare; many already have their own named type). This run uses them only to test one result.
+  - Added after the results freeze (2026-10-05) as a final run.
+- **Reading:**
+  - Primary positive (interval above zero, $p$ < 0.05): the collapsed view still adds usable information with the flagged ornaments merged. Report the share of DEC-28's gain that remains and whether it still sits on returns. One-click excursions without a flag remain in O, so this doesn't rule out other labelling effects.
+  - Primary null: the gain isn't detectable once flagged ornaments are merged; DEC-28's secondary is not evidence of switch-backs beyond ornaments.
+  - Change from A with its interval below zero: the flagged ornaments carry a detectable part of DEC-28's gain.
+  - O's lattice: say whether RQ1's own / partner / timing pattern holds.
+- **Limits:** flags exist only for the 1,706 matched rows; they come from Sharma et al.'s release, whose rule isn't fully documented; one-click excursions without a flag stay separate types; for 31 targets the label differs between A and O, so the change from A is descriptive; post-freeze run.
+- **Not done:** the published rule as a sensitivity; ornament merges for other inventories; v5 or the residual LSTM on O.
 
 ## Differences from the submitted proposal
 

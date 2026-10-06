@@ -18,6 +18,7 @@ What the project does. IDs in brackets (e.g. `[D5]`) are referenced by prompts a
 - **Done:** logistic v5 (DEC-23): every input block can be absent, chosen on the validation day from v4's committed fits, and stop rules by exact sign-flip tests with Holm's correction; for RQ1 (primary and old-delay) and the six RQ2 inventories. DEC-23's rule fires in no run. RQ2's comparison uses v5 for every inventory (`reports/rq2_inventories_v5.md`); RQ1's headline stays v4, with v5 as a robustness line (§12).
 - **Done:** the partner-tempo ablation (DEC-24, `[R2-8]`): `reports/rq2_partner_tempo.md`. All gates pass and all 10,332 penalty candidates converged. No stop rule fires in either run (rhythm, primary; type, secondary), under DEC-23's or DEC-16's rule, for the own fits, v5 or the one-SE variant. Under v5 all four contrasts' CIs span zero in both runs. Primary (bits per coda of the tempo class): partner tempo alone +0.005, CI [−0.017, 0.038]; partner rhythm alone +0.001 [−0.015, 0.024]; tempo beyond rhythm +0.007 [−0.018, 0.050]; rhythm beyond tempo +0.003 [−0.016, 0.035]. Per DEC-24, read as not detectable at this data size.
 - **RQ3:** building blocks `[R3-0]`–`[R3-3]`, the 9 × 9 matrix `[R3-4]`, coverage `[R3-5]`, the identity split and Pacific overlap test `[R3-6]` (DEC-26) and the ZZZ sensitivity are done (`reports/rq3_*.md`; Vlad); so is the pooled experiment `[R3-8]` (DEC-27; `reports/rq3_neural.md`). Not run: the type diagnostics `[R3-7]`.
+- **[P7] ornament merge (DEC-31): not run.**
 
 See §12 for the order of work.
 
@@ -225,6 +226,8 @@ $$\log p(C_t) = \underbrace{r\log p(a) + (1-r)\log(1-p(a))}_{\text{did it predic
 
 **`[P5]` Switch structure (DEC-28).** Logistic v4 plus shared weights for run length, the two most recent distinct own coda types and the active repertoire (counts of the whale's earlier types in the exchange); five nested variants (R, L, P, D, PD); primary LL(PD) − LL(P) in A,B,S, secondary LL(PD) − LL(R); a descriptive table of repetition, copying and switch-backs.
 
+**`[P7]` Ornament merge (DEC-31).** DEC-28's switch-structure run on inventory O: `guy_coda_type` with each coda that Sharma et al.'s released flags mark as ornamented relabelled to its neighbour's type (the whale's nearest adjacent coda in the exchange within 10 s with one fewer click). Logistic v4 on O, then variants R, L, P, D, PD; primary LL(PD) − LL(R) in A,B,S on O; descriptive: the change from inventory A. Conditions, readings and limits: DEC-31.
+
 ---
 
 ## 7. RQ2 — robustness to the token inventory (DEC-22)
@@ -416,7 +419,7 @@ RQ3 is descriptive: a transfer matrix over all nine clans, a coverage breakdown 
    - LSTM v1 (fixed WhaleLM settings, no copy path) — done, superseded (DEC-17).
    - LSTM v2 (DEC-17) — done, superseded (DEC-21).
    - Residual LSTM on top of logistic v4 (DEC-21): checks and pilot timing, then all eight conditions with 5 seeds; `[U1]`, `[U2]`; the Assayag context check — **done** (`reports/rq1_lstm_residual.md`); no stop rule fires.
-4. **Phase 4 — robustness:** `[P2]` own-history length sweep (DEC-25) — **done** (`reports/rq1_history_length.md`); `[P5]` switch structure (DEC-28) — **done** (`reports/rq1_switch_structure.md`): primary LL(PD) − LL(P) in A,B,S +0.013 [0.002, 0.027] (sign-flip p = 0.0525; repeat part), secondary LL(PD) − LL(R) +0.052 [0.023, 0.099] (p = 0.008); no stop rule fires; remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
+4. **Phase 4 — robustness:** `[P2]` own-history length sweep (DEC-25) — **done** (`reports/rq1_history_length.md`); `[P5]` switch structure (DEC-28) — **done** (`reports/rq1_switch_structure.md`): primary LL(PD) − LL(P) in A,B,S +0.013 [0.002, 0.027] (sign-flip p = 0.0525; repeat part), secondary LL(PD) − LL(R) +0.052 [0.023, 0.099] (p = 0.008); no stop rule fires; `[P7]` ornament merge (DEC-31) — not run; remaining checks `[U3]`–`[U6]` and `[V1]`–`[V2]`; the Transformer.
 5. **RQ2 (DEC-22):** compute the inventories and check `[R2-1]`/`[R2-2]`; folds and logistic v4 for D, E, C, B, then D′, E′; the comparison `[R2-3]`–`[R2-6]` — **done** (`reports/rq2_inventories_v4.md`, kept as the record); DEC-16's stop rules fire for B, C, D, E and D′ (`[R2-7]`). Then v5 and DEC-23's stop rules on every inventory, and the comparison on v5 with `[R2-4]` for A → E, C → D and A → E′ — **done** (`reports/rq2_inventories_v5.md`); DEC-23's rule fires for no inventory, on v5 or v4 (DEC-16's old rule still fires on v5 for B, C, D, E, D′ and E′, always on a contrast that adds $S$). The partner-tempo ablation `[R2-8]` (DEC-24), primary (rhythm) and secondary (type) — **done** (`reports/rq2_partner_tempo.md`); no stop rule fires in either run, under DEC-23's or DEC-16's rule, for the own fits, v5 or one-SE; under v5 all four contrasts' CIs span zero in both runs.
 6. **RQ3:** building blocks `[R3-0]`–`[R3-3]` (Vlad's preprocessing PR), then `[R3-4]`–`[R3-5]`, then `[R3-6]`–`[R3-7]` — **done** for `[R3-0]`–`[R3-6]` (`[R3-7]` not run); then `[R3-8]` (DEC-27), **done**.
 
