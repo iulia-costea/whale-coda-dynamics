@@ -512,5 +512,103 @@ class Rq3NeuralSmokeTests(unittest.TestCase):
             self.assertEqual((box.root / 'reports/rq3_neural.md').read_bytes(), before)
 
 
+def _write_jsonl(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('\n'.join(json.dumps(r) for r in rows) + '\n', encoding='utf-8')
+
+
+@unittest.skipUnless(HAS_SCIPY, 'needs numpy and scipy (pip install ".[modeling]")')
+class OrnamentMergeSmokeTests(unittest.TestCase):
+    def test_compare_runner(self):
+        """DEC-31 [P7]'s compare stage on tiny hand-built scored.jsonl/summary.json fixtures standing in for a
+        real switch-structure run of O and A, condition A_B_S only (the build stage itself is covered by
+        test_committed_artifacts.py's regeneration check against the real committed data)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+
+            def variant_rows(ll):
+                """4 comparison targets (2 per day), A_B_S only; ll maps coda_id -> (log_likelihood_bits,
+                repeat_bits, switch_choice_bits)."""
+                meta = {'c1': ('2014-04-16', 'x', 'x'), 'c2': ('2014-04-16', 'y', 'x'),
+                        'c3': ('2015-04-01', 'x', 'x'), 'c4': ('2015-04-01', 'y', 'y')}
+                return [dict(coda_id=c, condition='A_B_S', recording_date=d, target=t, own_last=o,
+                            log_likelihood_bits=ll[c][0], repeat_bits=ll[c][1], switch_choice_bits=ll[c][2])
+                       for c, (d, t, o) in meta.items()]
+
+            def write_variant(root, name, ll):
+                _write_jsonl(box.root / root / f'{name}/scored.jsonl', variant_rows(ll))
+
+            # O: PD beats R by a positive, varying gain so the primary's CI does not collapse to a point.
+            write_variant('data/results/switch_o', 'R', {c: (-1.0, -0.8, -0.2) for c in ('c1', 'c2', 'c3', 'c4')})
+            write_variant('data/results/switch_o', 'P', {c: (-0.9, -0.7, -0.2) for c in ('c1', 'c2', 'c3', 'c4')})
+            write_variant('data/results/switch_o', 'PD',
+                         {'c1': (-0.5, -0.4, -0.1), 'c2': (-0.6, -0.4, -0.2),
+                          'c3': (-0.7, -0.5, -0.2), 'c4': (-0.9, -0.6, -0.3)})
+            # A: a smaller PD - R gain, so change_from_a is nonzero.
+            write_variant('data/results/switch_a', 'R', {c: (-1.0, -0.8, -0.2) for c in ('c1', 'c2', 'c3', 'c4')})
+            write_variant('data/results/switch_a', 'P', {c: (-0.95, -0.75, -0.2) for c in ('c1', 'c2', 'c3', 'c4')})
+            write_variant('data/results/switch_a', 'PD', {c: (-0.9, -0.7, -0.2) for c in ('c1', 'c2', 'c3', 'c4')})
+
+            def summary(variants):
+                return dict(stop_rules={v: [] for v in variants},
+                           stop_rules_dec23={v: dict(fired=False, checks=[]) for v in variants},
+                           gate=dict(passed=True))
+
+            (box.root / 'data/results/switch_o/summary.json').write_text(
+                json.dumps(summary(['R', 'P', 'PD'])), encoding='utf-8')
+            (box.root / 'data/results/switch_a/summary.json').write_text(
+                json.dumps(summary(['R', 'P', 'PD'])), encoding='utf-8')
+
+            def v4_contrasts_summary(own, partner, timing):
+                stat = lambda v: dict(mean_bits_per_coda=v, unweighted_mean_bits_per_coda=v,  # noqa: E731
+                                      ci_bits_per_coda=[v - 0.01, v + 0.01], positive_days=2, days=2)
+                return dict(contrasts={'own_history': dict(components=dict(log_likelihood_bits=stat(own))),
+                                      'partner_content': dict(components=dict(log_likelihood_bits=stat(partner))),
+                                      'timing': dict(components=dict(log_likelihood_bits=stat(timing)))})
+
+            (box.root / 'data/results/v4_o/evaluation/summary.json').parent.mkdir(parents=True)
+            (box.root / 'data/results/v4_o/evaluation/summary.json').write_text(
+                json.dumps(v4_contrasts_summary(0.05, 0.03, 0.01)), encoding='utf-8')
+            (box.root / 'data/results/v4_a/evaluation/summary.json').parent.mkdir(parents=True)
+            (box.root / 'data/results/v4_a/evaluation/summary.json').write_text(
+                json.dumps(v4_contrasts_summary(0.06, 0.02, 0.00)), encoding='utf-8')
+
+            def write_targets(path, histories):
+                rows = [dict(coda_id=c, comparison_eligible=True, Ct_raw=t, A_history=h)
+                       for c, (t, h) in histories.items()]
+                _write_jsonl(box.root / path, rows)
+
+            # own lag1 != lag2 for c2 and c4 (so the gain-split's switch population is nonempty); c4 returns to lag2.
+            write_targets('data/processed/o_targets.jsonl',
+                          {'c1': ('x', ['x', 'x']), 'c2': ('y', ['x', 'z']),
+                           'c3': ('x', ['x', 'x']), 'c4': ('y', ['z', 'y'])})
+            write_targets('data/processed/a_targets.jsonl',
+                          {'c1': ('x', ['x', 'x']), 'c2': ('y', ['x', 'z']),
+                           'c3': ('x', ['x', 'x']), 'c4': ('y', ['z', 'y'])})
+
+            config = box.config(
+                'ornament_merge_compare.json', condition='A_B_S', bootstrap_replicates=50, bootstrap_seed=42,
+                confidence=0.95, o_switch_structure_summary='data/results/switch_o/summary.json',
+                a_switch_structure_summary='data/results/switch_a/summary.json',
+                o_scored_R='data/results/switch_o/R/scored.jsonl', o_scored_P='data/results/switch_o/P/scored.jsonl',
+                o_scored_PD='data/results/switch_o/PD/scored.jsonl',
+                a_scored_R='data/results/switch_a/R/scored.jsonl', a_scored_P='data/results/switch_a/P/scored.jsonl',
+                a_scored_PD='data/results/switch_a/PD/scored.jsonl',
+                o_v4_evaluation_summary='data/results/v4_o/evaluation/summary.json',
+                a_v4_evaluation_summary='data/results/v4_a/evaluation/summary.json',
+                o_targets='data/processed/o_targets.jsonl', a_targets='data/processed/a_targets.jsonl',
+                output_directory='out/ornament_merge', report='out/ornament_merge.md')
+            box.run('ornament_merge', config, '--stage', 'compare')
+            summary_out = json.loads((box.root / 'out/ornament_merge/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(summary_out['primary']['log_likelihood_bits']['days'], 2)
+            self.assertIn('sign_flip_p_two_sided', summary_out['change_from_a'])
+            self.assertEqual(set(summary_out['gain_split']), {'O', 'A'})
+            self.assertEqual(sum(s['count'] for s in summary_out['gain_split']['O'].values()), 4)
+            self.assertEqual(summary_out['v4_contrasts']['O']['own_history']['mean_bits_per_coda'], 0.05)
+            text = (box.root / 'out/ornament_merge.md').read_text(encoding='utf-8')
+            self.assertTrue(text.startswith('# RQ1 ornament merge: inventory O vs A (PLAN [P7], DEC-31)\n'))
+            self.assertIn('## Reading', text)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,9 @@
+{
+  "input": "data/processed/rq2_o_ornament_merged_targets.jsonl",
+  "preparation_config": "config/rq1.json",
+  "expected_days": 14,
+  "validation_seed": 42,
+  "output": "data/processed/rq2_o_ornament_merged_folds/manifest.json",
+  "report": "reports/rq2_o_ornament_merged_folds.md",
+  "title": "RQ2 inventory O, ornament merge (DEC-31): leave-one-day-out folds"
+}
