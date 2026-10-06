@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -304,6 +304,33 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - pretrained mBART weights, which were trained on human text.
 
   Size-matched reruns stay in LATER.
+
+## Switch structure (2026-10-04)
+
+**DEC-28 — Switch structure (`[P5]`): a collapsed view of own history and the active repertoire, on logistic v4.**
+- **Decision:**
+  - Logistic v4 unchanged (labels `guy_coda_type`, targets, folds, UNK policy, $S$, penalties, grid, selection rule, copy weights), plus shared class-feature weights computed from the whale's own earlier codas in the exchange. Each is one scalar, penalized with the history penalty like the copy weights, and added to the logits of the classes it marks:
+    - run length: $\beta_r \log r$ on the class of the own last coda, where $r$ is the number of identical own codas ending the history;
+    - distinct order: $\delta_1$ on $d_1$, the most recent own coda type different from the current one; $\delta_2$ on $d_2$, the most recent own type different from both the current one and $d_1$;
+    - repertoire: $\rho \log(1 + n_c)$ on every class $c$, where $n_c$ counts the whale's earlier codas of type $c$ in the exchange, excluding the current run.
+  - The features use the whale's whole earlier stream within the exchange (its codas with an earlier onset), not only the 10 codas stored in `A_history` (`history_limit`), with labels mapped by the fold's vocabulary exactly as `A_history` is. They exist only in conditions with $A$; a row without the needed history gets zeros.
+  - Five nested variants, all fitted in one environment: R (v4), L (R + run length), P (L + repertoire), D (L + distinct order), PD (L + repertoire + distinct order). R is the reference for every contrast and must reproduce the committed v4 run under DEC-25's amended gate (chosen penalties identical, at most one differing; each condition's mean log-likelihood within 1e-5 bits/coda).
+  - Contrasts in $A,B,S$ (RQ1's full model) and $A$, paired per coda, with day-bootstrap CI, unweighted day mean, positive days and the repeat and switch parts (`[P1]`):
+    - Primary, pre-specified: $\mathrm{LL(PD)} - \mathrm{LL(P)}$ in $A,B,S$, with the exact two-sided sign-flip $p$: does the order of the whale's earlier switches add usable information beyond which types it has used and how often?
+    - Secondary: $\mathrm{LL(PD)} - \mathrm{LL(R)}$ in $A,B,S$, with the two-sided sign-flip $p$: does the collapsed view of own history add anything to v4?
+    - Descriptive: L − R, D − L, P − L, PD − D; the fitted $\beta_r$, $\delta_1$, $\delta_2$, $\rho$ per fold.
+  - A descriptive table without models, with day-bootstrap intervals: repeat rates by turn category; what the whale produces when its own and the partner's last codas differ; switches landing on the partner's type and on $d_1$, each against day-level chance; the return rate by the number of other types already used; the run-length effect pooled and within whale and exchange.
+  - Stop rules: DEC-23's rule on every variant's 16 checks, with DEC-16's reported beside it. An added-feature contrast whose interval lies entirely below zero is a fitting flag and is not interpreted.
+- **Why:**
+  - 82.5% of targets repeat the whale's own last coda, so in long runs the most recent different coda lies beyond v4's 3 lags (808 of 1,547 targets are in runs of 3 or more; for 113 it lies beyond the 10 stored codas). The `[P2]` sweep added raw lags, which can't share information across lag positions. Discrete-unit speech language models remove repeated units before modelling (Lakhotia et al. 2021); this is the analogous view of own history.
+  - Descriptively, when a whale switches and has an earlier different coda (168 switches), it returns to $d_1$ 47.6% of the time against 26.8% expected from day-level frequencies. v4 can express this only through per-type lag-2 and lag-3 weights, the weakness the copy weights fixed for repetition (DEC-16). A shared weight is the parsimonious form.
+  - A return is nearly forced when the whale has used only one other type (110 of the 168 switches), so the order test needs the repertoire control. Only 58 switches have two or more other types to choose between.
+  - Added after the results freeze (2026-10-04) as a final run; the numbers above are descriptive and the run recomputes them.
+- **Reading:**
+  - Positive primary: the order of earlier switches carries information beyond the active repertoire (for example A→B→A alternation). Not grammar. Say whether it lives in the switch part.
+  - Repertoire (P − L) positive, primary null: switch choices follow the whale's active repertoire, consistent with stable individual or unit repertoires (Gero, Whitehead & Rendell 2016b).
+  - Nulls read "not detectable at this data size". The primary rests on few discriminating switches, so its null is weak. No calibration is run.
+- **Not done:** a collapsed partner history; v5 or the residual LSTM with these features; a planted-signal calibration; more than two distinct types.
 
 ## Differences from the submitted proposal
 
