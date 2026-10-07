@@ -608,6 +608,12 @@ class OrnamentMergeSmokeTests(unittest.TestCase):
             text = (box.root / 'out/ornament_merge.md').read_text(encoding='utf-8')
             self.assertTrue(text.startswith('# RQ1 ornament merge: inventory O vs A (PLAN [P7], DEC-31)\n'))
             self.assertIn('## Reading', text)
+            # input_sha256 must not self-reference the report once it already exists on disk from this
+            # very run (the bug a clean-checkout rerun caught: `report` and `output_directory` are outputs).
+            self.assertNotIn('out/ornament_merge.md', summary_out['input_sha256'])
+            box.run('ornament_merge', config, '--stage', 'compare')
+            rerun = json.loads((box.root / 'out/ornament_merge/summary.json').read_text(encoding='utf-8'))
+            self.assertEqual(set(rerun['input_sha256']), set(summary_out['input_sha256']))
 
 
 if __name__ == '__main__':

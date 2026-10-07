@@ -38,6 +38,13 @@ from .preprocessing.inventories import (check_relabelled, count, inventory_stati
 from .preprocessing.io_utils import read_csv_rows, read_json, read_jsonl, write_jsonl, write_text
 
 COMPONENTS = ('log_likelihood_bits', 'repeat_bits', 'switch_choice_bits')
+# The compare stage's actual inputs, named explicitly rather than inferred from "every string config value
+# whose file exists": `report` and `output_directory` are outputs, and a output file left over from an
+# earlier run would otherwise make input_sha256 depend on run history instead of being a pure function of
+# the real inputs (it would self-reference `report` once that file exists on disk).
+INPUT_KEYS = ('o_switch_structure_summary', 'a_switch_structure_summary', 'o_v4_evaluation_summary',
+             'a_v4_evaluation_summary', 'o_scored_R', 'o_scored_P', 'o_scored_PD', 'a_scored_R', 'a_scored_P',
+             'a_scored_PD', 'o_targets', 'a_targets')
 
 
 # ---------------------------------------------------------------- matching [D1] to [D2] and the flags
@@ -376,8 +383,7 @@ def run_compare(config_path):
                     "A": a_summary['stop_rules'], "A_dec23": a_summary['stop_rules_dec23']},
         gate=o_summary['gate'], bootstrap=dict(zip(('replicates', 'seed', 'confidence'), boot)),
         condition=condition,
-        input_sha256={config[k]: sha256(root / config[k]) for k in config
-                      if isinstance(config[k], str) and (root / config[k]).is_file()})
+        input_sha256={config[k]: sha256(root / config[k]) for k in INPUT_KEYS})
     result['reading'] = compare_reading_lines(result)
     output = root / config["output_directory"]
     output.mkdir(parents=True, exist_ok=True)
