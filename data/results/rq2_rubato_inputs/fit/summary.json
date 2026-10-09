@@ -1,0 +1,649 @@
+{
+  "units": "bits per coda",
+  "inventories": [
+    "D",
+    "A",
+    "E_prime"
+  ],
+  "variants": {
+    "R": [],
+    "DurA": [
+      "A_log_duration"
+    ],
+    "Dur": [
+      "A_log_duration",
+      "B_log_duration"
+    ]
+  },
+  "reference_variant": "R",
+  "gates": {
+    "D": {
+      "maximum_penalty_differences": 1,
+      "log_likelihood_tolerance_bits": 1e-05,
+      "probability_listing_threshold": 1e-05,
+      "fits_compared": 98,
+      "max_abs_log_likelihood_difference_bits": 0.0,
+      "max_abs_probability_difference": 0.0,
+      "max_abs_probability_difference_same_penalty": 0.0,
+      "fits_above_probability_threshold": [],
+      "penalty_differences": [],
+      "by_condition": {
+        "none": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.6846060200190123,
+          "v4_mean_log_likelihood_bits": -3.6846060200190123,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.8334366075105515,
+          "v4_mean_log_likelihood_bits": -3.8334366075105515,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.699813481012913,
+          "v4_mean_log_likelihood_bits": -1.699813481012913,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "B": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.111251183764155,
+          "v4_mean_log_likelihood_bits": -3.111251183764155,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A_B": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.7245953281394957,
+          "v4_mean_log_likelihood_bits": -1.7245953281394957,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.702365761834362,
+          "v4_mean_log_likelihood_bits": -1.702365761834362,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "B_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.146663480954502,
+          "v4_mean_log_likelihood_bits": -3.146663480954502,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A_B_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.7328155143506567,
+          "v4_mean_log_likelihood_bits": -1.7328155143506567,
+          "log_likelihood_difference_bits": 0.0
+        }
+      },
+      "passed": true
+    },
+    "A": {
+      "maximum_penalty_differences": 1,
+      "log_likelihood_tolerance_bits": 1e-05,
+      "probability_listing_threshold": 1e-05,
+      "fits_compared": 98,
+      "max_abs_log_likelihood_difference_bits": 2.401893068881833e-06,
+      "max_abs_probability_difference": 0.00011328809569266518,
+      "max_abs_probability_difference_same_penalty": 0.00011328809569266518,
+      "fits_above_probability_threshold": [
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "A_B_S",
+          "max_abs_probability_difference": 0.00011328809569266518,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "A",
+          "max_abs_probability_difference": 0.00010531912365249751,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": null,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": null,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2015-03-19",
+          "condition": "A",
+          "max_abs_probability_difference": 9.8600559481965e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": null,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": null,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2015-03-19",
+          "condition": "A_S",
+          "max_abs_probability_difference": 9.123849247133498e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "A_S",
+          "max_abs_probability_difference": 7.10281982185812e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2015-03-19",
+          "condition": "B",
+          "max_abs_probability_difference": 6.553644034057449e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": null,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": null,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "B",
+          "max_abs_probability_difference": 5.5258543963376816e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": null,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": null,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "A_B",
+          "max_abs_probability_difference": 5.5111104408256395e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": null,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": null,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2015-03-19",
+          "condition": "B_S",
+          "max_abs_probability_difference": 5.0517232212665686e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2015-03-19",
+          "condition": "A_B_S",
+          "max_abs_probability_difference": 3.5905117699297495e-05,
+          "chosen_l2": 0.0003,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.0003,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2014-04-24",
+          "condition": "A_S",
+          "max_abs_probability_difference": 2.823949784733215e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": 0.0003,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": 0.0003,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "S",
+          "max_abs_probability_difference": 2.629273887483352e-05,
+          "chosen_l2": 0.0001,
+          "chosen_l2_s": 0.0001,
+          "v4_chosen_l2": 0.0001,
+          "v4_chosen_l2_s": 0.0001,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2014-04-16",
+          "condition": "S",
+          "max_abs_probability_difference": 2.4257996117493796e-05,
+          "chosen_l2": 0.001,
+          "chosen_l2_s": 0.0001,
+          "v4_chosen_l2": 0.001,
+          "v4_chosen_l2_s": 0.0001,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2016-05-13",
+          "condition": "B_S",
+          "max_abs_probability_difference": 2.2875310196901477e-05,
+          "chosen_l2": 0.003,
+          "chosen_l2_s": 0.0001,
+          "v4_chosen_l2": 0.003,
+          "v4_chosen_l2_s": 0.0001,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2014-04-29",
+          "condition": "A_S",
+          "max_abs_probability_difference": 1.4865182606516036e-05,
+          "chosen_l2": 0.0003,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.0003,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2014-04-16",
+          "condition": "B_S",
+          "max_abs_probability_difference": 1.478960949563568e-05,
+          "chosen_l2": 0.001,
+          "chosen_l2_s": 1.0,
+          "v4_chosen_l2": 0.001,
+          "v4_chosen_l2_s": 1.0,
+          "same_penalty": true
+        },
+        {
+          "fold_id": "test-2015-04-07",
+          "condition": "B_S",
+          "max_abs_probability_difference": 1.329746669975762e-05,
+          "chosen_l2": 1.0,
+          "chosen_l2_s": 0.0003,
+          "v4_chosen_l2": 1.0,
+          "v4_chosen_l2_s": 0.0003,
+          "same_penalty": true
+        }
+      ],
+      "penalty_differences": [],
+      "by_condition": {
+        "none": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -2.6025399070492883,
+          "v4_mean_log_likelihood_bits": -2.6025399070492883,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 2.629273887483352e-05,
+          "mean_log_likelihood_bits": -2.5538779415036448,
+          "v4_mean_log_likelihood_bits": -2.5538791847688294,
+          "log_likelihood_difference_bits": 1.243265184580622e-06
+        },
+        "A": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.00010531912365249751,
+          "mean_log_likelihood_bits": -1.0968959542389292,
+          "v4_mean_log_likelihood_bits": -1.096898356131998,
+          "log_likelihood_difference_bits": 2.401893068881833e-06
+        },
+        "B": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 6.553644034057449e-05,
+          "mean_log_likelihood_bits": -2.472776885054046,
+          "v4_mean_log_likelihood_bits": -2.47277736681475,
+          "log_likelihood_difference_bits": 4.817607037743699e-07
+        },
+        "A_B": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 5.5111104408256395e-05,
+          "mean_log_likelihood_bits": -1.1123700907741667,
+          "v4_mean_log_likelihood_bits": -1.1123708292037529,
+          "log_likelihood_difference_bits": 7.384295861445622e-07
+        },
+        "A_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 9.123849247133498e-05,
+          "mean_log_likelihood_bits": -1.106946972753366,
+          "v4_mean_log_likelihood_bits": -1.1069466537211157,
+          "log_likelihood_difference_bits": -3.190322503954235e-07
+        },
+        "B_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 5.0517232212665686e-05,
+          "mean_log_likelihood_bits": -2.4762998475415405,
+          "v4_mean_log_likelihood_bits": -2.4762998520097983,
+          "log_likelihood_difference_bits": 4.468257763790007e-09
+        },
+        "A_B_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.00011328809569266518,
+          "mean_log_likelihood_bits": -1.1326052753412832,
+          "v4_mean_log_likelihood_bits": -1.1326062155844379,
+          "log_likelihood_difference_bits": 9.402431546678969e-07
+        }
+      },
+      "passed": true
+    },
+    "E_prime": {
+      "maximum_penalty_differences": 1,
+      "log_likelihood_tolerance_bits": 1e-05,
+      "probability_listing_threshold": 1e-05,
+      "fits_compared": 98,
+      "max_abs_log_likelihood_difference_bits": 0.0,
+      "max_abs_probability_difference": 0.0,
+      "max_abs_probability_difference_same_penalty": 0.0,
+      "fits_above_probability_threshold": [],
+      "penalty_differences": [],
+      "by_condition": {
+        "none": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.5977723066803886,
+          "v4_mean_log_likelihood_bits": -3.5977723066803886,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.733061119245219,
+          "v4_mean_log_likelihood_bits": -3.733061119245219,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.5348530216732172,
+          "v4_mean_log_likelihood_bits": -1.5348530216732172,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "B": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.037450760633179,
+          "v4_mean_log_likelihood_bits": -3.037450760633179,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A_B": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.5773646097143539,
+          "v4_mean_log_likelihood_bits": -1.5773646097143539,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.5387698658009632,
+          "v4_mean_log_likelihood_bits": -1.5387698658009632,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "B_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -3.055925570414698,
+          "v4_mean_log_likelihood_bits": -3.055925570414698,
+          "log_likelihood_difference_bits": 0.0
+        },
+        "A_B_S": {
+          "fits": 14,
+          "penalties_differing": 0,
+          "max_abs_probability_difference": 0.0,
+          "mean_log_likelihood_bits": -1.5806664099157344,
+          "v4_mean_log_likelihood_bits": -1.5806664099157344,
+          "log_likelihood_difference_bits": 0.0
+        }
+      },
+      "passed": true
+    }
+  },
+  "reuse_checks": {
+    "D:DurA": {
+      "fold_id": "test-2014-04-16",
+      "conditions": {
+        "none": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "B": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "B_S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        }
+      },
+      "identical": true
+    },
+    "D:Dur": {
+      "fold_id": "test-2014-04-16",
+      "conditions": {
+        "none": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        }
+      },
+      "identical": true
+    },
+    "A:DurA": {
+      "fold_id": "test-2014-04-16",
+      "conditions": {
+        "none": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "B": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "B_S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        }
+      },
+      "identical": true
+    },
+    "A:Dur": {
+      "fold_id": "test-2014-04-16",
+      "conditions": {
+        "none": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        }
+      },
+      "identical": true
+    },
+    "E_prime:DurA": {
+      "fold_id": "test-2014-04-16",
+      "conditions": {
+        "none": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "B": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "B_S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        }
+      },
+      "identical": true
+    },
+    "E_prime:Dur": {
+      "fold_id": "test-2014-04-16",
+      "conditions": {
+        "none": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        },
+        "S": {
+          "selections": true,
+          "models": true,
+          "diagnostics": true,
+          "predictions": true
+        }
+      },
+      "identical": true
+    }
+  },
+  "same_inputs": {
+    "D:Dur=DurA": {
+      "A": true,
+      "A_S": true
+    },
+    "A:Dur=DurA": {
+      "A": true,
+      "A_S": true
+    },
+    "E_prime:Dur=DurA": {
+      "A": true,
+      "A_S": true
+    }
+  },
+  "task_seconds": {
+    "D:R": 5751.385474724462,
+    "A:R": 2648.373057998484,
+    "E_prime:R": 3931.6932236871216,
+    "D:DurA": 4336.873505583499,
+    "D:Dur": 4383.894186801743,
+    "A:DurA": 1609.4427801263519,
+    "A:Dur": 1745.5268057053909,
+    "E_prime:DurA": 3905.9501884973142,
+    "E_prime:Dur": 4292.060312216403
+  },
+  "wall_seconds": {
+    "R": 767.3479168629274,
+    "D": 576.4643560668919,
+    "A": 220.67339219921269,
+    "E_prime": 529.5314224099275
+  },
+  "estimate": {
+    "after": "D",
+    "seconds": 659.5234641494942,
+    "rule": "the first inventory's DurA and Dur wall time, scaled by R's CPU time per inventory"
+  },
+  "total_seconds": 2095.303431811044,
+  "workers": 18,
+  "environment": {
+    "python": "3.10.21",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "blas_threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    }
+  },
+  "git": {
+    "commit": "40ffe40ec799e711f2c14d9b1063202247b7af9a",
+    "dirty_paths": []
+  },
+  "input_sha256": {
+    "config/rq2_rubato_inputs.json": "efd0b65890ac24bd72a4e030422b0d0792db5e24dffe728ce9b1e1d80bf5a4ef",
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "config/rq1_evaluation_v4.json": "17ea02e16f8dbebb4fde8a3ea6c0785be1ed8ef1b03d89535cd920043aa5d6a0",
+    "config/rq2_d_rhythm_tempo_logistic_v4.json": "5f133529df8301c2ca92dd1dfb583dc567d338f37bfb8d63c08e41703cc286c1",
+    "data/processed/rq2_d_rhythm_tempo_folds/manifest.json": "5c79d957695a6b39784961a01de5343f3411fe12f794c5033fb8570ed40bae88",
+    "config/rq2_d_rhythm_tempo_evaluation_v4.json": "ff8fd09c40dc663e19c6576689fc1b2b96b1ffdaab01dabb5e5f4becdba3366a",
+    "data/processed/rq2_d_rhythm_tempo_targets.jsonl": "4b49578dfaab640d9b278b18ebe58f03331616e52faf70ddb6a3083febdc05e5",
+    "config/rq2_e_type_tempo_tdict_logistic_v4.json": "a23f06bdd8f1b5b33315bef34258be36a0b7213c0e78ec79f9aa0182e98b0fe7",
+    "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json": "0714659a95576573f2cd3457afb345df1956fe6277eacc742166821e120a651c",
+    "config/rq2_e_type_tempo_tdict_evaluation_v4.json": "693677284eb01c3ca4e4a2f9a89474c9297588874c8b179f107036450d374200",
+    "data/processed/rq2_e_type_tempo_tdict_targets.jsonl": "bd54f96b8e6a0e78f8da68e7f6f10bf7cfb13da21b1b6e756616b81feb7bbeb4",
+    "data/results/rq2_rubato_inputs/checks/summary.json": "f09e4ab76f789c6c31d0b46d73f0ec1a09d7ee4e83092863d7f5601ddb4dbcb9",
+    "data/results/rq1_logistic_v4/predictions.jsonl": "3572cd4c3f48189f628baf3a7e0162882d04e2071ecad7bd85c09fd902c79e51",
+    "data/results/rq1_logistic_v4/l2_selection.jsonl": "9c4d3888cd39b444ab5680a501523268c6b3ef2bd170a574c1867f48815be39e",
+    "data/results/rq1_logistic_v4/evaluation/summary.json": "b782c2705b001a346d350c6043b725b047bf2bb6c7e0a801546d33fa0b998980",
+    "data/results/rq2_d_rhythm_tempo_logistic_v4/predictions.jsonl": "3e01623bc1a9741ec79e0cdf2ec1c76f7edba99beec5c4385f2f26123edca3f6",
+    "data/results/rq2_d_rhythm_tempo_logistic_v4/l2_selection.jsonl": "b1de99f0c2adde43177cc85ba185bce8abd23bbbb8c53ba0743ea3c87ce1ef61",
+    "data/results/rq2_d_rhythm_tempo_logistic_v4/evaluation/summary.json": "dc859705e8aa066e32b13dca8330a42724276ed52a2e644d9abe638ed8dbff10",
+    "data/results/rq2_e_type_tempo_tdict_logistic_v4/predictions.jsonl": "6c501c01025bcffd7df23b3ec93fc8b381a3050230d74b19a56e81a32a7e039b",
+    "data/results/rq2_e_type_tempo_tdict_logistic_v4/l2_selection.jsonl": "00b53bf4b22468a44c6883201a4df8bc02e00b4d8890635279e571f1bfa7cc57",
+    "data/results/rq2_e_type_tempo_tdict_logistic_v4/evaluation/summary.json": "45b9cc25f902cc396355c077ec10e6be2450943c17d390669b49c91e5d17d151"
+  }
+}

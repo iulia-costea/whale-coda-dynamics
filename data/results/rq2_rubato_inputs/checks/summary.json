@@ -1,0 +1,276 @@
+{
+  "source": "computed independently before the run (DEC-29 prompt, 2026-10-09)",
+  "tolerance": 0.0005,
+  "quantities": {
+    "inventory_alignment:D": {
+      "rows": 2075,
+      "mismatched_rows": 0,
+      "other_fields_differing": [],
+      "label_fields_differing": [
+        "A_history",
+        "B_history",
+        "Ct",
+        "Ct_raw",
+        "inventory"
+      ]
+    },
+    "fold_alignment:D": {
+      "identical": true
+    },
+    "inventory_alignment:E_prime": {
+      "rows": 2075,
+      "mismatched_rows": 0,
+      "other_fields_differing": [],
+      "label_fields_differing": [
+        "A_history",
+        "B_history",
+        "Ct",
+        "Ct_raw",
+        "inventory"
+      ]
+    },
+    "fold_alignment:E_prime": {
+      "identical": true
+    },
+    "rows": {
+      "count": 2075
+    },
+    "comparison_targets": {
+      "count": 1547
+    },
+    "history_references": {
+      "count": 7914,
+      "unresolved": 0,
+      "ending_after_target_onset": 0
+    },
+    "duration_vs_raw": {
+      "max_abs": 3.4561242756581123e-12
+    },
+    "own_lags": {
+      "counts": [
+        1547,
+        1324,
+        1088
+      ]
+    },
+    "partner_lags": {
+      "counts": [
+        1547,
+        1324,
+        1084
+      ]
+    },
+    "target_log_duration": {
+      "mean": -0.1794679813379479,
+      "sd": 0.540451414668645
+    },
+    "lag1_r": {
+      "own": 0.9401760329040567,
+      "partner": 0.7718206094322729
+    },
+    "lag1_r_within_label": {
+      "own": 0.5678069204951752,
+      "partner": 0.36912556881422376
+    }
+  },
+  "checks": [
+    {
+      "name": "inventory_alignment:D",
+      "expected": {
+        "rows": 2075,
+        "mismatched_rows": 0,
+        "other_fields_differing": []
+      },
+      "computed": {
+        "rows": 2075,
+        "mismatched_rows": 0,
+        "other_fields_differing": []
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "fold_alignment:D",
+      "expected": {
+        "identical": true
+      },
+      "computed": {
+        "identical": true
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "inventory_alignment:E_prime",
+      "expected": {
+        "rows": 2075,
+        "mismatched_rows": 0,
+        "other_fields_differing": []
+      },
+      "computed": {
+        "rows": 2075,
+        "mismatched_rows": 0,
+        "other_fields_differing": []
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "fold_alignment:E_prime",
+      "expected": {
+        "identical": true
+      },
+      "computed": {
+        "identical": true
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "rows",
+      "expected": {
+        "count": 2075
+      },
+      "computed": {
+        "count": 2075
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "comparison_targets",
+      "expected": {
+        "count": 1547
+      },
+      "computed": {
+        "count": 1547
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "history_references",
+      "expected": {
+        "count": 7914,
+        "unresolved": 0,
+        "ending_after_target_onset": 0
+      },
+      "computed": {
+        "count": 7914,
+        "unresolved": 0,
+        "ending_after_target_onset": 0
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "duration_vs_raw",
+      "expected": {
+        "max_abs_below": 1e-09
+      },
+      "computed": {
+        "max_abs_below": 3.4561242756581123e-12
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "own_lags",
+      "expected": {
+        "counts": [
+          1547,
+          1324,
+          1088
+        ]
+      },
+      "computed": {
+        "counts": [
+          1547,
+          1324,
+          1088
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "partner_lags",
+      "expected": {
+        "counts": [
+          1547,
+          1324,
+          1084
+        ]
+      },
+      "computed": {
+        "counts": [
+          1547,
+          1324,
+          1084
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "target_log_duration",
+      "expected": {
+        "mean": -0.1795,
+        "sd": 0.5405
+      },
+      "computed": {
+        "mean": -0.1794679813379479,
+        "sd": 0.540451414668645
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r",
+      "expected": {
+        "own": 0.94,
+        "partner": 0.772
+      },
+      "computed": {
+        "own": 0.9401760329040567,
+        "partner": 0.7718206094322729
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r_within_label",
+      "expected": {
+        "own": 0.568,
+        "partner": 0.369
+      },
+      "computed": {
+        "own": 0.5678069204951752,
+        "partner": 0.36912556881422376
+      },
+      "failed_fields": [],
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "git": {
+    "commit": "40ffe40ec799e711f2c14d9b1063202247b7af9a",
+    "dirty_paths": []
+  },
+  "input_sha256": {
+    "config/rq2_rubato_inputs.json": "efd0b65890ac24bd72a4e030422b0d0792db5e24dffe728ce9b1e1d80bf5a4ef",
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "config/rq1_evaluation_v4.json": "17ea02e16f8dbebb4fde8a3ea6c0785be1ed8ef1b03d89535cd920043aa5d6a0",
+    "config/rq2_d_rhythm_tempo_logistic_v4.json": "5f133529df8301c2ca92dd1dfb583dc567d338f37bfb8d63c08e41703cc286c1",
+    "data/processed/rq2_d_rhythm_tempo_folds/manifest.json": "5c79d957695a6b39784961a01de5343f3411fe12f794c5033fb8570ed40bae88",
+    "config/rq2_d_rhythm_tempo_evaluation_v4.json": "ff8fd09c40dc663e19c6576689fc1b2b96b1ffdaab01dabb5e5f4becdba3366a",
+    "data/processed/rq2_d_rhythm_tempo_targets.jsonl": "4b49578dfaab640d9b278b18ebe58f03331616e52faf70ddb6a3083febdc05e5",
+    "config/rq2_e_type_tempo_tdict_logistic_v4.json": "a23f06bdd8f1b5b33315bef34258be36a0b7213c0e78ec79f9aa0182e98b0fe7",
+    "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json": "0714659a95576573f2cd3457afb345df1956fe6277eacc742166821e120a651c",
+    "config/rq2_e_type_tempo_tdict_evaluation_v4.json": "693677284eb01c3ca4e4a2f9a89474c9297588874c8b179f107036450d374200",
+    "data/processed/rq2_e_type_tempo_tdict_targets.jsonl": "bd54f96b8e6a0e78f8da68e7f6f10bf7cfb13da21b1b6e756616b81feb7bbeb4",
+    "data/raw/dswp-2014-2016-retagged-maor-2025.csv": "17b37605e56a21fb96bff301a2d43c4139693f7def23d4e3801d046026069856"
+  }
+}
