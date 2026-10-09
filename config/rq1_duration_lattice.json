@@ -49,7 +49,8 @@
   },
   "process_notes": [
     "The first implementation of the data checks centred the lag-1 variables on the targets' group means instead of their own (each variable's mean over the rows sharing its coda's click count or type). Those five rows differed from the expected values (within click count: own 0.937, partner 0.769; within type: 0.578, 0.372; self-continuation 0.614, 0.301; switch 0.566, 0.383; overlap 0.558, 0.447). The code was corrected to the stated definition, which reproduces every expected value, before any model was fitted; no expected value was changed.",
-    "During development the smoke test (one penalty value, 0.01, not this grid; 50 bootstrap replicates; f = 0.3 only) produced numbers. Its report was viewed only with every digit masked, to check the layout; that view still showed which smoke contrasts were flagged or detectable. No input, variant, grid, calibration or rule changed after it."
+    "During development the smoke test (one penalty value, 0.01, not this grid; 50 bootstrap replicates; f = 0.3 only) produced numbers. Its report was viewed only with every digit masked, to check the layout; that view still showed which smoke contrasts were flagged or detectable. No input, variant, grid, calibration or rule changed after it.",
+    "After the first full run (code 3805633), the planted partner contrasts (+0.053, +0.088, +0.127 bits/coda at f = 0.1, 0.2, 0.3) exceeded DEC-30's nominal sizes even after subtracting the real-data contrast: z_b1 correlates with the A,S residual, so planting along it adds a cross term (A,S's training sigma rose 1.7%, 3.7%, 6.2% against 0.5%, 2.0%, 4.4% for an independent z_b1). The report then gained the increment over the real-data contrast and the sigma ratios, and stopped calling the nominal sizes an upper bound. The planting, fractions, refits and detection rule did not change; every stage was rerun from a clean tree."
   ],
   "input_files": {
     "checks": [

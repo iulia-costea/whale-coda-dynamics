@@ -517,6 +517,9 @@ class DurationLatticeSmokeTests(unittest.TestCase):
                 self.assertEqual(set(r['v5']['selection_counts']), CONDITIONS)
                 self.assertEqual(len(r['lag1_slopes']['A_B_S']['B']['per_fold']), 14)
             self.assertEqual(set(summary['calibration']['per_fraction']), {'0.3'})
+            planted = summary['calibration']['per_fraction']['0.3']
+            self.assertEqual(set(planted['sigma_ratio_median']), {'A_S', 'A_B_S'})
+            self.assertIn('ci_bits_per_coda', planted['increment_over_real'])
             self.assertEqual(summary['fit']['fits'], 2 * 14 * 8)  # one value per axis
             self.assertTrue((box.root / 'out/duration.md').read_text(encoding='utf-8').startswith('# RQ1 duration lattice'))
             regenerated = ('out/duration.md', 'out/duration/summary.json')

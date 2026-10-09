@@ -812,7 +812,12 @@ def run_report(config_path):
     for t in tested:
         t['detectable'] = detectable(t, 'sign_flip_p_two_sided' if t['role'] == 'primary' else 'holm_p', alpha)
 
-    calibration = calibration_result(calibration_scored, calibration_summary, config, boot, alpha)
+    real_variant = config['calibration']['variant']
+    real_sigma = defaultdict(dict)
+    for r in scored:
+        if r['model'] == real_variant:
+            real_sigma[r['condition']][r['fold_id']] = r['sigma']
+    calibration = calibration_result(calibration_scored, calibration_summary, config, boot, ll[real_variant], real_sigma)
     result = dict(units='bits per coda: log2 Gaussian density of ln d (d in seconds); only differences are compared',
                   comparison_targets=len(ids), days=len({dates[c] for c in ids}), conditions=conditions, variants=config['variants'],
                   bootstrap=dict(zip(('replicates', 'seed', 'confidence'), boot)), alpha=alpha, l2_grid=grid,
@@ -836,21 +841,31 @@ def run_report(config_path):
     return result
 
 
-def calibration_result(rows, summary, config, boot, alpha):
+def calibration_result(rows, summary, config, boot, real_ll, real_sigma):
+    """The planted partner contrast per f, with its paired increment over the real-data contrast and, per condition,
+    the median over folds of the planted fit's training sigma over the real fit's (sqrt(1 + f^2) for the reduced
+    condition if z_b1 were independent of its residual)."""
     spec = config['calibration']
     big, small = CONTRASTS[spec['contrast']]
     per_fraction = {}
     for fraction in spec['fractions']:
-        ll, dates = defaultdict(dict), {}
+        ll, dates, sigma = defaultdict(dict), {}, defaultdict(dict)
         for r in rows:
             if r['fraction'] == fraction:
                 ll[r['condition']][r['coda_id']] = r['log_density_bits']
                 dates[r['coda_id']] = r['recording_date']
+                sigma[r['condition']][r['fold_id']] = r['sigma']
         stats = contrast_stats(ll, big, small, dates, boot, sign_flip=True)
         stats.pop('day_means_bits')
+        paired = {'planted': {c: ll[big][c] - ll[small][c] for c in dates}, 'real': {c: real_ll[big][c] - real_ll[small][c] for c in dates}}
+        increment = contrast_stats(paired, 'planted', 'real', dates, boot)
+        increment.pop('day_means_bits')
+        ratios = {c: statistics.median(s / real_sigma[c][f] for f, s in sigma[c].items()) for c in (big, small)}
         per_fraction[str(fraction)] = dict(fraction=fraction, nominal_maximum_bits_per_coda=nominal_bits(fraction),
                                            detected=stats['ci_bits_per_coda'][0] > 0,
-                                           interval_below_zero=stats['ci_bits_per_coda'][1] < 0, **stats)
+                                           interval_below_zero=stats['ci_bits_per_coda'][1] < 0, **stats,
+                                           increment_over_real=increment, sigma_ratio_median=ratios,
+                                           sigma_ratio_if_independent=math.sqrt(1 + fraction ** 2))
     detected = [p['fraction'] for p in per_fraction.values() if p['detected']]
     return dict(variant=spec['variant'], contrast=spec['contrast'], full=big, reduced=small,
                 sigma_condition=spec['sigma_condition'], sigma_by_fold=summary['sigma_by_fold'], per_fraction=per_fraction,
@@ -888,11 +903,25 @@ def bound_text(calibration):
     p = calibration['per_fraction'][str(bound)]
     smaller = [q for q in calibration['per_fraction'].values() if q['fraction'] < bound]
     missed = [q for q in calibration['per_fraction'].values() if q['fraction'] > bound and not q['detected']]
-    return (f"Calibration: a planted partner effect of f = {bound} (at most about {p['nominal_maximum_bits_per_coda']:.3f} "
-            f"bits/coda) was detected (interval {format_ci(p['ci_bits_per_coda'])})"
-            + (f"; f = {', '.join(str(q['fraction']) for q in smaller)} {'was' if len(smaller) == 1 else 'were'} not" if smaller else
+    planted = lambda q: f"f = {q['fraction']} ({q['mean_bits_per_coda']:+.3f})"  # noqa: E731
+    return (f"Calibration: the smallest planted partner effect detected is f = {bound}: planted partner contrast "
+            f"{p['mean_bits_per_coda']:+.3f} bits/coda (interval {format_ci(p['ci_bits_per_coda'])}), "
+            f"{p['increment_over_real']['mean_bits_per_coda']:+.3f} (interval {format_ci(p['increment_over_real']['ci_bits_per_coda'])}) "
+            'above the real-data contrast'
+            + (f"; {', '.join(planted(q) for q in smaller)} {'was' if len(smaller) == 1 else 'were'} not detected" if smaller else
                '; it is the smallest planted effect tried')
-            + (f"; larger f = {', '.join(str(q['fraction']) for q in missed)} not detected" if missed else '') + '.')
+            + (f"; larger {', '.join(planted(q) for q in missed)} not detected" if missed else '') + '.'
+            + nominal_text(calibration))
+
+
+def nominal_text(calibration):
+    over = [q for q in calibration['per_fraction'].values()
+            if q['increment_over_real']['mean_bits_per_coda'] > q['nominal_maximum_bits_per_coda']]
+    if not over:
+        return " Every planted increment is within DEC-30's nominal size ½·log2(1 + f²)."
+    return (" DEC-30's nominal sizes, ½·log2(1 + f²), assume z_b1 independent of the reduced model's residual; here the planted "
+            'increment exceeds them at f = ' + ', '.join(str(q['fraction']) for q in over)
+            + " (z_b1 is correlated with that residual, so the plant adds a cross term; see the calibration section).")
 
 
 def reading_lines(result, config):
@@ -1023,14 +1052,28 @@ def report_lines(result, config):
               f"σ̂_AS the fold's training residual SD of condition {cal['sigma_condition'].replace('_', ',')} (median "
               f"{statistics.median(cal['sigma_by_fold'].values()):.4f}); conditions {cal['full'].replace('_', ',')} and "
               f"{cal['reduced'].replace('_', ',')} are refitted with the full penalty search and scored on the planted test day. "
-              'Nominal maximum: ½·log2(1 + f²), the gain if z_b1 were independent of A and S. The smallest f whose interval lies '
-              'above zero is the detection bound.', '',
-              '| f | Nominal maximum bits/coda | Token-weighted | Unweighted day mean | 95% CI | Positive days | Two-sided p | Detected |',
-              '|---:|---:|---:|---:|---|---:|---:|---|']
+              'The smallest f whose interval lies above zero is the detection bound. The planted contrast includes the real '
+              'data\'s own partner contrast; the increment over it is the paired per-coda difference between the planted and the '
+              "real-data contrast. DEC-30's nominal size ½·log2(1 + f²) is the increment if z_b1 (unit variance) were independent "
+              f"of A, S and the {cal['reduced'].replace('_', ',')} residual; when z_b1 correlates with that residual (the real "
+              f"partner signal), planting along it also adds a cross term, which shows as {cal['reduced'].replace('_', ',')}'s "
+              'training σ̂ rising by more than √(1 + f²).', '',
+              f"| f | DEC-30 nominal size | Planted contrast | Unweighted day mean | 95% CI | Positive days | Two-sided p | Detected | "
+              f"Increment over real-data contrast [95% CI] | σ̂ ratio {cal['reduced'].replace('_', ',')} (√(1 + f²)) | "
+              f"σ̂ ratio {cal['full'].replace('_', ',')} |",
+              '|---:|---:|---:|---:|---|---:|---:|---|---|---:|---:|']
     for p in cal['per_fraction'].values():
+        inc = p['increment_over_real']
         lines.append(f"| {p['fraction']} | {p['nominal_maximum_bits_per_coda']:.4f} | {p['mean_bits_per_coda']:.5f} | "
                      f"{p['unweighted_mean_bits_per_coda']:.5f} | {format_ci(p['ci_bits_per_coda'])} | {_days(p)} | "
-                     f"{_p(p['sign_flip_p_two_sided'])} | {'yes' if p['detected'] else 'no'} |")
+                     f"{_p(p['sign_flip_p_two_sided'])} | {'yes' if p['detected'] else 'no'} | "
+                     f"{inc['mean_bits_per_coda']:.5f} {format_ci(inc['ci_bits_per_coda'])} | "
+                     f"{p['sigma_ratio_median'][cal['reduced']]:.4f} ({p['sigma_ratio_if_independent']:.4f}) | "
+                     f"{p['sigma_ratio_median'][cal['full']]:.4f} |")
+    real = result['results'][cal['variant']]['rq1_contrasts'][cal['contrast']]
+    lines += ['', f"Real-data partner contrast in {cal['variant']} (the primary): {real['mean_bits_per_coda']:.5f} bits/coda, "
+              f"95% CI {format_ci(real['ci_bits_per_coda'])}. σ̂ ratios are medians over folds of the planted fit's training σ̂ "
+              "over the real fit's."]
     lines += ['', bound_text(cal) + (f" Calibration failure (interval below zero) at f = {cal['failed']}." if cal['failed'] else '')]
 
     lines += ['', '## Lattice', '',
