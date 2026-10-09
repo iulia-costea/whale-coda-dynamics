@@ -846,7 +846,7 @@ def reading_lines(result, config, conditions):
 CHECK_LABELS = {
     'rows': 'Rows in rq1_targets.jsonl', 'comparison_targets': 'Comparison targets',
     'history_references': 'References in the last 3 lags of A_history_ids and B_history_ids (comparison targets)',
-    'duration_vs_raw': 'max |offset_s − onset_s − raw Duration| (all rows)',
+    'duration_vs_raw': 'max abs(offset_s − onset_s − raw Duration) (all rows)',
     'own_lags': 'Targets with own lag 1 / 2 / 3', 'partner_lags': 'Targets with partner lag 1 / 2 / 3',
     'target_log_duration': 'Target ln d: mean; population SD',
     'lag1_r': 'Pearson r of target ln d with own lag-1 ln d; with partner lag-1 ln d',
@@ -906,7 +906,7 @@ def report_lines(result, config):
 
     checks = result['checks']
     lines += ['## Data checks (no models)', '',
-              f"Against values computed independently before the run ({checks['source']}): counts exactly, other "
+              f"Checked before any model against the expected values ({checks['source']}): counts exactly, other "
               f"statistics within {checks['tolerance']:g} (3 decimals); {sum(c['passed'] for c in checks['checks'])} of "
               f"{len(checks['checks'])} agree" + ('.' if checks['passed'] else '; the rows marked DIFFERS do not.'), '',
               'Inventory files (data/processed): every inventory has the same rows as `rq1_targets.jsonl` in the same order, '
@@ -1055,7 +1055,11 @@ def report_lines(result, config):
     lines += ['', f"Fitting flags: {'; '.join(flagged)}." if flagged else 'No added-input contrast has an interval entirely '
               'below zero (no fitting flag).']
 
-    lines += ['', '## Reading (DEC-29)', ''] + [f'- {line}' for line in result['reading']]
+    lines += ['', '## Reading (DEC-29)', '',
+              "Chosen mechanically for the primary by rules fixed in the code before any fit (`rubato.reading_lines`): no "
+              "reading when a gate fails, when DEC-23's stop rule fires on the primary's variants, or when an added-input "
+              "contrast whose full side is one of the primary's two fits (or a fit with the same inputs) carries a fitting "
+              "flag; otherwise detected (positive) or null as defined above.", ''] + [f'- {line}' for line in result['reading']]
     seconds = result['fit']
     lines += ['', '## Limits', '',
               "- The partner's coda that overlaps the target is not complete at the target's onset, so it is not a B input "
