@@ -26,7 +26,7 @@ Deferred to keep stage 1 simple. Nothing here is required before the first logis
 ## RQ2, deferred by DEC-22
 - **Segmentation proper.** A coda as two tokens (rhythm, then tempo), the subword analogue of DEC-22's combined labels; or interval symbols as tokens, as in RQ3's tokeniser `[R3-1]`. Needs a sequence model over sub-coda tokens with a per-coda score, so it is a different question from DEC-22's.
 - **Ornaments** as a third dimension (`ornaments.p`, 151 of 3,840 `[D2]` codas). Sharma et al. find them at the start and end of call sequences and before changes in the partner's chorusing: a turn-taking question rather than a next-coda one.
-- **Rubato:** the previous codas' durations as continuous inputs to logistic v4. Separates a gradual tempo trend from the tempo class, and is the first check if a model beats logistic v4 on inventory D or E.
+- **Rubato:** taken up as DEC-29 (`[R2-9]`, 2026-10-04).
 - **The residual LSTM (DEC-21) on inventories D and E.**
 - **Tempo classes fitted on other clans** (EC2, the Pacific): Sharma et al.'s cuts come from EC1 only, like a tokeniser trained on one language. Links RQ2 to RQ3.
 - **Renaming `reports/rq2.md`** (the Sharma-pipeline preprocessing report) so it isn't read as RQ2 results; needs a change in `prepare_rq2.py`, which generates it.

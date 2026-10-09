@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-30 added the duration lattice after the results freeze (2026-10-04). DEC-31 added the ornament-merge test of DEC-28's switch structure after the results freeze (2026-10-05). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-29 added the rubato-input test after the results freeze (2026-10-04). DEC-30 added the duration lattice after the results freeze (2026-10-04). DEC-31 added the ornament-merge test of DEC-28's switch structure after the results freeze (2026-10-05). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -331,6 +331,34 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Repertoire (P − L) positive, primary null: switch choices follow the whale's active repertoire, consistent with stable individual or unit repertoires (Gero, Whitehead & Rendell 2016b).
   - Nulls read "not detectable at this data size". The primary rests on few discriminating switches, so its null is weak. No calibration is run.
 - **Not done:** a collapsed partner history; v5 or the residual LSTM with these features; a planted-signal calibration; more than two distinct types.
+
+## Rubato inputs (2026-10-04)
+
+**DEC-29 — Rubato inputs (`[R2-9]`): the previous codas' durations as continuous inputs to logistic v4.**
+- **Question:** RQ1's and RQ2's models see a coda's duration only through its label: not at all under inventory A, as one of five tempo classes under D and E (DEC-22). Sharma et al. 2024a describe rubato (a whale's durations drift gradually from coda to coda) and duration matching between whales; DEC-24 found the partner's tempo class not detectable. With the previous codas' continuous durations visible, does the partner block add usable information, and do durations add anything to the labels?
+- **Decision:**
+  - Logistic v4 unchanged (targets, folds, UNK policy, $S$, copy weights, grid, selection rule, and convergence handling as in each inventory's committed v4 run) on inventories A (`guy_coda_type`, RQ1), D (Sharma rhythm × KDE tempo) and E′ (`guy_coda_type` × tempos-dict tempo), plus duration inputs in the history blocks:
+    - own: for lags 1–3 of `A_history`, the coda's log duration $\ln d$, $d$ = `offset_s − onset_s`, one column per lag, standardised on the column's non-missing training values (as `Encoder` standardises timing) and 0 when the lag is missing; per-class weights like the lag one-hots; in the $A$ block under the history penalty. No missing indicators: a missing lag already has all-zero one-hots.
+    - partner: the same for lags 1–3 of `B_history` (the partner's codas completed before the target's onset, `[D5]`), in the $B$ block.
+  - Durations are looked up by history coda ID in `data/processed/rq1_targets.jsonl` (all rows, not only comparison targets); every referenced coda must end at or before the target's onset. The onset-leakage property test is extended to the new inputs.
+  - Three nested variants per inventory, all fitted in one environment: R (v4), DurA (R + own durations), Dur (R + own and partner durations). R must reproduce its inventory's committed v4 run under DEC-25's amended gate (chosen penalties identical, at most one differing; each condition's mean log-likelihood within 1e-5 bits/coda). Conditions whose inputs don't change (without $A$ in DurA; without $A$ and $B$ in Dur) reuse R's fits after a check that they would be identical.
+  - Contrasts, paired per coda, with day-bootstrap CI (10,000 replicates), unweighted day mean, positive days and the repeat and switch parts (`[P1]`):
+    - Primary, pre-specified: the partner contrast $\mathrm{LL}(A,B,S) - \mathrm{LL}(A,S)$ under Dur on inventory D, with the exact two-sided sign-flip $p$.
+    - Secondary, each with the exact two-sided sign-flip $p$ and Holm's correction across the five: the partner contrast under Dur on A and on E′; the partner's durations beyond everything else, $\mathrm{LL_{Dur}}(A,B,S) - \mathrm{LL_{DurA}}(A,B,S)$, on A, D and E′.
+    - Descriptive: DurA − R and Dur − R in $A$ and $A,B,S$; the own and timing contrasts under Dur; the partner contrast under R and its change from R to Dur; the partner contrast under Dur by turn category (no tests); fold summaries of the fitted duration weights.
+  - Stop rules: DEC-23's rule on every variant's 16 checks, with DEC-16's reported beside it. An added-input contrast (DurA − R, Dur − DurA) whose interval lies entirely below zero is a fitting flag and is not interpreted.
+- **Why:**
+  - `docs/LATER.md` has listed rubato inputs since DEC-22 as "the first check if a model beats logistic v4 on inventory D or E". The tempo classes are coarse: a duration drifting within a class predicts the next class near a boundary, which a label can't express.
+  - Under v5 the partner and timing alone predict inventories D, E, D′ and E′ (shares of $T$ 0.24–0.27, intervals above zero), but that information is redundant with own history. Continuous durations are the last input through which the partner's tempo could add something non-redundant.
+  - Descriptively (2026-10-04), a target's log duration correlates 0.940 with the own last coda's and 0.772 with the partner's last; within type, 0.568 and 0.369. The run recomputes these.
+  - Added after the results freeze (2026-10-04) as a final run.
+- **Reading:**
+  - Primary positive: with continuous durations visible, the partner's codas carry usable information about the coda's rhythm and tempo class beyond own history and $S$. Say whether it lives in the partner's durations (Dur − DurA) and in the repeat or the switch part. Onset-available inputs can't separate coordination from both whales responding to the same context.
+  - Primary null: the partner null holds with continuous durations visible, at this data size.
+  - DurA − R positive: the whale's own tempo drift carries information beyond its tempo classes (rubato).
+  - Nulls read "not detectable at this data size"; no calibration is run.
+- **Limits:** the partner's coda that overlaps the target is not complete at the target's onset, so it is not a $B$ input (`[D5]`); duration matching within overlaps (Sharma et al. 2024a; Assayag et al. 2026) is outside this design.
+- **Not done:** v5 or the residual LSTM with these inputs; inventories B, C, D′ and E; ornaments; duration as the target (DEC-30).
 
 ## Duration lattice (2026-10-04)
 
