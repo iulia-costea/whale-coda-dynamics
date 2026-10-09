@@ -1,6 +1,6 @@
 # Decisions made so far
 
-Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-31 added the ornament-merge test of DEC-28's switch structure after the results freeze (2026-10-05). DEC-18 is reserved for the LSTM v2 run rules.
+Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was decided, why, and what was rejected. Anyone can reopen a decision by giving a reason. DEC-1 to DEC-8 followed the 2026-09-22 audit; DEC-9 to DEC-15 followed a review of the plan the same day; DEC-16 and DEC-17 followed the first model results (2026-09-28); DEC-19 followed a review of RQ3 (2026-09-29); DEC-20 followed logistic v3's gate 1 (2026-09-29); DEC-21 followed LSTM v2's full run (2026-09-30); DEC-22 followed a review of RQ2 as a token-inventory question (2026-10-03); DEC-23 and DEC-24 followed RQ2's v4 runs (2026-10-03); DEC-25 added the own-history length sweep to the persistence tests (2026-10-03); DEC-26 and DEC-27 followed the first RQ3 results (2026-10-03). DEC-28 added the switch-structure test after the results freeze (2026-10-04). DEC-30 added the duration lattice after the results freeze (2026-10-04). DEC-31 added the ornament-merge test of DEC-28's switch structure after the results freeze (2026-10-05). DEC-18 is reserved for the LSTM v2 run rules.
 
 ## After the audit
 
@@ -331,6 +331,40 @@ Why the plan in `docs/PLAN.md` looks the way it does. Each entry gives what was 
   - Repertoire (P − L) positive, primary null: switch choices follow the whale's active repertoire, consistent with stable individual or unit repertoires (Gero, Whitehead & Rendell 2016b).
   - Nulls read "not detectable at this data size". The primary rests on few discriminating switches, so its null is weak. No calibration is run.
 - **Not done:** a collapsed partner history; v5 or the residual LSTM with these features; a planted-signal calibration; more than two distinct types.
+
+## Duration lattice (2026-10-04)
+
+**DEC-30 — Duration lattice (`[P6]`): RQ1's lattice with a type-free target, the coda's log duration.**
+- **Question:** every RQ1 and RQ2 result depends on a coda inventory. Does RQ1's pattern (own history informative; partner and timing not detectable) hold for a property every coda has without categorisation, its duration? And does the partner predict a coda's duration, or its tempo within its type, beyond the whale's own history (rubato and duration matching, Sharma et al. 2024a; Assayag et al. 2026)?
+- **Decision:**
+  - RQ1's comparison targets (1,547), its 14 folds with their validation days, exchanges, $S$ and `[D5]` are unchanged. The target is $y = \ln d$, $d$ = the coda's duration (`offset_s − onset_s`).
+  - Always-present inputs, in every condition including the floor: the target's click count $n$ (`nClicks` of its raw row, `source_row_index` in `data/raw/dswp-2014-2016-retagged-maor-2025.csv`) as $\ln n$, plus one-hots for the counts with at least 10 training targets in the fold. Conditioning on $n$ makes the lattice about how long a coda is given how many clicks it has, as DEC-24 conditions tempo on rhythm.
+  - Blocks:
+    - $A$: for lags 1–3 of the whale's own history, the coda's $\ln d$ and $\ln n$, each standardised on its non-missing training values and 0 when missing, plus a missing indicator per lag (constant columns dropped);
+    - $B$: the same for the partner's last 3 codas completed before the target's onset (`[D5]`);
+    - $S$: v4's $S$ features (turn-category one-hots; gap and overlap elapsed, raw and log1p, standardised on training rows).
+  - Model: ridge regression on $y$ standardised on the fold's training targets. Objective: mean squared error over training rows $+\ \lambda_h \lVert w_h \rVert^2 + \lambda_S \lVert w_S \rVert^2$, where $A$ and $B$ share $\lambda_h$ and $S$ has $\lambda_S$; the intercept is unpenalised and the always-present inputs get a fixed $10^{-4}$. Penalties come from v4's grid (nine values, 1e-4 to 1; the 81 pairs for conditions with $S$), chosen on the validation day by held-out log density. Variance $\hat\sigma^2$ = the mean squared training residual. A coda's score is $\log_2 \mathcal N(y; \hat y, \hat\sigma^2)$ on the original scale of $y$, in bits per coda; contrasts are differences of scores, so the unit of $y$ cancels.
+  - The eight conditions over $A$, $B$, $S$ (`[M1]`); the floor has the always-present inputs only.
+  - Two variants: F (as above, type-free) and T (F plus the target's `guy_coda_type` one-hot as an always-present input, labels and UNK per `[M6]` with the fold's vocabulary). F asks about a coda's duration; T about its duration within its type. History inputs are type-free in both.
+  - Contrasts, paired per coda, with day-bootstrap CI (10,000 replicates), unweighted day mean and positive days:
+    - Primary, pre-specified: the partner contrast $\mathrm{LL}(A,B,S) - \mathrm{LL}(A,S)$ in F, with the exact two-sided sign-flip $p$.
+    - Secondary, each with the exact two-sided sign-flip $p$ and Holm's correction across the three: own $\mathrm{LL}(A,B,S) - \mathrm{LL}(B,S)$ and timing $\mathrm{LL}(A,B,S) - \mathrm{LL}(A,B)$ in F; the partner contrast in T.
+    - Descriptive: every lattice contrast in both variants; the three RQ1 contrasts by turn category and by whether the target repeats the whale's own last type (no tests); fold summaries of the weights on own and partner lag-1 $\ln d$; residual diagnostics (skewness, excess kurtosis, the share of held-out residuals beyond $3\hat\sigma$); a v5 line (DEC-23's absent candidates applied to these fits, no new fits).
+  - Calibration (F, partner contrast only): plant a partner effect by replacing $y$ with $y + f\,\hat\sigma_{AS}\,z_{b1}$ in every split, where $z_{b1}$ is the standardised $\ln d$ of the partner's last coda (0 when missing) and $\hat\sigma_{AS}$ the fold's training residual SD of condition $A,S$, for $f \in \{0.1, 0.2, 0.3\}$ (at most about 0.007, 0.03 and 0.06 bits/coda); refit everything and report the partner contrast with its CI for each $f$. The smallest $f$ whose interval excludes zero is the detection bound.
+  - Stop rules: DEC-23's rule on each variant's 16 checks (the 12 add-one-input contrasts, and the 4 $A$-conditions against copying the own last coda's $\ln d$, scored as a Gaussian with the training mean squared difference as variance), with DEC-16's reported beside it. An add-one-input contrast whose interval lies entirely below zero is a fitting flag and is not interpreted.
+- **Why:**
+  - It removes the categorisation from RQ1: if the pattern were an artefact of how codas are typed, a type-free target would show it.
+  - Duration is where coordination between whales has been reported (rubato; duration matching of overlapping codas, Sharma et al. 2024a; Assayag et al. 2026). RQ1 sees duration only through types and RQ2 through five tempo classes; DEC-24 found the partner's tempo class not detectable.
+  - Descriptively (2026-10-04), within type the target's log duration correlates 0.568 with the own last coda's and 0.369 with the partner's last; the lattice asks whether any of the partner's part is not redundant with own history and $S$. The run recomputes these.
+  - Ridge regression with a Gaussian held-out density is the simplest predictive family for a continuous target; held-out log-density differences are conditional 𝒱-information (Xu et al. 2020) in bits per coda, as in RQ1.
+  - Added after the results freeze (2026-10-04) as a final run.
+- **Reading:**
+  - F: own > 0 with partner and timing not detectable: RQ1's pattern doesn't depend on the coda types.
+  - Partner > 0 in F but not in T: the partner predicts which kind of coda (its type-level duration) comes next, not its tempo within type.
+  - Partner > 0 in T: the partner's previous codas predict this coda's tempo within its type beyond own history and $S$; consistent with tempo coordination, but onset-available inputs can't separate coordination from both whales responding to the same context.
+  - Nulls read "not detectable at this data size", with the calibration bound.
+- **Limits:** the partner's coda that overlaps the target isn't complete at the target's onset and isn't an input, so duration matching within overlaps is outside this design; Gaussian residuals (heavy tails affect every condition but can inflate differences; diagnostics reported); bits per coda of a continuous target are not comparable with RQ1's bits per coda of a type; ornaments (an extra final click, Sharma et al. 2024a) aren't flagged: conditioning on click count groups an ornamented coda with codas of its click count, and in T many ornamented codas have their own type (6i, DEC-22).
+- **Not done:** heavy-tailed or nonlinear models; the residual LSTM; inter-click-interval targets; other inventories in T.
 
 ## Ornament merge (2026-10-05)
 
