@@ -682,8 +682,10 @@ def report_lines(result, config):
     env = result['environment'][reference]
     settings = descriptive['settings']
     variant_text = '; '.join(f"{v}: {', '.join(names) if names else 'none (logistic v4)'}" for v, names in variants.items())
-    lines = ['# RQ1 switch structure (PLAN [P5], DEC-28)', '',
-             'Logistic v4 unchanged (labels `guy_coda_type`, targets, folds, UNK policy, S, the L2 grid and selection rule, '
+    lines = ['# RQ1 switch structure (PLAN [P5], DEC-28)', '']
+    if config.get('report_note'):
+        lines += [config['report_note'], '']
+    lines += ['Logistic v4 unchanged (labels `guy_coda_type`, targets, folds, UNK policy, S, the L2 grid and selection rule, '
              'the joint history and S penalties, copy weights) plus shared class-feature weights computed from the '
              "whale's own earlier codas in the exchange. Each is one scalar, penalized with the history penalty like the "
              'copy weights, and added to the logits of the classes it marks: run length (β_r log r on the class of the own '

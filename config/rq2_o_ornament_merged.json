@@ -1,0 +1,45 @@
+{
+  "targets": "data/processed/rq1_targets.jsonl",
+  "normalized_codas": "data/interim/codas_normalized.jsonl",
+  "rhythm_source": "data/raw/sperm-whale-dialogues.csv",
+  "ornament_flags": "data/raw/ornaments.p",
+  "ornament_flags_sha256": "8e37ba3e6ee9938286cc255be0a5fd07067fd8aa4b0393c8978e9968c1655f1d",
+  "ornament_source": {
+    "repository": "github.com/pratyushasharma/sw-combinatoriality",
+    "commit": "7228c8eed2cc27ddd23b74c51aeccec9d762389e"
+  },
+  "match_decimals": 3,
+  "neighbour_window_s": 10.0,
+  "output_directory": "data/processed",
+  "name": "o_ornament_merged",
+  "id": "O",
+  "report": "reports/rq2_o_ornament_merged.md",
+  "expected": {
+    "d1_rows": 2075,
+    "matched": 1706,
+    "flagged": 66,
+    "flagged_with_neighbour": 55,
+    "flagged_with_neighbour_preceding": 27,
+    "flagged_with_neighbour_following": 28,
+    "flagged_without_neighbour": 11,
+    "chosen_neighbours_flagged": 0,
+    "rows_changed": 51,
+    "comparison_targets_changed": 31,
+    "top_changes": [
+      [["6i", "5R1"], 18],
+      [["6i", "1+1+3"], 7],
+      [["6R", "1+1+3"], 6],
+      [["8R", "7D2"], 5],
+      [["1+1+3", "4R2"], 4]
+    ],
+    "comparison_distinct_labels": 21,
+    "repeats_of_own_last_a": 1277,
+    "repeats_of_own_last_o": 1337,
+    "repeat_switch_flips": 60,
+    "own_lag1_ne_lag2_a": 235,
+    "own_lag1_ne_lag2_o": 185,
+    "target_equals_own_lag2_a": 61,
+    "target_equals_own_lag2_o": 34
+  },
+  "source": "computed independently before this module was written, 2026-10-05 (DEC-31)"
+}

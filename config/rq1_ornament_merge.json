@@ -1,0 +1,20 @@
+{
+  "condition": "A_B_S",
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 42,
+  "confidence": 0.95,
+  "o_switch_structure_summary": "data/results/rq1_switch_structure_ornament_merged/summary.json",
+  "a_switch_structure_summary": "data/results/rq1_switch_structure/summary.json",
+  "o_v4_evaluation_summary": "data/results/rq2_o_ornament_merged_logistic_v4/evaluation/summary.json",
+  "a_v4_evaluation_summary": "data/results/rq1_logistic_v4/evaluation/summary.json",
+  "o_scored_R": "data/results/rq1_switch_structure_ornament_merged/R/scored.jsonl",
+  "o_scored_P": "data/results/rq1_switch_structure_ornament_merged/P/scored.jsonl",
+  "o_scored_PD": "data/results/rq1_switch_structure_ornament_merged/PD/scored.jsonl",
+  "a_scored_R": "data/results/rq1_switch_structure/R/scored.jsonl",
+  "a_scored_P": "data/results/rq1_switch_structure/P/scored.jsonl",
+  "a_scored_PD": "data/results/rq1_switch_structure/PD/scored.jsonl",
+  "o_targets": "data/processed/rq2_o_ornament_merged_targets.jsonl",
+  "a_targets": "data/processed/rq1_targets.jsonl",
+  "output_directory": "data/results/rq1_ornament_merge",
+  "report": "reports/rq1_ornament_merge.md"
+}

@@ -13,8 +13,8 @@ from whale_coda_dynamics.logistic import last_label_index, probabilities, select
 from whale_coda_dynamics.preprocessing.folds import prepare_fold
 from whale_coda_dynamics.preprocessing.io_utils import read_csv_rows, read_json, read_jsonl
 from whale_coda_dynamics.switch_structure import (FEATURES, check_descriptive, class_values, feature_matrices,
-                                                  own_streams, ratio_interval, reading_lines, stream_structure,
-                                                  variant_class_features)
+                                                  own_streams, ratio_interval, reading_lines, report_lines,
+                                                  stream_structure, variant_class_features)
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = read_json(ROOT / 'data/processed/rq1_folds/manifest.json')
@@ -245,6 +245,30 @@ class ReadingTests(unittest.TestCase):
         for variant in ('R', 'P', 'PD'):
             self.assertIn("DEC-23's stop rule fires", reading_lines(fake_result((0.01, 0.05), fired=(variant,)))[1])
         self.assertIn('carries information', reading_lines(fake_result((0.01, 0.05), fired=('D',)))[1])
+
+
+class ReportNoteTests(unittest.TestCase):
+    """The optional `report_note` config field (ornament_merge.py, DEC-31): printed right under the title;
+    the report is byte-identical without it (so it reproduces the committed `reports/rq1_switch_structure.md`
+    exactly)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config = read_json(ROOT / 'config/rq1_switch_structure.json')
+        cls.result = read_json(ROOT / 'data/results/rq1_switch_structure/summary.json')
+        cls.committed = (ROOT / 'reports/rq1_switch_structure.md').read_text(encoding='utf-8')
+
+    def test_without_report_note_reproduces_the_committed_report(self):
+        self.assertNotIn('report_note', self.config)
+        self.assertEqual('\n'.join(report_lines(self.result, self.config)), self.committed)
+
+    def test_report_note_is_inserted_right_under_the_title_and_nothing_else_changes(self):
+        noted = dict(self.config, report_note='A test note.')
+        lines = report_lines(self.result, noted)
+        committed_lines = self.committed.splitlines()
+        self.assertEqual(lines[:2], committed_lines[:2])
+        self.assertEqual(lines[2:4], ['A test note.', ''])
+        self.assertEqual('\n'.join(lines[4:]).rstrip('\n'), '\n'.join(committed_lines[2:]).rstrip('\n'))
 
 
 if __name__ == '__main__':

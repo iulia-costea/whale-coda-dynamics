@@ -1,0 +1,44 @@
+{
+  "manifest": "data/processed/rq2_o_ornament_merged_folds/manifest.json",
+  "logistic_config": "config/rq2_o_ornament_merged_logistic_v4.json",
+  "evaluation_config": "config/rq2_o_ornament_merged_evaluation_v4.json",
+  "output_directory": "data/results/rq1_switch_structure_ornament_merged",
+  "report": "reports/rq1_switch_structure_ornament_merged.md",
+  "report_note": "Inventory O (DEC-31): guy_coda_type with Sharma-flagged ornamented codas relabelled to their neighbour's type. DEC-31's primary is LL(PD) − LL(R) in A_B_S, this report's secondary. The Reading below applies DEC-28's rules to inventory O and is not DEC-31's reading (reports/rq1_ornament_merge.md).",
+  "variants": {
+    "R": [],
+    "L": ["run_length"],
+    "P": ["run_length", "repertoire"],
+    "D": ["run_length", "distinct_1", "distinct_2"],
+    "PD": ["run_length", "repertoire", "distinct_1", "distinct_2"]
+  },
+  "reference_variant": "R",
+  "conditions": ["A", "A_B_S"],
+  "primary": {"condition": "A_B_S", "full": "PD", "reduced": "P"},
+  "secondary": {"condition": "A_B_S", "full": "PD", "reduced": "R"},
+  "descriptive_contrasts": [["L", "R"], ["D", "L"], ["P", "L"], ["PD", "D"]],
+  "repertoire_contrast": {"condition": "A_B_S", "full": "P", "reduced": "L"},
+  "gate": {
+    "enforce": true,
+    "results_directory": "data/results/rq2_o_ornament_merged_logistic_v4",
+    "maximum_penalty_differences": 1,
+    "log_likelihood_tolerance_bits": 1e-05,
+    "probability_listing_threshold": 1e-05
+  },
+  "descriptive": {
+    "enforce": true,
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 42,
+    "confidence": 0.95,
+    "interval_tolerance": 0.015,
+    "source": "computed independently in a Cowork session before this run, 2026-10-04",
+    "expected": {
+      "targets": {"count": 1547},
+      "repeats_of_own_last": {"count": 1337},
+      "switches": {"count": 210}
+    }
+  },
+  "process_notes": [
+    "Before any fit with this configuration, during development: the descriptive stage was run (step 1, its intended check); one fold's condition-A fit of variant PD on training and validation days only was run to time the unit tests; and the smoke test (one L2 value, three variants, 50 bootstrap replicates) produced a report on tiny settings, which was looked at only with every digit masked, to check its layout. No feature, variant, grid or rule changed after any of them."
+  ]
+}
