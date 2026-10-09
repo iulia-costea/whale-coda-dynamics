@@ -1,0 +1,412 @@
+{
+  "source": "computed independently before the run (DEC-30 prompt, 2026-10-09)",
+  "tolerance": 0.0005,
+  "quantities": {
+    "rows": {
+      "count": 2075
+    },
+    "comparison_targets": {
+      "count": 1547
+    },
+    "history_references": {
+      "count": 7914,
+      "unresolved": 0,
+      "ending_after_target_onset": 0
+    },
+    "duration_vs_raw": {
+      "max_abs": 3.4561242756581123e-12
+    },
+    "onset_vs_raw": {
+      "max_abs": 0.0
+    },
+    "nclicks_vs_intervals": {
+      "count": 2,
+      "rows": [
+        {
+          "coda_id": "assayag:row:1635",
+          "source_row_index": 1635,
+          "nClicks": 7,
+          "positive_intervals": 5,
+          "guy_coda_type": "6i",
+          "comparison_target": true
+        },
+        {
+          "coda_id": "assayag:row:3606",
+          "source_row_index": 3606,
+          "nClicks": 5,
+          "positive_intervals": 5,
+          "guy_coda_type": "6R",
+          "comparison_target": true
+        }
+      ]
+    },
+    "own_lags": {
+      "counts": [
+        1547,
+        1324,
+        1088
+      ]
+    },
+    "partner_lags": {
+      "counts": [
+        1547,
+        1324,
+        1084
+      ]
+    },
+    "targets_by_clicks": {
+      "counts": {
+        "3": 32,
+        "4": 111,
+        "5": 1222,
+        "6": 52,
+        "7": 22,
+        "8": 21,
+        "9": 19,
+        "10": 9,
+        "11": 2,
+        "12": 4,
+        "13": 2,
+        "14": 2,
+        "15": 6,
+        "16": 1,
+        "17": 2,
+        "18": 3,
+        "19": 10,
+        "20": 8,
+        "21": 7,
+        "22": 3,
+        "23": 7,
+        "24": 1,
+        "25": 1
+      }
+    },
+    "target_log_duration": {
+      "mean": -0.1794679813379479,
+      "sd": 0.540451414668645
+    },
+    "target_log_duration_residual_sd": {
+      "click_count": 0.5137796745424167,
+      "type": 0.20810453335316262
+    },
+    "lag1_r": {
+      "own": 0.9401760329040567,
+      "partner": 0.7718206094322729
+    },
+    "lag1_r_within_click_count": {
+      "own": 0.9327886594321535,
+      "partner": 0.7692483090215771
+    },
+    "lag1_r_within_type": {
+      "own": 0.5678069204951752,
+      "partner": 0.36912556881422376
+    },
+    "lag1_r_within_type:self_continuation": {
+      "n": 461,
+      "own": 0.6160607479724368,
+      "partner": 0.30120130962124947
+    },
+    "lag1_r_within_type:switch": {
+      "n": 645,
+      "own": 0.5563710625800287,
+      "partner": 0.37643283632309
+    },
+    "lag1_r_within_type:overlap": {
+      "n": 441,
+      "own": 0.5408131891541523,
+      "partner": 0.4449022599849834
+    }
+  },
+  "checks": [
+    {
+      "name": "rows",
+      "expected": {
+        "count": 2075
+      },
+      "computed": {
+        "count": 2075
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "comparison_targets",
+      "expected": {
+        "count": 1547
+      },
+      "computed": {
+        "count": 1547
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "history_references",
+      "expected": {
+        "count": 7914,
+        "unresolved": 0,
+        "ending_after_target_onset": 0
+      },
+      "computed": {
+        "count": 7914,
+        "unresolved": 0,
+        "ending_after_target_onset": 0
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "duration_vs_raw",
+      "expected": {
+        "max_abs_below": 1e-09
+      },
+      "computed": {
+        "max_abs_below": 3.4561242756581123e-12
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "onset_vs_raw",
+      "expected": {
+        "max_abs": 0
+      },
+      "computed": {
+        "max_abs": 0.0
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "nclicks_vs_intervals",
+      "expected": {
+        "count": 2
+      },
+      "computed": {
+        "count": 2
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "own_lags",
+      "expected": {
+        "counts": [
+          1547,
+          1324,
+          1088
+        ]
+      },
+      "computed": {
+        "counts": [
+          1547,
+          1324,
+          1088
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "partner_lags",
+      "expected": {
+        "counts": [
+          1547,
+          1324,
+          1084
+        ]
+      },
+      "computed": {
+        "counts": [
+          1547,
+          1324,
+          1084
+        ]
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "targets_by_clicks",
+      "expected": {
+        "counts": {
+          "3": 32,
+          "4": 111,
+          "5": 1222,
+          "6": 52,
+          "7": 22,
+          "8": 21,
+          "9": 19,
+          "10": 9,
+          "11": 2,
+          "12": 4,
+          "13": 2,
+          "14": 2,
+          "15": 6,
+          "16": 1,
+          "17": 2,
+          "18": 3,
+          "19": 10,
+          "20": 8,
+          "21": 7,
+          "22": 3,
+          "23": 7,
+          "24": 1,
+          "25": 1
+        }
+      },
+      "computed": {
+        "counts": {
+          "3": 32,
+          "4": 111,
+          "5": 1222,
+          "6": 52,
+          "7": 22,
+          "8": 21,
+          "9": 19,
+          "10": 9,
+          "11": 2,
+          "12": 4,
+          "13": 2,
+          "14": 2,
+          "15": 6,
+          "16": 1,
+          "17": 2,
+          "18": 3,
+          "19": 10,
+          "20": 8,
+          "21": 7,
+          "22": 3,
+          "23": 7,
+          "24": 1,
+          "25": 1
+        }
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "target_log_duration",
+      "expected": {
+        "mean": -0.1795,
+        "sd": 0.5405
+      },
+      "computed": {
+        "mean": -0.1794679813379479,
+        "sd": 0.540451414668645
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "target_log_duration_residual_sd",
+      "expected": {
+        "click_count": 0.5138,
+        "type": 0.2081
+      },
+      "computed": {
+        "click_count": 0.5137796745424167,
+        "type": 0.20810453335316262
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r",
+      "expected": {
+        "own": 0.94,
+        "partner": 0.772
+      },
+      "computed": {
+        "own": 0.9401760329040567,
+        "partner": 0.7718206094322729
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r_within_click_count",
+      "expected": {
+        "own": 0.933,
+        "partner": 0.769
+      },
+      "computed": {
+        "own": 0.9327886594321535,
+        "partner": 0.7692483090215771
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r_within_type",
+      "expected": {
+        "own": 0.568,
+        "partner": 0.369
+      },
+      "computed": {
+        "own": 0.5678069204951752,
+        "partner": 0.36912556881422376
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r_within_type:self_continuation",
+      "expected": {
+        "n": 461,
+        "own": 0.616,
+        "partner": 0.301
+      },
+      "computed": {
+        "n": 461,
+        "own": 0.6160607479724368,
+        "partner": 0.30120130962124947
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r_within_type:switch",
+      "expected": {
+        "n": 645,
+        "own": 0.556,
+        "partner": 0.376
+      },
+      "computed": {
+        "n": 645,
+        "own": 0.5563710625800287,
+        "partner": 0.37643283632309
+      },
+      "failed_fields": [],
+      "passed": true
+    },
+    {
+      "name": "lag1_r_within_type:overlap",
+      "expected": {
+        "n": 441,
+        "own": 0.541,
+        "partner": 0.445
+      },
+      "computed": {
+        "n": 441,
+        "own": 0.5408131891541523,
+        "partner": 0.4449022599849834
+      },
+      "failed_fields": [],
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "git": {
+    "commit": "784b14d5693375ebdf7da4bfbabc71b293b8a4c4",
+    "dirty_paths": []
+  },
+  "input_sha256": {
+    "config/rq1_duration_lattice.json": "d088e14a9aad06188054586451ddbcfca756e8aa102cd2b8e2cd861ba6f32409",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "data/raw/dswp-2014-2016-retagged-maor-2025.csv": "17b37605e56a21fb96bff301a2d43c4139693f7def23d4e3801d046026069856",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "config/rq1_evaluation_v4.json": "17ea02e16f8dbebb4fde8a3ea6c0785be1ed8ef1b03d89535cd920043aa5d6a0"
+  }
+}
