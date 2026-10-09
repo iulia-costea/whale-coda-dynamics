@@ -530,6 +530,83 @@ class DurationLatticeSmokeTests(unittest.TestCase):
                 box.run('duration_lattice', config, '--stage', 'fit', env={'OPENBLAS_NUM_THREADS': '4'})
 
 
+
+@unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
+class RubatoSmokeTests(unittest.TestCase):
+    def test_rubato_runner(self):
+        """DEC-29: checks, fit (R on A and D, gates, then DurA and Dur), report; then the report alone regenerates byte for
+        byte, and fitting refuses more than one BLAS thread."""
+        raw = 'data/raw/dswp-2014-2016-retagged-maor-2025.csv'
+        d_manifest = 'data/processed/rq2_d_rhythm_tempo_folds/manifest.json'
+        d_targets = 'data/processed/rq2_d_rhythm_tempo_targets.jsonl'
+        d_v4 = 'data/results/rq2_d_rhythm_tempo_logistic_v4/'
+        gate_files = [d + f for d in (V4, d_v4) for f in ('predictions.jsonl', 'l2_selection.jsonl', 'evaluation/summary.json')]
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(raw, d_manifest, d_targets, *gate_files)
+            box.evaluation('eval_a.json', PRIMARY, [42])
+            box.evaluation('eval_d.json', d_manifest, [42])
+            box.config('logistic_a.json', manifest=PRIMARY, evaluation_config='config/eval_a.json', **LOGISTIC_V2)
+            box.config('logistic_d.json', manifest=d_manifest, evaluation_config='config/eval_d.json',
+                       skip_nonconverged_candidates=True, **LOGISTIC_V2)
+            external = ['config/rubato.json', 'data/processed/rq1_targets.jsonl', 'config/logistic_a.json', PRIMARY,
+                        'config/eval_a.json', 'config/logistic_d.json', d_manifest, 'config/eval_d.json', d_targets]
+            out = 'out/rubato/'
+            variant_files = [f'{out}fit/{inv}/{v}/{name}' for inv in ('D', 'A') for v in ('R', 'DurA', 'Dur')
+                             for name in ('summary.json', 'l2_selection.jsonl', 'scored.jsonl', 'coefficients.jsonl')]
+            report_inputs = external + [out + 'checks/summary.json', out + 'fit/summary.json'] + variant_files
+            partner = lambda inv: dict(name='partner', inventory=inv, full=['Dur', 'A_B_S'], reduced=['Dur', 'A_S'])  # noqa: E731
+            durations = lambda inv: dict(name='durations', inventory=inv, full=['Dur', 'A_B_S'], reduced=['DurA', 'A_B_S'])  # noqa: E731
+            config = box.config(
+                'rubato.json', targets='data/processed/rq1_targets.jsonl', raw_source=raw, output_directory='out/rubato',
+                report='out/rubato.md', require_clean_tree=False, history_lags=3,
+                inventories=dict(A=dict(label='A', description='types', logistic_config='config/logistic_a.json',
+                                        v4_results_directory=V4.rstrip('/')),
+                                 D=dict(label='D', description='rhythm x tempo', logistic_config='config/logistic_d.json',
+                                        v4_results_directory=d_v4.rstrip('/'))),
+                fit_order=['D', 'A'], variants=dict(R=[], DurA=['A_log_duration'], Dur=['A_log_duration', 'B_log_duration']),
+                reference_variant='R', reuse_check_fold='test-2014-04-16',
+                scored_conditions=['A', 'B', 'A_B', 'A_S', 'B_S', 'A_B_S'], primary=partner('D'),
+                secondary=[partner('A'), durations('A'), durations('D')], alpha=0.05,
+                gate=dict(enforce=False, maximum_penalty_differences=1, log_likelihood_tolerance_bits=1e-5,
+                          probability_listing_threshold=1e-5),
+                checks=dict(enforce=True, tolerance=5e-4, source='smoke test',
+                            expected={'rows': {'count': 2075}, 'own_lags': {'counts': [1547, 1324, 1088]},
+                                      'inventory_alignment:D': {'mismatched_rows': 0, 'other_fields_differing': []}}),
+                input_files=dict(checks=external + [raw], fit=external + [out + 'checks/summary.json'] + gate_files,
+                                 report=report_inputs))
+            box.run('rubato', config, '--workers', '4', env=ONE_BLAS_THREAD)
+            summary = json.loads((box.root / 'out/rubato/summary.json').read_text(encoding='utf-8'))
+            self.assertTrue(summary['checks']['passed'])
+            self.assertEqual(list(summary['input_sha256']), report_inputs)
+            self.assertEqual([(t['role'], t['inventory']) for t in summary['tested']],
+                             [('primary', 'D'), ('secondary', 'A'), ('secondary', 'A'), ('secondary', 'D')])
+            self.assertNotIn('holm_p', summary['tested'][0]['components']['log_likelihood_bits'])
+            self.assertTrue(all('holm_p' in t['components']['log_likelihood_bits'] for t in summary['tested'][1:]))
+            self.assertTrue(all('sign_flip_p_two_sided' in t['components']['log_likelihood_bits'] for t in summary['tested']))
+            self.assertEqual({k: len(r['dec23']['checks']) for inv in ('D', 'A') for k, r in summary['stop_rules'][inv].items()},
+                             {'R': 16, 'DurA': 16, 'Dur': 16})
+            self.assertEqual(summary['reused_conditions'], {'D:R': [], 'D:DurA': ['none', 'S', 'B', 'B_S'], 'D:Dur': ['none', 'S'],
+                                                            'A:R': [], 'A:DurA': ['none', 'S', 'B', 'B_S'], 'A:Dur': ['none', 'S']})
+            self.assertTrue(all(c['identical'] for c in summary['fit']['reuse_checks'].values()))
+            self.assertEqual(summary['fit']['same_inputs'], {'D:Dur=DurA': {'A': True, 'A_S': True},
+                                                             'A:Dur=DurA': {'A': True, 'A_S': True}})
+            self.assertEqual(summary['gates']['D']['fits_compared'], 98)
+            norms = summary['duration_weight_norms']['D']
+            self.assertEqual(norms['DurA']['A_B_S']['A_log_duration']['folds'], 14)
+            self.assertIsNone(norms['DurA']['A_B_S']['B_log_duration'])
+            self.assertEqual(norms['Dur']['A_B_S']['B_log_duration']['folds'], 14)
+            self.assertEqual(set(summary['partner_by_turn_category']['A']), {'self_continuation', 'switch', 'overlap'})
+            self.assertEqual(len(summary['added_inputs']['D']), 4 + 4 + 6)
+            self.assertEqual(len(summary['descriptive']['A']), 7)
+            self.assertTrue((box.root / 'out/rubato.md').read_text(encoding='utf-8').startswith('# RQ2 rubato inputs'))
+            regenerated = ('out/rubato.md', 'out/rubato/summary.json')
+            before = {rel: (box.root / rel).read_bytes() for rel in regenerated}
+            box.run('rubato', config, '--stage', 'report')
+            self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
+            with self.assertRaises(AssertionError):  # fitting refuses more than one BLAS thread
+                box.run('rubato', config, '--stage', 'fit', env={'OPENBLAS_NUM_THREADS': '4'})
+
 RQ3_INPUTS = ('data/processed/rq3/rq3_codas.csv','data/processed/rq3/rq3_folds.csv',
               'data/results/rq3/calibration/self_scores.csv', 'data/results/rq3/calibration/self_calibration.csv',
               'data/results/rq3/transfer_matrix/scores.csv', 'data/results/rq3/transfer_matrix/summary.csv')

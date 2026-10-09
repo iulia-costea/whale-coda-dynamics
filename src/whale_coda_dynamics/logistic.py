@@ -15,14 +15,22 @@ from .preprocessing.folds import prepare_fold
 from .preprocessing.io_utils import read_json, read_jsonl, write_jsonl, write_text
 
 
+# DEC-29: continuous history fields, each a per-row list aligned with its history field (same length, oldest
+# first), e.g. the log durations of the codas in A_history.
+CONTINUOUS_HISTORY_FIELDS = {'A_log_duration': 'A_history', 'B_log_duration': 'B_history'}
+
+
 def feature_names(fields, vocabulary, categories, order, history_orders=None):
     """Encoder's column names, in column order (the intercept, appended by transform, is unnamed).
-    `order` lags per history field, unless `history_orders` gives that field its own count (as in Encoder)."""
+    `order` lags per history field, unless `history_orders` gives that field its own count (as in Encoder).
+    A continuous history field (DEC-29) gets one column per lag of its history field, `<field>:lag<k>`."""
     history_orders = history_orders or {}
     names = []
     for f in fields:
         if f.endswith('_history'):
             names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, history_orders.get(f, order)+1) for label in vocabulary)
+        elif f in CONTINUOUS_HISTORY_FIELDS:
+            names.extend(f'{f}:lag{lag}' for lag in range(1, history_orders.get(CONTINUOUS_HISTORY_FIELDS[f], order)+1))
         elif f == 'turn_category':
             names.extend('turn:'+c for c in categories)
         elif f == 'retrospective_delay_s':
@@ -36,7 +44,12 @@ class Encoder:
     """Lag one-hot vectors; raw and log1p timing, each standardized on train.
 
     `order` lags per history field, unless `history_orders` gives that field its own
-    count (DEC-25: {'A_history': k}); fields it doesn't list keep `order`."""
+    count (DEC-25: {'A_history': k}); fields it doesn't list keep `order`.
+
+    A continuous history field (CONTINUOUS_HISTORY_FIELDS, DEC-29) gives one column per lag of its
+    history field: the value at that lag, standardized on the column's non-missing training values
+    (mean and population SD, as timing is), and 0 when the lag is missing. Without such a field
+    every operation is the one above, unchanged."""
     def __init__(self, train, vocabulary, fields, order=3, history_orders=None):
         if not train or any(r['split'] != 'train' for r in train):
             raise ValueError('Encoder fitting requires training rows')
@@ -54,13 +67,18 @@ class Encoder:
         for j, name in enumerate(self.names):
             if name in ('gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s'):
                 self.mean[j], self.scale[j] = x[:, j].mean(), x[:, j].std() or 1.0
+        for j in self.continuous_columns():
+            present = x[~np.isnan(x[:, j]), j]
+            if not len(present):
+                raise ValueError(f'{self.names[j]}: no training row has this lag')
+            self.mean[j], self.scale[j] = present.mean(), present.std() or 1.0
 
     @classmethod
     def from_record(cls, record):
         """The encoder of a stored fit (a models.jsonl row of v2-v4), from its stored vocabulary, fields,
         order, per-field orders (DEC-25; absent in rows that predate them), turn categories and
-        standardisation; nothing is refitted. The stored feature names must be exactly the names those
-        settings produce."""
+        standardisation (continuous history fields, DEC-29, included); nothing is refitted. The stored
+        feature names must be exactly the names those settings produce."""
         encoder = cls.__new__(cls)
         encoder.vocabulary, encoder.fields, encoder.order = record['vocabulary'], record['fields'], record['order']
         encoder.history_orders = dict(record.get('history_orders', {}))
@@ -77,7 +95,12 @@ class Encoder:
     def lags(self, field):
         return self.history_orders.get(field, self.order)
 
+    def continuous_columns(self):
+        """Indices of the continuous history columns (DEC-29); empty without such a field."""
+        return [j for j, name in enumerate(self.names) if name.split(':')[0] in CONTINUOUS_HISTORY_FIELDS]
+
     def raw(self, rows):
+        """Unstandardized columns; a missing lag of a continuous history field is NaN."""
         result = []
         for r in rows:
             values = []
@@ -86,6 +109,18 @@ class Encoder:
                     for lag in range(1, self.lags(f)+1):
                         label = r[f][-lag] if len(r[f]) >= lag else None
                         values.extend(float(label == t) for t in self.vocabulary)
+                elif f in CONTINUOUS_HISTORY_FIELDS:
+                    history = r[CONTINUOUS_HISTORY_FIELDS[f]]
+                    if len(r[f]) != len(history):
+                        raise ValueError(f'{f} is not aligned with {CONTINUOUS_HISTORY_FIELDS[f]}')
+                    for lag in range(1, self.lags(CONTINUOUS_HISTORY_FIELDS[f])+1):
+                        if len(r[f]) < lag:
+                            values.append(np.nan)
+                            continue
+                        v = float(r[f][-lag])
+                        if not np.isfinite(v):
+                            raise ValueError(f'Invalid {f} value')
+                        values.append(v)
                 elif f == 'turn_category':
                     values.extend(float(r[f] == c) for c in self.categories)
                 elif f in ('gap_s', 'overlap_elapsed_s'):
@@ -108,6 +143,11 @@ class Encoder:
 
     def transform(self, rows):
         x = (self.raw(rows) - self.mean) / self.scale
+        columns = self.continuous_columns()
+        if columns:
+            block = x[:, columns]
+            block[np.isnan(block)] = 0.0  # a missing lag: 0 after standardizing (DEC-29)
+            x[:, columns] = block
         return np.column_stack([x, np.ones(len(rows))])
 
 
@@ -226,7 +266,8 @@ def probabilities(x, w, beta=None, gamma=None, own_last_idx=None, partner_last_i
 def is_timing_feature(name):
     """DEC-1/DEC-20: the S block, everything Encoder derives from turn_category,
     gap_s, overlap_elapsed_s or retrospective_delay_s. Everything else (history
-    lag one-hots, and the intercept, which Encoder appends unnamed) is history."""
+    lag one-hots, continuous history columns such as `A_log_duration:lag1` (DEC-29),
+    and the intercept, which Encoder appends unnamed) is history."""
     return name.startswith('turn:') or name in (
         'gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s')
 
@@ -511,7 +552,10 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config, class_features=Non
     class_features(mapped, policy, fields), with the fold's mapped rows (every split and target), and returns
     None (that condition is fitted exactly as without it) or (names, featurize): featurize maps rows to one
     rows x classes matrix per name, each given one shared scalar (select_l2_and_fit). The names and fitted
-    scalars are stored with the model and the selection record."""
+    scalars are stored with the model and the selection record.
+
+    The work is fit_v2_fold per fold, then evaluate_v2_lattice; rubato.py (DEC-29) calls the two directly to
+    fit folds in parallel and reuse fits across variants."""
     if evaluation_config['seeds'] != [config['seed']]:
         raise ValueError('Evaluation seed configuration mismatch')
     predictions, baselines, models, diagnostics, selections = [], [], [], [], []
@@ -519,60 +563,87 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config, class_features=Non
         mapped, policy = prepare_fold(rows, fold, manifest['preparation_configuration'])
         if policy != fold['vocabulary_policy']:
             raise ValueError('Recomputed fold policy differs from manifest')
-        train = [r for r in mapped if r['split']=='train' and r['comparison_eligible']]
-        validation = [r for r in mapped if r['split']=='validation' and r['comparison_eligible']]
-        test = [r for r in mapped if r['split']=='test' and r['comparison_eligible']]
-        if not validation:
-            raise ValueError('Fold has no validation comparison targets for L2 selection')
-        if {r['coda_id'] for r in validation} & {r['coda_id'] for r in test}:
-            raise ValueError('Validation and test rows overlap')
-        vocab, prior = policy['vocabulary'], policy['label_prior']
-        rate = sum(r['Ct']==r['A_history'][-1] for r in train)/len(train)
-        majority = max(sorted(prior), key=prior.get)
-        for row in test:
-            p = repeat_distribution(row['A_history'][-1], rate, prior)
-            baselines.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],recording_date=row['recording_date'],
-                                  target=row['Ct'],majority=majority,repeat_probabilities=p,
-                                  repeat_prediction=max(sorted(p),key=p.get),
-                                  repeat_log_likelihood_bits=log_likelihood_bits(p[row['Ct']]),training_repeat_rate=rate))
-        for condition, fields in manifest['input_conditions'].items():
-            if condition == 'none':
-                p = np.array([[prior[t] for t in vocab]]*len(test))
-            else:
-                extra = class_features(mapped, policy, fields) if class_features is not None else None
-                names, featurize = extra if extra is not None else (None, None)
-                try:
-                    encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config, featurize)
-                except NonConvergenceError as error:
-                    if not config.get('skip_nonconverged_candidates', False):
-                        raise
-                    raise NonConvergenceError(f"{fold['fold_id']}, condition {condition}: {error}") from error
-                own_test = last_label_index(test, 'A_history', vocab) if 'A_history' in fields else None
-                partner_test = last_label_index(test, 'B_history', vocab) if 'B_history' in fields else None
-                class_test = {} if featurize is None else dict(class_weights=chosen['class_weights'],
-                                                               class_features=featurize(test))
-                p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test,
-                                  **class_test)
-                stored_class = {} if featurize is None else dict(class_features=list(names),
-                                                                 class_weights=chosen['class_weights'].tolist())
-                diagnostics.append(dict(fold_id=fold['fold_id'],condition=condition,**chosen['convergence']))
-                models.append(dict(fold_id=fold['fold_id'],condition=condition,vocabulary=vocab,
-                                   fields=fields,order=encoder.order,
-                                   **({'history_orders': encoder.history_orders} if encoder.history_orders else {}),
-                                   categories=encoder.categories,
-                                   feature_names=encoder.names+['intercept'],mean=encoder.mean.tolist(),
-                                   scale=encoder.scale.tolist(),weights=chosen['w'].tolist(),
-                                   beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2'],
-                                   chosen_l2_s=chosen['l2_s'],**stored_class))
-                selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
-                                       chosen_l2_s=chosen['l2_s'],**stored_class,
-                                       grid=[dict(l2=g['l2'],l2_s=g['l2_s'],nonconverged=g['nonconverged']) if 'nonconverged' in g else
-                                             dict(l2=g['l2'],l2_s=g['l2_s'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
-                                                  convergence=g['convergence']) for g in grid]))
-            for row, probs in zip(test,p):
-                predictions.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],condition=condition,
-                                        seed=config['seed'],probabilities=dict(zip(vocab,map(float,probs)))))
-        print(f"Finished {fold['fold_id']}: {len(test)} test targets", flush=True)
+        fitted = fit_v2_fold(config, fold, mapped, policy, manifest['input_conditions'], class_features)
+        predictions += fitted['predictions']
+        baselines += fitted['baselines']
+        models += fitted['models']
+        diagnostics += fitted['diagnostics']
+        selections += fitted['selections']
+        print(f"Finished {fold['fold_id']}: {fitted['test_targets']} test targets", flush=True)
+    evaluated = evaluate_v2_lattice(config, manifest, rows, evaluation_config, predictions, baselines)
+    return dict(predictions=predictions, baselines=baselines, models=models, diagnostics=diagnostics,
+                selections=selections, **evaluated)
+
+
+def fit_v2_fold(config, fold, mapped, policy, conditions, class_features=None):
+    """fit_v2_lattice's work on one fold: the repeat-own-last and majority baselines for its test targets, and
+    for each of `conditions` (name -> fields, in order) the validation-day penalty search and the test-day
+    predictions. `mapped` and `policy` are prepare_fold's for this fold. Returns the fold's predictions,
+    baselines, models, diagnostics and selections (fit_v2_lattice's records) and its number of test targets."""
+    predictions, baselines, models, diagnostics, selections = [], [], [], [], []
+    train = [r for r in mapped if r['split']=='train' and r['comparison_eligible']]
+    validation = [r for r in mapped if r['split']=='validation' and r['comparison_eligible']]
+    test = [r for r in mapped if r['split']=='test' and r['comparison_eligible']]
+    if not validation:
+        raise ValueError('Fold has no validation comparison targets for L2 selection')
+    if {r['coda_id'] for r in validation} & {r['coda_id'] for r in test}:
+        raise ValueError('Validation and test rows overlap')
+    vocab, prior = policy['vocabulary'], policy['label_prior']
+    rate = sum(r['Ct']==r['A_history'][-1] for r in train)/len(train)
+    majority = max(sorted(prior), key=prior.get)
+    for row in test:
+        p = repeat_distribution(row['A_history'][-1], rate, prior)
+        baselines.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],recording_date=row['recording_date'],
+                              target=row['Ct'],majority=majority,repeat_probabilities=p,
+                              repeat_prediction=max(sorted(p),key=p.get),
+                              repeat_log_likelihood_bits=log_likelihood_bits(p[row['Ct']]),training_repeat_rate=rate))
+    for condition, fields in conditions.items():
+        if condition == 'none':
+            p = np.array([[prior[t] for t in vocab]]*len(test))
+        else:
+            extra = class_features(mapped, policy, fields) if class_features is not None else None
+            names, featurize = extra if extra is not None else (None, None)
+            try:
+                encoder, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config, featurize)
+            except NonConvergenceError as error:
+                if not config.get('skip_nonconverged_candidates', False):
+                    raise
+                raise NonConvergenceError(f"{fold['fold_id']}, condition {condition}: {error}") from error
+            own_test = last_label_index(test, 'A_history', vocab) if 'A_history' in fields else None
+            partner_test = last_label_index(test, 'B_history', vocab) if 'B_history' in fields else None
+            class_test = {} if featurize is None else dict(class_weights=chosen['class_weights'],
+                                                           class_features=featurize(test))
+            p = probabilities(encoder.transform(test), chosen['w'], chosen['beta'], chosen['gamma'], own_test, partner_test,
+                              **class_test)
+            stored_class = {} if featurize is None else dict(class_features=list(names),
+                                                             class_weights=chosen['class_weights'].tolist())
+            diagnostics.append(dict(fold_id=fold['fold_id'],condition=condition,**chosen['convergence']))
+            models.append(dict(fold_id=fold['fold_id'],condition=condition,vocabulary=vocab,
+                               fields=fields,order=encoder.order,
+                               **({'history_orders': encoder.history_orders} if encoder.history_orders else {}),
+                               categories=encoder.categories,
+                               feature_names=encoder.names+['intercept'],mean=encoder.mean.tolist(),
+                               scale=encoder.scale.tolist(),weights=chosen['w'].tolist(),
+                               beta=chosen['beta'],gamma=chosen['gamma'],chosen_l2=chosen['l2'],
+                               chosen_l2_s=chosen['l2_s'],**stored_class))
+            selections.append(dict(fold_id=fold['fold_id'],condition=condition,chosen_l2=chosen['l2'],
+                                   chosen_l2_s=chosen['l2_s'],**stored_class,
+                                   grid=[dict(l2=g['l2'],l2_s=g['l2_s'],nonconverged=g['nonconverged']) if 'nonconverged' in g else
+                                         dict(l2=g['l2'],l2_s=g['l2_s'],validation_log_likelihood_bits=g['validation_log_likelihood_bits'],
+                                              convergence=g['convergence']) for g in grid]))
+        for row, probs in zip(test,p):
+            predictions.append(dict(coda_id=row['coda_id'],fold_id=fold['fold_id'],condition=condition,
+                                    seed=config['seed'],probabilities=dict(zip(vocab,map(float,probs)))))
+    return dict(predictions=predictions, baselines=baselines, models=models, diagnostics=diagnostics,
+                selections=selections, test_targets=len(test))
+
+
+def evaluate_v2_lattice(config, manifest, rows, evaluation_config, predictions, baselines):
+    """fit_v2_lattice's evaluation of every fold's predictions and baselines: the shared evaluate(), the
+    baselines' metrics and each A-condition against repeat-own-last. The baselines must be in fold order, as
+    fit_v2_lattice collects them (their mean log-likelihood is a plain sum)."""
+    if evaluation_config['seeds'] != [config['seed']]:
+        raise ValueError('Evaluation seed configuration mismatch')
     summary, scored, paired = evaluate(predictions,manifest,rows,[config['seed']],evaluation_config['bootstrap_replicates'],
                                        evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
     baseline_metrics = {'majority':classification_metrics([r['target'] for r in baselines],[r['majority'] for r in baselines]),
@@ -586,9 +657,8 @@ def fit_v2_lattice(config, manifest, rows, evaluation_config, class_features=Non
             if r['condition']==condition:
                 days.setdefault(r['recording_date'],[]).append(r['log_likelihood_bits']-indexed[r['coda_id']]['repeat_log_likelihood_bits'])
         baseline_checks[condition] = day_bootstrap_bits(days,evaluation_config['bootstrap_replicates'],evaluation_config['bootstrap_seed'],evaluation_config['confidence'])
-    return dict(predictions=predictions, baselines=baselines, models=models, diagnostics=diagnostics,
-                selections=selections, summary=summary, scored=scored, paired=paired,
-                baseline_metrics=baseline_metrics, baseline_checks=baseline_checks)
+    return dict(summary=summary, scored=scored, paired=paired, baseline_metrics=baseline_metrics,
+                baseline_checks=baseline_checks)
 
 
 def _fit_and_evaluate_v2(config_path):

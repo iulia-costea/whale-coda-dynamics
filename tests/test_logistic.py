@@ -292,3 +292,211 @@ class NonConvergedCandidateTests(unittest.TestCase):
         self.assertIn('| test-1 | A | 3 | 2 |',text)
         self.assertNotIn('| test-2 |',text)
         self.assertIn('No candidate failed','\n'.join(nonconvergence_lines(selections[1:],3,1)))
+
+
+# ---------------------------------------------------------------- DEC-29: continuous history fields
+
+def pre_dec29_feature_names(fields, vocabulary, categories, order, history_orders=None):
+    """logistic.feature_names as it was before DEC-29 (commit d3a8c4a), kept verbatim to check that every path without
+    a continuous history field is unchanged."""
+    history_orders = history_orders or {}
+    names = []
+    for f in fields:
+        if f.endswith('_history'):
+            names.extend(f'{f}:lag{lag}:{label}' for lag in range(1, history_orders.get(f, order)+1) for label in vocabulary)
+        elif f == 'turn_category':
+            names.extend('turn:'+c for c in categories)
+        elif f == 'retrospective_delay_s':
+            names.append(f)
+        else:
+            names.extend([f, 'log1p:'+f])
+    return names
+
+
+class PreDec29Encoder:
+    """logistic.Encoder as it was before DEC-29 (commit d3a8c4a), verbatim except for the names."""
+    def __init__(self, train, vocabulary, fields, order=3, history_orders=None):
+        if not train or any(r['split'] != 'train' for r in train):
+            raise ValueError('Encoder fitting requires training rows')
+        if type(order) is not int or order < 1:
+            raise ValueError('Invalid history order')
+        history_orders = dict(history_orders or {})
+        if any(not f.endswith('_history') or type(k) is not int or k < 1 for f, k in history_orders.items()):
+            raise ValueError('Invalid per-field history order')
+        self.vocabulary, self.fields, self.order = vocabulary, fields, order
+        self.history_orders = history_orders
+        self.categories = sorted({r['turn_category'] for r in train}) if 'turn_category' in fields else []
+        self.names = pre_dec29_feature_names(fields, vocabulary, self.categories, order, history_orders)
+        x = self.raw(train)
+        self.mean, self.scale = np.zeros(x.shape[1]), np.ones(x.shape[1])
+        for j, name in enumerate(self.names):
+            if name in ('gap_s', 'overlap_elapsed_s', 'log1p:gap_s', 'log1p:overlap_elapsed_s', 'retrospective_delay_s'):
+                self.mean[j], self.scale[j] = x[:, j].mean(), x[:, j].std() or 1.0
+
+    def lags(self, field):
+        return self.history_orders.get(field, self.order)
+
+    def raw(self, rows):
+        result = []
+        for r in rows:
+            values = []
+            for f in self.fields:
+                if f.endswith('_history'):
+                    for lag in range(1, self.lags(f)+1):
+                        label = r[f][-lag] if len(r[f]) >= lag else None
+                        values.extend(float(label == t) for t in self.vocabulary)
+                elif f == 'turn_category':
+                    values.extend(float(r[f] == c) for c in self.categories)
+                elif f in ('gap_s', 'overlap_elapsed_s'):
+                    v = r[f]
+                    if not np.isfinite(v) or v < 0:
+                        raise ValueError('Invalid onset-available timing')
+                    values.extend([v, np.log1p(v)])
+                elif f == 'retrospective_delay_s':
+                    v = r[f]
+                    if not np.isfinite(v):
+                        raise ValueError('Invalid retrospective delay')
+                    values.append(v)
+                else:
+                    raise ValueError(f'Unsupported input field {f}')
+            result.append(values)
+        return np.asarray(result, dtype=float)
+
+    def transform(self, rows):
+        x = (self.raw(rows) - self.mean) / self.scale
+        return np.column_stack([x, np.ones(len(rows))])
+
+
+def duration_rows(split, n, seed):
+    """Rows with histories of varying length and aligned log-duration lists."""
+    rng = np.random.RandomState(seed)
+    vocab = ['a', 'b', 'c']
+    rows = []
+    for i in range(n):
+        a, b = 1 + rng.randint(5), rng.randint(4)
+        rows.append(dict(coda_id=f'{split}-{i}', split=split, Ct=vocab[rng.randint(3)],
+                         A_history=[vocab[rng.randint(3)] for _ in range(a)], B_history=[vocab[rng.randint(3)] for _ in range(b)],
+                         A_log_duration=list(rng.normal(-0.2, 0.5, a)), B_log_duration=list(rng.normal(0.1, 0.4, b)),
+                         turn_category=['switch', 'overlap'][i % 2], gap_s=float(rng.rand()), overlap_elapsed_s=0.0))
+    return rows
+
+
+class ContinuousHistoryFieldTests(unittest.TestCase):
+    """DEC-29: continuous history fields (the previous codas' log durations) in Encoder."""
+    vocab = ['a', 'b', 'c', 'UNK']
+    fields = ['A_history', 'A_log_duration', 'B_history', 'B_log_duration', 'turn_category', 'gap_s', 'overlap_elapsed_s']
+
+    def test_column_names_and_order(self):
+        train = duration_rows('train', 30, 1)
+        e = Encoder(train, self.vocab, self.fields)
+        one_hots = lambda f: [f'{f}:lag{lag}:{t}' for lag in (1, 2, 3) for t in self.vocab]  # noqa: E731
+        self.assertEqual(e.names, one_hots('A_history') + ['A_log_duration:lag1', 'A_log_duration:lag2', 'A_log_duration:lag3']
+                         + one_hots('B_history') + ['B_log_duration:lag1', 'B_log_duration:lag2', 'B_log_duration:lag3']
+                         + ['turn:overlap', 'turn:switch', 'gap_s', 'log1p:gap_s', 'overlap_elapsed_s', 'log1p:overlap_elapsed_s'])
+        self.assertEqual(e.continuous_columns(), [12, 13, 14, 27, 28, 29])
+        self.assertFalse(any(is_timing_feature(n) for n in e.names if 'log_duration' in n))  # history block
+        self.assertEqual(logistic.feature_names(self.fields, self.vocab, e.categories, 3), e.names)
+        e2 = Encoder(train, self.vocab, self.fields, 3, {'A_history': 2})  # lags follow the history field's order
+        self.assertEqual([n for n in e2.names if n.startswith('A_log')], ['A_log_duration:lag1', 'A_log_duration:lag2'])
+        self.assertEqual([n for n in e2.names if n.startswith('B_log')], [f'B_log_duration:lag{k}' for k in (1, 2, 3)])
+
+    def test_standardisation_uses_non_missing_training_values_only(self):
+        train, validation = duration_rows('train', 40, 2), duration_rows('validation', 15, 3)
+        e = Encoder(train, self.vocab, self.fields)
+        missing = 0
+        for field in ('A_log_duration', 'B_log_duration'):
+            for lag in (1, 2, 3):
+                j = e.names.index(f'{field}:lag{lag}')
+                present = np.array([r[field][-lag] for r in train if len(r[field]) >= lag])
+                missing += len(train) - len(present)
+                self.assertGreater(len(present), 0)
+                self.assertEqual(e.mean[j], present.mean())
+                self.assertEqual(e.scale[j], present.std())
+        self.assertGreater(missing, 20)  # the training rows do have missing lags, and they are left out
+        before = (e.mean.copy(), e.scale.copy())
+        shifted = [dict(r, A_log_duration=[v + 5 for v in r['A_log_duration']]) for r in validation]
+        x = e.transform(shifted)  # validation rows never change the standardisation
+        np.testing.assert_array_equal(e.mean, before[0])
+        np.testing.assert_array_equal(e.scale, before[1])
+        j = e.names.index('A_log_duration:lag1')
+        np.testing.assert_allclose(x[:, j], [(r['A_log_duration'][-1] + 5 - e.mean[j]) / e.scale[j] for r in validation])
+
+    def test_missing_lag_gives_zero(self):
+        train = duration_rows('train', 40, 4)
+        e = Encoder(train, self.vocab, self.fields)
+        x = e.transform(train)
+        for i, r in enumerate(train):
+            for field in ('A_log_duration', 'B_log_duration'):
+                for lag in (1, 2, 3):
+                    j = e.names.index(f'{field}:lag{lag}')
+                    if len(r[field]) < lag:
+                        self.assertEqual(x[i, j], 0.0)
+                    else:
+                        self.assertAlmostEqual(x[i, j], (r[field][-lag] - e.mean[j]) / e.scale[j], places=12)
+        self.assertFalse(np.isnan(x).any())
+        constant = [dict(r, A_log_duration=[0.3] * len(r['A_history'])) for r in train]
+        e_constant = Encoder(constant, self.vocab, self.fields)
+        j = e_constant.names.index('A_log_duration:lag1')
+        self.assertEqual((e_constant.mean[j], e_constant.scale[j]), (0.3, 1.0))  # SD 0 becomes 1, as for timing
+
+    def test_invalid_continuous_fields_raise(self):
+        train = duration_rows('train', 10, 5)
+        with self.assertRaises(ValueError):
+            Encoder([dict(r, A_log_duration=r['A_log_duration'][:-1]) for r in train], self.vocab, self.fields)
+        with self.assertRaises(ValueError):
+            Encoder([dict(r, A_log_duration=[float('nan')] * len(r['A_history'])) for r in train], self.vocab, self.fields)
+        with self.assertRaises(ValueError):  # no training row has lag 3 of B
+            Encoder([dict(r, B_history=r['B_history'][:2], B_log_duration=r['B_log_duration'][:2]) for r in train],
+                    self.vocab, self.fields)
+
+    def test_from_record_rebuilds_the_encoder(self):
+        train, validation = duration_rows('train', 40, 6), duration_rows('validation', 15, 7)
+        e = Encoder(train, self.vocab, self.fields)
+        record = dict(vocabulary=self.vocab, fields=self.fields, order=3, categories=e.categories,
+                      feature_names=e.names + ['intercept'], mean=e.mean.tolist(), scale=e.scale.tolist())
+        rebuilt = Encoder.from_record(record)
+        self.assertEqual(rebuilt.names, e.names)
+        np.testing.assert_array_equal(rebuilt.transform(validation), e.transform(validation))
+
+    def test_fit_with_duration_inputs(self):
+        train, validation = duration_rows('train', 60, 8), duration_rows('validation', 20, 9)
+        config = dict(history_order=3, l2_grid=[.01, .1], max_iterations=1000, gradient_tolerance=1e-6)
+        encoder, chosen, grid = select_l2_and_fit(train, validation, self.vocab, self.fields, config)
+        self.assertEqual(len(grid), 4)  # history and S penalties searched jointly; durations are history
+        self.assertEqual(chosen['w'].shape, (len(encoder.names) + 1, len(self.vocab)))
+        self.assertIsNotNone(chosen['beta'])
+        self.assertIsNotNone(chosen['gamma'])
+
+    def test_without_continuous_fields_every_path_is_unchanged(self):
+        """Feature names, standardisation, design matrices and a fit are bitwise those of the encoder before DEC-29,
+        on rows with and without duration lists, with and without per-field orders."""
+        vocab = ['a', 'b', 'c', 'UNK']
+        conditions = [[], ['turn_category', 'gap_s', 'overlap_elapsed_s'], ['A_history'], ['B_history'], ['A_history', 'B_history'],
+                      ['A_history', 'turn_category', 'gap_s', 'overlap_elapsed_s'],
+                      ['A_history', 'B_history', 'turn_category', 'gap_s', 'overlap_elapsed_s'],
+                      ['turn_category', 'retrospective_delay_s']]
+        train, test = duration_rows('train', 50, 10), duration_rows('test', 20, 11)
+        for rows in (train, test):
+            for i, r in enumerate(rows):
+                r['retrospective_delay_s'] = float(i % 7) - 2.5
+        plain = lambda rows: [{k: v for k, v in r.items() if not k.endswith('log_duration')} for r in rows]  # noqa: E731
+        for fields in conditions:
+            for orders in (None, {'A_history': 2}):
+                for train_rows, test_rows in ((train, test), (plain(train), plain(test))):
+                    old = PreDec29Encoder(plain(train), vocab, fields, 3, orders)
+                    new = Encoder(train_rows, vocab, fields, 3, orders)
+                    self.assertEqual(new.names, old.names)
+                    self.assertEqual(new.continuous_columns(), [])
+                    self.assertEqual(new.mean.tobytes(), old.mean.tobytes())
+                    self.assertEqual(new.scale.tobytes(), old.scale.tobytes())
+                    self.assertEqual(new.transform(test_rows).tobytes(), old.transform(plain(test)).tobytes())
+        fields = ['A_history', 'B_history', 'turn_category', 'gap_s', 'overlap_elapsed_s']
+        validation = duration_rows('validation', 20, 12)
+        config = dict(history_order=3, l2_grid=[.01, .1], max_iterations=1000, gradient_tolerance=1e-6)
+        _, chosen, grid = select_l2_and_fit(train, validation, vocab, fields, config)
+        with mock.patch.object(logistic, 'Encoder', PreDec29Encoder):
+            _, chosen_old, grid_old = select_l2_and_fit(plain(train), plain(validation), vocab, fields, config)
+        self.assertEqual((chosen['l2'], chosen['l2_s'], chosen['beta'], chosen['gamma']),
+                         (chosen_old['l2'], chosen_old['l2_s'], chosen_old['beta'], chosen_old['gamma']))
+        self.assertEqual(chosen['w'].tobytes(), chosen_old['w'].tobytes())
+        self.assertEqual([g['validation_log_likelihood_bits'] for g in grid], [g['validation_log_likelihood_bits'] for g in grid_old])

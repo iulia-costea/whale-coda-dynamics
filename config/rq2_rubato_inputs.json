@@ -1,0 +1,297 @@
+{
+  "targets": "data/processed/rq1_targets.jsonl",
+  "raw_source": "data/raw/dswp-2014-2016-retagged-maor-2025.csv",
+  "output_directory": "data/results/rq2_rubato_inputs",
+  "report": "reports/rq2_rubato_inputs.md",
+  "require_clean_tree": true,
+  "history_lags": 3,
+  "inventories": {
+    "A": {
+      "label": "A",
+      "description": "guy_coda_type, RQ1",
+      "logistic_config": "config/rq1_logistic_v4.json",
+      "v4_results_directory": "data/results/rq1_logistic_v4"
+    },
+    "D": {
+      "label": "D",
+      "description": "Sharma rhythm × tempo, KDE cuts",
+      "logistic_config": "config/rq2_d_rhythm_tempo_logistic_v4.json",
+      "v4_results_directory": "data/results/rq2_d_rhythm_tempo_logistic_v4"
+    },
+    "E_prime": {
+      "label": "E′",
+      "description": "guy_coda_type × tempo, tempos-dict.p cuts",
+      "logistic_config": "config/rq2_e_type_tempo_tdict_logistic_v4.json",
+      "v4_results_directory": "data/results/rq2_e_type_tempo_tdict_logistic_v4"
+    }
+  },
+  "fit_order": [
+    "D",
+    "A",
+    "E_prime"
+  ],
+  "variants": {
+    "R": [],
+    "DurA": [
+      "A_log_duration"
+    ],
+    "Dur": [
+      "A_log_duration",
+      "B_log_duration"
+    ]
+  },
+  "reference_variant": "R",
+  "reuse_check_fold": "test-2014-04-16",
+  "scored_conditions": [
+    "A",
+    "B",
+    "A_B",
+    "A_S",
+    "B_S",
+    "A_B_S"
+  ],
+  "primary": {
+    "name": "partner",
+    "inventory": "D",
+    "full": [
+      "Dur",
+      "A_B_S"
+    ],
+    "reduced": [
+      "Dur",
+      "A_S"
+    ]
+  },
+  "secondary": [
+    {
+      "name": "partner",
+      "inventory": "A",
+      "full": [
+        "Dur",
+        "A_B_S"
+      ],
+      "reduced": [
+        "Dur",
+        "A_S"
+      ]
+    },
+    {
+      "name": "partner",
+      "inventory": "E_prime",
+      "full": [
+        "Dur",
+        "A_B_S"
+      ],
+      "reduced": [
+        "Dur",
+        "A_S"
+      ]
+    },
+    {
+      "name": "partner's durations",
+      "inventory": "A",
+      "full": [
+        "Dur",
+        "A_B_S"
+      ],
+      "reduced": [
+        "DurA",
+        "A_B_S"
+      ]
+    },
+    {
+      "name": "partner's durations",
+      "inventory": "D",
+      "full": [
+        "Dur",
+        "A_B_S"
+      ],
+      "reduced": [
+        "DurA",
+        "A_B_S"
+      ]
+    },
+    {
+      "name": "partner's durations",
+      "inventory": "E_prime",
+      "full": [
+        "Dur",
+        "A_B_S"
+      ],
+      "reduced": [
+        "DurA",
+        "A_B_S"
+      ]
+    }
+  ],
+  "alpha": 0.05,
+  "gate": {
+    "enforce": true,
+    "maximum_penalty_differences": 1,
+    "log_likelihood_tolerance_bits": 1e-05,
+    "probability_listing_threshold": 1e-05
+  },
+  "checks": {
+    "enforce": true,
+    "tolerance": 0.0005,
+    "source": "computed independently before the run (DEC-29 prompt, 2026-10-09)",
+    "expected": {
+      "inventory_alignment:D": {
+        "rows": 2075,
+        "mismatched_rows": 0,
+        "other_fields_differing": []
+      },
+      "fold_alignment:D": {
+        "identical": true
+      },
+      "inventory_alignment:E_prime": {
+        "rows": 2075,
+        "mismatched_rows": 0,
+        "other_fields_differing": []
+      },
+      "fold_alignment:E_prime": {
+        "identical": true
+      },
+      "rows": {
+        "count": 2075
+      },
+      "comparison_targets": {
+        "count": 1547
+      },
+      "history_references": {
+        "count": 7914,
+        "unresolved": 0,
+        "ending_after_target_onset": 0
+      },
+      "duration_vs_raw": {
+        "max_abs_below": 1e-09
+      },
+      "own_lags": {
+        "counts": [
+          1547,
+          1324,
+          1088
+        ]
+      },
+      "partner_lags": {
+        "counts": [
+          1547,
+          1324,
+          1084
+        ]
+      },
+      "target_log_duration": {
+        "mean": -0.1795,
+        "sd": 0.5405
+      },
+      "lag1_r": {
+        "own": 0.94,
+        "partner": 0.772
+      },
+      "lag1_r_within_label": {
+        "own": 0.568,
+        "partner": 0.369
+      }
+    }
+  },
+  "process_notes": [
+    "Implementation choices, fixed before any fit: in a condition's field list each duration field follows its history field; a duration column is standardised with the mean and population SD of its non-missing training values (Encoder's rule for timing; SD 0 becomes 1); the reuse check refits every unchanged condition on the first manifest fold (test-2014-04-16) and requires identical penalty searches, models and test predictions; Dur's A and A_S, whose inputs are DurA's, are fitted, not reused, and must equal DurA's on every fold; 'detected' (for the Reading) means an interval entirely above zero and p < 0.05 (two-sided for the primary, Holm-adjusted for the secondaries), DEC-30's and DEC-31's rule, since DEC-29 does not define one; DEC-29's DurA − R bullet is applied descriptively (interval entirely above zero, no test), since DEC-29 gives it no test; the fitting flag is checked for DurA − R, Dur − DurA and Dur − R in every condition where the two variants differ; data checks: counts exactly, other statistics within 0.0005.",
+    "Before any fit with this configuration: the data checks were computed (a scratch computation, then the checks stage, their intended first step) and reproduced every expected value; to time the run, one fold of inventory D was fitted under Dur on its training and validation days only (conditions A and A_B_S, two penalty values; only the time and iteration counts were looked at); unit tests ran on synthetic rows, and variant R (logistic v4 itself) on one fold against the committed v4 run; the smoke test (one L2 value, 0.01, not this grid; 50 bootstrap replicates) produced reports on tiny settings that were checked by assertions and viewed only with every digit masked, to check the layout; that view still showed the signs of the smoke contrasts and which were flagged (one penalty value, so not this run's fits). No input, variant, inventory, grid or rule changed after any of them."
+  ],
+  "input_files": {
+    "checks": [
+      "config/rq2_rubato_inputs.json",
+      "data/processed/rq1_targets.jsonl",
+      "config/rq1_logistic_v4.json",
+      "data/processed/rq1_folds/manifest.json",
+      "config/rq1_evaluation_v4.json",
+      "config/rq2_d_rhythm_tempo_logistic_v4.json",
+      "data/processed/rq2_d_rhythm_tempo_folds/manifest.json",
+      "config/rq2_d_rhythm_tempo_evaluation_v4.json",
+      "data/processed/rq2_d_rhythm_tempo_targets.jsonl",
+      "config/rq2_e_type_tempo_tdict_logistic_v4.json",
+      "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json",
+      "config/rq2_e_type_tempo_tdict_evaluation_v4.json",
+      "data/processed/rq2_e_type_tempo_tdict_targets.jsonl",
+      "data/raw/dswp-2014-2016-retagged-maor-2025.csv"
+    ],
+    "fit": [
+      "config/rq2_rubato_inputs.json",
+      "data/processed/rq1_targets.jsonl",
+      "config/rq1_logistic_v4.json",
+      "data/processed/rq1_folds/manifest.json",
+      "config/rq1_evaluation_v4.json",
+      "config/rq2_d_rhythm_tempo_logistic_v4.json",
+      "data/processed/rq2_d_rhythm_tempo_folds/manifest.json",
+      "config/rq2_d_rhythm_tempo_evaluation_v4.json",
+      "data/processed/rq2_d_rhythm_tempo_targets.jsonl",
+      "config/rq2_e_type_tempo_tdict_logistic_v4.json",
+      "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json",
+      "config/rq2_e_type_tempo_tdict_evaluation_v4.json",
+      "data/processed/rq2_e_type_tempo_tdict_targets.jsonl",
+      "data/results/rq2_rubato_inputs/checks/summary.json",
+      "data/results/rq1_logistic_v4/predictions.jsonl",
+      "data/results/rq1_logistic_v4/l2_selection.jsonl",
+      "data/results/rq1_logistic_v4/evaluation/summary.json",
+      "data/results/rq2_d_rhythm_tempo_logistic_v4/predictions.jsonl",
+      "data/results/rq2_d_rhythm_tempo_logistic_v4/l2_selection.jsonl",
+      "data/results/rq2_d_rhythm_tempo_logistic_v4/evaluation/summary.json",
+      "data/results/rq2_e_type_tempo_tdict_logistic_v4/predictions.jsonl",
+      "data/results/rq2_e_type_tempo_tdict_logistic_v4/l2_selection.jsonl",
+      "data/results/rq2_e_type_tempo_tdict_logistic_v4/evaluation/summary.json"
+    ],
+    "report": [
+      "config/rq2_rubato_inputs.json",
+      "data/processed/rq1_targets.jsonl",
+      "config/rq1_logistic_v4.json",
+      "data/processed/rq1_folds/manifest.json",
+      "config/rq1_evaluation_v4.json",
+      "config/rq2_d_rhythm_tempo_logistic_v4.json",
+      "data/processed/rq2_d_rhythm_tempo_folds/manifest.json",
+      "config/rq2_d_rhythm_tempo_evaluation_v4.json",
+      "data/processed/rq2_d_rhythm_tempo_targets.jsonl",
+      "config/rq2_e_type_tempo_tdict_logistic_v4.json",
+      "data/processed/rq2_e_type_tempo_tdict_folds/manifest.json",
+      "config/rq2_e_type_tempo_tdict_evaluation_v4.json",
+      "data/processed/rq2_e_type_tempo_tdict_targets.jsonl",
+      "data/results/rq2_rubato_inputs/checks/summary.json",
+      "data/results/rq2_rubato_inputs/fit/summary.json",
+      "data/results/rq2_rubato_inputs/fit/D/R/summary.json",
+      "data/results/rq2_rubato_inputs/fit/D/R/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/R/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/R/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/DurA/summary.json",
+      "data/results/rq2_rubato_inputs/fit/D/DurA/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/DurA/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/DurA/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/Dur/summary.json",
+      "data/results/rq2_rubato_inputs/fit/D/Dur/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/Dur/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/D/Dur/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/R/summary.json",
+      "data/results/rq2_rubato_inputs/fit/A/R/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/R/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/R/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/DurA/summary.json",
+      "data/results/rq2_rubato_inputs/fit/A/DurA/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/DurA/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/DurA/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/Dur/summary.json",
+      "data/results/rq2_rubato_inputs/fit/A/Dur/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/Dur/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/A/Dur/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/R/summary.json",
+      "data/results/rq2_rubato_inputs/fit/E_prime/R/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/R/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/R/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/DurA/summary.json",
+      "data/results/rq2_rubato_inputs/fit/E_prime/DurA/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/DurA/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/DurA/coefficients.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/Dur/summary.json",
+      "data/results/rq2_rubato_inputs/fit/E_prime/Dur/l2_selection.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/Dur/scored.jsonl",
+      "data/results/rq2_rubato_inputs/fit/E_prime/Dur/coefficients.jsonl"
+    ]
+  }
+}
