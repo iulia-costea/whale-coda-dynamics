@@ -14,8 +14,15 @@ post-onset end point (flagged by delay_uses_post_onset_endpoint).
 DEC-28's switch-structure features (switch_structure.py) come from the whale's whole earlier stream
 in the exchange; the same property is tested for them: changing or deleting any coda at or after the
 target's onset leaves every feature unchanged.
+
+DEC-30's duration lattice (duration_lattice.py) reads the durations and click counts of the codas in
+A_history_ids and B_history_ids: changing or deleting any coda at or after the target's onset (type,
+caller, end, click count), and changing a coda still sounding at the onset, leaves every A, B and S
+column unchanged. The always-present columns are the target's own click count (and, in variant T, its
+type): the conditioning variables of the target by design (DEC-30), not onset-available inputs.
 """
 import importlib.util
+import math
 import random
 import unittest
 
@@ -141,6 +148,83 @@ class SwitchStructureOnsetTests(unittest.TestCase):
         self.assertEqual(before['distinct_1'], {'1+1+3': 1.0})
         self.assertNotEqual(switch_features_of([dict(events[0], coda_type='10i')] + events[1:], 'd'), before)
         self.assertEqual(switch_features_of(events[:1] + [dict(events[1], coda_type='10i')] + events[2:], 'd'), before)
+
+
+DURATION_SETTINGS = dict(history_lags=3, count_one_hot_min_training_targets=1)
+
+
+def with_clicks(rng, events):
+    return [dict(e, n_clicks=rng.randint(3, 12)) for e in events]
+
+
+def duration_lookup(events):
+    return {e['coda_id']: dict(log_duration=math.log(e['offset_s'] - e['onset_s']), clicks=e['n_clicks'],
+                               log_clicks=math.log(e['n_clicks'])) for e in events}
+
+
+def duration_rows(events):
+    return [dict(r, split='train') for r in build_features(events, provisional_assumptions_accepted=True, history_limit=4)]
+
+
+def duration_inputs_of(encoder, events, coda_id):
+    """The target's A, B and S columns of the full design (A, B, S), from an encoder fitted on the original
+    exchange; the always-present columns (the target's own click count) are left out."""
+    rows = duration_rows(events)
+    row = next(r for r in rows if r['coda_id'] == coda_id)
+    x = encoder.transform([row], duration_lookup(events))[0]
+    return [float(v) for v, g in zip(x, encoder.groups) if g in ('A', 'B', 'S')]
+
+
+@unittest.skipUnless(HAS_MODELING, 'needs numpy, scipy and torch (pip install ".[modeling]")')
+class DurationLatticeOnsetTests(unittest.TestCase):
+    def test_duration_inputs_ignore_codas_at_or_after_target_onset(self):
+        from whale_coda_dynamics.duration_lattice import DurationEncoder
+        rng = random.Random(11)
+        checked = deleted = 0
+        for _ in range(400):
+            events = with_clicks(rng, random_exchange(rng, rng.randint(4, 12)))
+            target = rng.choice(events)
+            onset = target['onset_s']
+            rows = duration_rows(events)
+            encoder = DurationEncoder(rows, duration_lookup(events), ('A', 'B', 'S'),
+                                      ['turn_category', 'gap_s', 'overlap_elapsed_s'], DURATION_SETTINGS)
+            expected = duration_inputs_of(encoder, events, target['coda_id'])
+            changed = []
+            for e in events:
+                e = dict(e)
+                if e['coda_id'] != target['coda_id'] and e['onset_s'] > onset and rng.random() < 0.3:
+                    deleted += 1
+                    continue
+                if e['coda_id'] == target['coda_id']:
+                    e.update(coda_type=rng.choice(TYPES), offset_s=round(e['onset_s'] + rng.uniform(0.3, 5.0), 3),
+                             n_clicks=rng.randint(3, 12))
+                elif e['onset_s'] > onset:
+                    e.update(coda_type=rng.choice(TYPES), whale_id=rng.choice(['w1', 'w2']),
+                             offset_s=round(e['onset_s'] + rng.uniform(0.3, 5.0), 3), n_clicks=rng.randint(3, 12))
+                elif e['offset_s'] > onset:  # still sounding at onset: type, end and click count not yet known
+                    e.update(coda_type=rng.choice(TYPES), offset_s=round(onset + rng.uniform(0.001, 5.0), 3),
+                             n_clicks=rng.randint(3, 12))
+                changed.append(e)
+            if len({e['whale_id'] for e in changed}) != 2:
+                continue
+            self.assertEqual(duration_inputs_of(encoder, changed, target['coda_id']), expected)
+            checked += 1
+        self.assertGreater(checked, 250)
+        self.assertGreater(deleted, 200)
+
+    def test_duration_inputs_use_earlier_completed_codas(self):
+        # Not vacuous: an earlier completed partner coda's duration and click count change the inputs.
+        from whale_coda_dynamics.duration_lattice import DurationEncoder
+        events = [dict(coda_id='a', whale_id='w1', exchange_id='x', coda_type='1+1+3', onset_s=0.0, offset_s=1.0, n_clicks=5),
+                  dict(coda_id='b', whale_id='w2', exchange_id='x', coda_type='5R1', onset_s=1.5, offset_s=2.5, n_clicks=5),
+                  dict(coda_id='c', whale_id='w1', exchange_id='x', coda_type='4R2', onset_s=3.0, offset_s=4.0, n_clicks=4),
+                  dict(coda_id='d', whale_id='w2', exchange_id='x', coda_type='4R2', onset_s=4.5, offset_s=5.5, n_clicks=4),
+                  dict(coda_id='e', whale_id='w1', exchange_id='x', coda_type='4R2', onset_s=6.0, offset_s=7.0, n_clicks=4)]
+        encoder = DurationEncoder(duration_rows(events), duration_lookup(events), ('A', 'B', 'S'),
+                                  ['turn_category', 'gap_s', 'overlap_elapsed_s'], DURATION_SETTINGS)
+        before = duration_inputs_of(encoder, events, 'e')
+        longer = events[:3] + [dict(events[3], offset_s=5.9, n_clicks=6)] + events[4:]
+        self.assertNotEqual(duration_inputs_of(encoder, longer, 'e'), before)
 
 
 if __name__ == '__main__':

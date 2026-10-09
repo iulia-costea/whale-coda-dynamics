@@ -471,6 +471,65 @@ class SwitchStructureSmokeTests(unittest.TestCase):
             self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
 
 
+@unittest.skipUnless(HAS_TORCH, 'needs torch (pip install ".[modeling]")')
+class DurationLatticeSmokeTests(unittest.TestCase):
+    def test_duration_lattice_runner(self):
+        """DEC-30: checks, fit (F and T, all conditions), calibrate, report; then the report alone regenerates byte for byte."""
+        raw = 'data/raw/dswp-2014-2016-retagged-maor-2025.csv'
+        with tempfile.TemporaryDirectory() as tmp:
+            box = Sandbox(tmp)
+            box.copy(raw)
+            box.evaluation('eval.json', PRIMARY, [42])
+            box.config('logistic_tiny.json', **LOGISTIC_V2)
+            external = ['config/duration.json', PRIMARY, 'data/processed/rq1_targets.jsonl', raw, 'config/logistic_tiny.json',
+                        'config/eval.json']
+            out = 'out/duration/'
+            fit = [out + 'fit/summary.json', out + 'fit/models.jsonl']
+            config = box.config(
+                'duration.json', manifest=PRIMARY, raw_source=raw, logistic_config='config/logistic_tiny.json',
+                evaluation_config='config/eval.json', output_directory='out/duration', report='out/duration.md',
+                require_clean_tree=False, history_lags=3, count_one_hot_min_training_targets=10, always_present_penalty=1e-4,
+                variants=dict(F=dict(target_type=False, label='type-free'), T=dict(target_type=True, label='type given')),
+                primary=dict(variant='F', contrast='partner'),
+                secondary=[dict(variant='F', contrast='own'), dict(variant='F', contrast='timing'), dict(variant='T', contrast='partner')],
+                alpha=0.05, calibration=dict(variant='F', contrast='partner', fractions=[0.3], sigma_condition='A_S'),
+                checks=dict(enforce=True, tolerance=5e-4, source='smoke test',
+                            expected={'rows': {'count': 2075}, 'own_lags': {'counts': [1547, 1324, 1088]}}),
+                input_files=dict(checks=external, fit=external + [out + 'checks/summary.json'],
+                                 calibrate=external + [out + 'checks/summary.json'] + fit,
+                                 report=external + [out + 'checks/summary.json'] + fit + [
+                                     out + 'fit/scored.jsonl', out + 'calibration/summary.json', out + 'calibration/scored.jsonl']))
+            box.run('duration_lattice', config, env=ONE_BLAS_THREAD)
+            summary = json.loads((box.root / 'out/duration/summary.json').read_text(encoding='utf-8'))
+            self.assertTrue(summary['checks']['passed'])
+            self.assertEqual(list(summary['input_sha256']), external + [out + 'checks/summary.json'] + fit + [
+                out + 'fit/scored.jsonl', out + 'calibration/summary.json', out + 'calibration/scored.jsonl'])
+            self.assertEqual([(t['role'], t['variant'], t['contrast']) for t in summary['tested']],
+                             [('primary', 'F', 'partner'), ('secondary', 'F', 'own'), ('secondary', 'F', 'timing'),
+                              ('secondary', 'T', 'partner')])
+            self.assertNotIn('holm_p', summary['tested'][0])
+            self.assertTrue(all('holm_p' in t for t in summary['tested'][1:]))
+            self.assertEqual(set(summary['results']), {'F', 'T'})
+            for r in summary['results'].values():
+                self.assertEqual(set(r['metrics']), CONDITIONS)
+                self.assertEqual(len(r['add_one_input']), 12)
+                self.assertEqual(len(r['stop_rules']['new']['checks']), 16)
+                self.assertEqual(set(r['v5']['selection_counts']), CONDITIONS)
+                self.assertEqual(len(r['lag1_slopes']['A_B_S']['B']['per_fold']), 14)
+            self.assertEqual(set(summary['calibration']['per_fraction']), {'0.3'})
+            planted = summary['calibration']['per_fraction']['0.3']
+            self.assertEqual(set(planted['sigma_ratio_median']), {'A_S', 'A_B_S'})
+            self.assertIn('ci_bits_per_coda', planted['increment_over_real'])
+            self.assertEqual(summary['fit']['fits'], 2 * 14 * 8)  # one value per axis
+            self.assertTrue((box.root / 'out/duration.md').read_text(encoding='utf-8').startswith('# RQ1 duration lattice'))
+            regenerated = ('out/duration.md', 'out/duration/summary.json')
+            before = {rel: (box.root / rel).read_bytes() for rel in regenerated}
+            box.run('duration_lattice', config, '--stage', 'report')
+            self.assertEqual({rel: (box.root / rel).read_bytes() for rel in regenerated}, before)
+            with self.assertRaises(AssertionError):  # fitting refuses more than one BLAS thread
+                box.run('duration_lattice', config, '--stage', 'fit', env={'OPENBLAS_NUM_THREADS': '4'})
+
+
 RQ3_INPUTS = ('data/processed/rq3/rq3_codas.csv','data/processed/rq3/rq3_folds.csv',
               'data/results/rq3/calibration/self_scores.csv', 'data/results/rq3/calibration/self_calibration.csv',
               'data/results/rq3/transfer_matrix/scores.csv', 'data/results/rq3/transfer_matrix/summary.csv')

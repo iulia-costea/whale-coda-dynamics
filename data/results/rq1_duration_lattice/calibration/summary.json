@@ -1,0 +1,55 @@
+{
+  "configuration": {
+    "variant": "F",
+    "contrast": "partner",
+    "fractions": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "sigma_condition": "A_S"
+  },
+  "sigma_by_fold": {
+    "test-2014-04-16": 0.15613291454193004,
+    "test-2015-04-01": 0.1663287181568074,
+    "test-2015-04-10": 0.17050291670552137,
+    "test-2016-05-13": 0.1685639097210639,
+    "test-2014-04-24": 0.16744073254241665,
+    "test-2015-04-07": 0.19026233820201702,
+    "test-2016-05-12": 0.24350681735652904,
+    "test-2014-04-29": 0.15699066195303826,
+    "test-2015-03-19": 0.16787513445054633,
+    "test-2016-04-24": 0.1686570393166231,
+    "test-2016-04-12": 0.1749430336267189,
+    "test-2015-03-02": 0.1869288767815639,
+    "test-2015-03-31": 0.1816537422176892,
+    "test-2015-03-26": 0.20343469671963058
+  },
+  "fits": 6804,
+  "seconds": 12.286817826097831,
+  "environment": {
+    "python": "3.10.21",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "blas_threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    }
+  },
+  "git": {
+    "commit": "784b14d5693375ebdf7da4bfbabc71b293b8a4c4",
+    "dirty_paths": []
+  },
+  "input_sha256": {
+    "config/rq1_duration_lattice.json": "d088e14a9aad06188054586451ddbcfca756e8aa102cd2b8e2cd861ba6f32409",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "data/raw/dswp-2014-2016-retagged-maor-2025.csv": "17b37605e56a21fb96bff301a2d43c4139693f7def23d4e3801d046026069856",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "config/rq1_evaluation_v4.json": "17ea02e16f8dbebb4fde8a3ea6c0785be1ed8ef1b03d89535cd920043aa5d6a0",
+    "data/results/rq1_duration_lattice/checks/summary.json": "a7885815135bdd8728e3afb5917b4d74094b1b3523e3ba7ee075980c9a3ac6c4",
+    "data/results/rq1_duration_lattice/fit/summary.json": "e5134797e27b34a479d2748309d235de75d58ddff1c11edac9fe5ddea84d4ccf",
+    "data/results/rq1_duration_lattice/fit/models.jsonl": "2645bfb0a983ca2adee5681bd7cb4c9b03f4f10b575f6cce46025316042aa933"
+  }
+}

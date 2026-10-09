@@ -1,0 +1,79 @@
+{
+  "units": "bits per coda (log2 Gaussian density of ln d)",
+  "comparison_targets": 1547,
+  "folds": 14,
+  "variants": {
+    "F": {
+      "target_type": false,
+      "label": "type-free"
+    },
+    "T": {
+      "target_type": true,
+      "label": "the target's type given"
+    }
+  },
+  "conditions": [
+    "none",
+    "S",
+    "A",
+    "B",
+    "A_B",
+    "A_S",
+    "B_S",
+    "A_B_S"
+  ],
+  "fits": 7840,
+  "fit_seconds": {
+    "F": 3.1176898619160056,
+    "T": 3.901652520056814
+  },
+  "total_seconds": 13.435303129022941,
+  "mean_log_density_bits": {
+    "F": {
+      "none": -1.2546559595143107,
+      "S": -1.19892722216606,
+      "A": 0.38363920002573637,
+      "B": -0.5361973897468986,
+      "A_B": 0.41342189213409436,
+      "A_S": 0.37628029709843214,
+      "B_S": -0.5235436313697944,
+      "A_B_S": 0.4022597454255928
+    },
+    "T": {
+      "none": -0.021102336126797693,
+      "S": -0.022050454388501672,
+      "A": 0.667500244009333,
+      "B": 0.18544605000756573,
+      "A_B": 0.7319367234625023,
+      "A_S": 0.669925083857789,
+      "B_S": 0.21013987852356816,
+      "A_B_S": 0.7466524096764449
+    },
+    "copy_own_last": {
+      "copy_own_last": 0.29327732734100226
+    }
+  },
+  "environment": {
+    "python": "3.10.21",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "blas_threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    }
+  },
+  "git": {
+    "commit": "784b14d5693375ebdf7da4bfbabc71b293b8a4c4",
+    "dirty_paths": []
+  },
+  "input_sha256": {
+    "config/rq1_duration_lattice.json": "d088e14a9aad06188054586451ddbcfca756e8aa102cd2b8e2cd861ba6f32409",
+    "data/processed/rq1_folds/manifest.json": "66fb93262c981d2c3fa98f95d9e4d4ee091c9dc492fa7c36cca5b62a57fc676f",
+    "data/processed/rq1_targets.jsonl": "9c7245c36fcc392dec0e67db08b7d943cd89107eb1b34e3b2b8cc55e1934be02",
+    "data/raw/dswp-2014-2016-retagged-maor-2025.csv": "17b37605e56a21fb96bff301a2d43c4139693f7def23d4e3801d046026069856",
+    "config/rq1_logistic_v4.json": "3cb6fe984dce1ae2d4f0a675df1f1ef01cdfb68b2927f241b070762a391ad4d1",
+    "config/rq1_evaluation_v4.json": "17ea02e16f8dbebb4fde8a3ea6c0785be1ed8ef1b03d89535cd920043aa5d6a0",
+    "data/results/rq1_duration_lattice/checks/summary.json": "a7885815135bdd8728e3afb5917b4d74094b1b3523e3ba7ee075980c9a3ac6c4"
+  }
+}

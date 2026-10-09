@@ -1,0 +1,79 @@
+{
+  "manifest": "data/processed/rq1_folds/manifest.json",
+  "raw_source": "data/raw/dswp-2014-2016-retagged-maor-2025.csv",
+  "logistic_config": "config/rq1_logistic_v4.json",
+  "evaluation_config": "config/rq1_evaluation_v4.json",
+  "output_directory": "data/results/rq1_duration_lattice",
+  "report": "reports/rq1_duration_lattice.md",
+  "require_clean_tree": true,
+  "history_lags": 3,
+  "count_one_hot_min_training_targets": 10,
+  "always_present_penalty": 0.0001,
+  "variants": {
+    "F": {"target_type": false, "label": "type-free"},
+    "T": {"target_type": true, "label": "the target's type given"}
+  },
+  "primary": {"variant": "F", "contrast": "partner"},
+  "secondary": [
+    {"variant": "F", "contrast": "own"},
+    {"variant": "F", "contrast": "timing"},
+    {"variant": "T", "contrast": "partner"}
+  ],
+  "alpha": 0.05,
+  "calibration": {"variant": "F", "contrast": "partner", "fractions": [0.1, 0.2, 0.3], "sigma_condition": "A_S"},
+  "checks": {
+    "enforce": true,
+    "tolerance": 0.0005,
+    "source": "computed independently before the run (DEC-30 prompt, 2026-10-09)",
+    "expected": {
+      "rows": {"count": 2075},
+      "comparison_targets": {"count": 1547},
+      "history_references": {"count": 7914, "unresolved": 0, "ending_after_target_onset": 0},
+      "duration_vs_raw": {"max_abs_below": 1e-09},
+      "onset_vs_raw": {"max_abs": 0},
+      "nclicks_vs_intervals": {"count": 2},
+      "own_lags": {"counts": [1547, 1324, 1088]},
+      "partner_lags": {"counts": [1547, 1324, 1084]},
+      "targets_by_clicks": {"counts": {"3": 32, "4": 111, "5": 1222, "6": 52, "7": 22, "8": 21, "9": 19, "10": 9, "11": 2,
+                                       "12": 4, "13": 2, "14": 2, "15": 6, "16": 1, "17": 2, "18": 3, "19": 10, "20": 8,
+                                       "21": 7, "22": 3, "23": 7, "24": 1, "25": 1}},
+      "target_log_duration": {"mean": -0.1795, "sd": 0.5405},
+      "target_log_duration_residual_sd": {"click_count": 0.5138, "type": 0.2081},
+      "lag1_r": {"own": 0.940, "partner": 0.772},
+      "lag1_r_within_click_count": {"own": 0.933, "partner": 0.769},
+      "lag1_r_within_type": {"own": 0.568, "partner": 0.369},
+      "lag1_r_within_type:self_continuation": {"n": 461, "own": 0.616, "partner": 0.301},
+      "lag1_r_within_type:switch": {"n": 645, "own": 0.556, "partner": 0.376},
+      "lag1_r_within_type:overlap": {"n": 441, "own": 0.541, "partner": 0.445}
+    }
+  },
+  "process_notes": [
+    "The first implementation of the data checks centred the lag-1 variables on the targets' group means instead of their own (each variable's mean over the rows sharing its coda's click count or type). Those five rows differed from the expected values (within click count: own 0.937, partner 0.769; within type: 0.578, 0.372; self-continuation 0.614, 0.301; switch 0.566, 0.383; overlap 0.558, 0.447). The code was corrected to the stated definition, which reproduces every expected value, before any model was fitted; no expected value was changed.",
+    "During development the smoke test (one penalty value, 0.01, not this grid; 50 bootstrap replicates; f = 0.3 only) produced numbers. Its report was viewed only with every digit masked, to check the layout; that view still showed which smoke contrasts were flagged or detectable. No input, variant, grid, calibration or rule changed after it.",
+    "After the first full run (code 3805633), the planted partner contrasts (+0.053, +0.088, +0.127 bits/coda at f = 0.1, 0.2, 0.3) exceeded DEC-30's nominal sizes even after subtracting the real-data contrast: z_b1 correlates with the A,S residual, so planting along it adds a cross term (A,S's training sigma rose 1.7%, 3.7%, 6.2% against 0.5%, 2.0%, 4.4% for an independent z_b1). The report then gained the increment over the real-data contrast and the sigma ratios, and stopped calling the nominal sizes an upper bound. The planting, fractions, refits and detection rule did not change; every stage was rerun from a clean tree."
+  ],
+  "input_files": {
+    "checks": [
+      "config/rq1_duration_lattice.json", "data/processed/rq1_folds/manifest.json", "data/processed/rq1_targets.jsonl",
+      "data/raw/dswp-2014-2016-retagged-maor-2025.csv", "config/rq1_logistic_v4.json", "config/rq1_evaluation_v4.json"
+    ],
+    "fit": [
+      "config/rq1_duration_lattice.json", "data/processed/rq1_folds/manifest.json", "data/processed/rq1_targets.jsonl",
+      "data/raw/dswp-2014-2016-retagged-maor-2025.csv", "config/rq1_logistic_v4.json", "config/rq1_evaluation_v4.json",
+      "data/results/rq1_duration_lattice/checks/summary.json"
+    ],
+    "calibrate": [
+      "config/rq1_duration_lattice.json", "data/processed/rq1_folds/manifest.json", "data/processed/rq1_targets.jsonl",
+      "data/raw/dswp-2014-2016-retagged-maor-2025.csv", "config/rq1_logistic_v4.json", "config/rq1_evaluation_v4.json",
+      "data/results/rq1_duration_lattice/checks/summary.json", "data/results/rq1_duration_lattice/fit/summary.json",
+      "data/results/rq1_duration_lattice/fit/models.jsonl"
+    ],
+    "report": [
+      "config/rq1_duration_lattice.json", "data/processed/rq1_folds/manifest.json", "data/processed/rq1_targets.jsonl",
+      "data/raw/dswp-2014-2016-retagged-maor-2025.csv", "config/rq1_logistic_v4.json", "config/rq1_evaluation_v4.json",
+      "data/results/rq1_duration_lattice/checks/summary.json", "data/results/rq1_duration_lattice/fit/summary.json",
+      "data/results/rq1_duration_lattice/fit/models.jsonl", "data/results/rq1_duration_lattice/fit/scored.jsonl",
+      "data/results/rq1_duration_lattice/calibration/summary.json", "data/results/rq1_duration_lattice/calibration/scored.jsonl"
+    ]
+  }
+}
