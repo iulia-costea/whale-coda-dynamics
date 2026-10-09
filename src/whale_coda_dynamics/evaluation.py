@@ -25,6 +25,18 @@ def log_likelihood_bits(probability):
     return math.log2(probability)
 
 
+def gaussian_log_density_bits(value, mean, variance):
+    """log2 of the normal density N(value; mean, variance) of a continuous target (DEC-30), in bits per
+    coda. A density, not a probability: it depends on the target's unit, so only differences between
+    models of the same target are meaningful."""
+    if any(not isinstance(v, numbers.Real) or isinstance(v, bool) or not math.isfinite(v)
+           for v in (value, mean, variance)):
+        raise ValueError("Gaussian log density requires finite real values")
+    if variance <= 0:
+        raise ValueError("Gaussian log density requires a positive variance")
+    return -0.5 * math.log2(2 * math.pi * variance) - (value - mean) ** 2 / (2 * variance * math.log(2))
+
+
 def repeat_switch_bits(probabilities, target, own_last):
     """Exact decomposition in the mapped vocabulary, including UNK merges."""
     total = log_likelihood_bits(probabilities[target])
